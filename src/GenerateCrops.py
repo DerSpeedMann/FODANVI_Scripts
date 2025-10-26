@@ -4,9 +4,12 @@ from pathlib import Path
 from typing import List, Tuple
 import numpy as np
 import cv2
+import math
 
 # Global configuration
 CROP_SUFFIX: str = "_cropped"
+# Radius reduction factor to exclude vignette (0.0 = no reduction, 0.1 = 10% smaller radius)
+RADIUS_REDUCTION_FACTOR: float = 0.10
 
 def has_crop_suffix(filename: str) -> bool:
     """Check if filename contains the crop suffix"""
@@ -48,19 +51,31 @@ def find_circular_nvg_bounds(img_array: np.ndarray) -> Tuple[int, int, int, int]
     
     if circles is not None:
         circles = np.uint16(np.around(circles))
-        # Take the largest circle (first one is usually the most prominent)
+        # Take the largest/most prominent circle
         circle = circles[0, 0]
-        center_x, center_y, radius = int(circle[0]), int(circle[1]), int(circle[2])
+        center_x: int = int(circle[0])
+        center_y: int = int(circle[1])
+        detected_radius: int = int(circle[2])
         
-        print(f"Detected circle: center=({center_x}, {center_y}), radius={radius}")
+        print(f"Detected circle: center=({center_x}, {center_y}), radius={detected_radius}")
         
-        # Calculate bounding box with some margin to avoid cutting off edges
-        margin: int = 5  # Small margin in pixels
-        left: int = max(0, center_x - radius + margin)
-        top: int = max(0, center_y - radius + margin)
-        right: int = min(width, center_x + radius - margin)
-        bottom: int = min(height, center_y + radius - margin)
+        # Apply radius reduction to exclude vignette
+        cropped_radius: int = int(detected_radius * (1.0 - RADIUS_REDUCTION_FACTOR))
         
+        print(f"Reduced radius by {RADIUS_REDUCTION_FACTOR*100:.1f}%: {detected_radius} -> {cropped_radius}")
+
+        # Calculate inscribed square inside the circle
+        # For a square inscribed in a circle with radius r:
+        # The side length of the square is r * sqrt(2)
+        # This ensures the square fits entirely within the circle
+        half_side: int = int(cropped_radius / math.sqrt(2))
+
+        left: int = max(0, center_x - half_side)
+        top: int = max(0, center_y - half_side)
+        right: int = min(width, center_x + half_side)
+        bottom: int = min(height, center_y + half_side)
+
+        print(f"Inscribed square half-side length: {half_side} (from radius {cropped_radius})")
         print(f"Bounding box: left={left}, top={top}, right={right}, bottom={bottom}")
         print(f"Crop dimensions: {right-left}x{bottom-top}")
         
@@ -78,21 +93,33 @@ def find_circular_nvg_bounds(img_array: np.ndarray) -> Tuple[int, int, int, int]
     if not np.any(rows) or not np.any(cols):
         return None
     
-    top = int(np.argmax(rows))
-    bottom = int(len(rows) - np.argmax(rows[::-1]))
-    left = int(np.argmax(cols))
-    right = int(len(cols) - np.argmax(cols[::-1]))
+    top_bound: int = int(np.argmax(rows))
+    bottom_bound: int = int(len(rows) - np.argmax(rows[::-1]))
+    left_bound: int = int(np.argmax(cols))
+    right_bound: int = int(len(cols) - np.argmax(cols[::-1]))
     
-    # Apply small margin
-    margin_percent: float = 0.05
-    width_margin: int = int((right - left) * margin_percent)
-    height_margin: int = int((bottom - top) * margin_percent)
+    # Estimate center and radius
+    center_x = (left_bound + right_bound) // 2
+    center_y = (top_bound + bottom_bound) // 2
+    radius_x: int = (right_bound - left_bound) // 2
+    radius_y: int = (bottom_bound - top_bound) // 2
+    estimated_radius: int = min(radius_x, radius_y)
     
-    left = max(0, left + width_margin)
-    right = min(width, right - width_margin)
-    top = max(0, top + height_margin)
-    bottom = min(height, bottom - height_margin)
-    
+    # Apply radius reduction
+    cropped_radius = int(estimated_radius * (1.0 - RADIUS_REDUCTION_FACTOR))
+
+    print(f"Fallback - estimated center=({center_x}, {center_y}), radius={estimated_radius}")
+    print(f"Reduced radius by {RADIUS_REDUCTION_FACTOR*100:.1f}%: {estimated_radius} -> {cropped_radius}")
+
+    # Calculate inscribed square inside the circle
+    half_side = int(cropped_radius / math.sqrt(2))
+
+    left = max(0, center_x - half_side)
+    right = min(width, center_x + half_side)
+    top = max(0, center_y - half_side)
+    bottom = min(height, center_y + half_side)
+
+    print(f"Fallback - inscribed square half-side length: {half_side} (from radius {cropped_radius})")
     print(f"Fallback bounds: left={left}, top={top}, right={right}, bottom={bottom}")
     
     return (left, top, right, bottom)
@@ -192,6 +219,7 @@ def crop_nvg_images(input_folder: str, output_folder: str | None = None,
     print(f"Failed: {failed_count}")
     print(f"Total processed: {cropped_count + skipped_count + failed_count}")
     print(f"Output folder: {output_path.absolute()}")
+    print(f"Radius reduction applied: {RADIUS_REDUCTION_FACTOR*100:.1f}%")
     if detected_bounds and not per_image_detection:
         print(f"Crop bounds used for all images: {detected_bounds}")
 
