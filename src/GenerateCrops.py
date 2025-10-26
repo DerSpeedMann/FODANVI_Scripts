@@ -3,98 +3,102 @@ from PIL import Image
 from pathlib import Path
 from typing import List, Tuple
 import numpy as np
-from scipy import ndimage
+import cv2
 
 # Global configuration
 CROP_SUFFIX: str = "_cropped"
-# Percentage to crop from each edge to remove vignetting (0.0 to 0.5)
-VIGNETTE_CROP_PERCENT: float = 0.05
 
 def has_crop_suffix(filename: str) -> bool:
     """Check if filename contains the crop suffix"""
     stem: str = Path(filename).stem
     return CROP_SUFFIX in stem
 
-def find_largest_component_bounds(img_array: np.ndarray, threshold: int = 30) -> Tuple[int, int, int, int] | None:
+def find_circular_nvg_bounds(img_array: np.ndarray) -> Tuple[int, int, int, int] | None:
     """
-    Find the bounding box of the largest connected non-black component.
+    Find the circular NVG view boundary using edge detection and circular Hough transform.
     Returns (left, top, right, bottom) or None if not found.
     """
     # Convert to grayscale if color
     if len(img_array.shape) == 3:
-        gray: np.ndarray = np.mean(img_array, axis=2).astype(np.uint8)
+        gray: np.ndarray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
     else:
         gray = img_array
     
+    height, width = gray.shape
     print(f"Image shape: {img_array.shape}")
-    print(f"Min pixel value: {np.min(gray)}, Max pixel value: {np.max(gray)}")
-    print(f"Mean pixel value: {np.mean(gray):.1f}")
+    print(f"Min: {np.min(gray)}, Max: {np.max(gray)}, Mean: {np.mean(gray):.1f}")
     
-    # Create binary mask of non-black pixels with higher threshold
+    # Apply Gaussian blur to reduce noise
+    blurred: np.ndarray = cv2.GaussianBlur(gray, (9, 9), 2)
+    
+    # Detect edges
+    edges: np.ndarray = cv2.Canny(blurred, 30, 100)
+    
+    # Detect circles using Hough Circle Transform
+    circles: np.ndarray | None = cv2.HoughCircles(
+        edges,
+        cv2.HOUGH_GRADIENT,
+        dp=1,
+        minDist=height//2,  # Only one main circle expected
+        param1=50,
+        param2=30,
+        minRadius=height//4,  # Assume circle is at least 1/4 of image height
+        maxRadius=max(height, width)//2  # At most half the image size
+    )
+    
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        # Take the largest circle (first one is usually the most prominent)
+        circle = circles[0, 0]
+        center_x, center_y, radius = int(circle[0]), int(circle[1]), int(circle[2])
+        
+        print(f"Detected circle: center=({center_x}, {center_y}), radius={radius}")
+        
+        # Calculate bounding box with some margin to avoid cutting off edges
+        margin: int = 5  # Small margin in pixels
+        left: int = max(0, center_x - radius + margin)
+        top: int = max(0, center_y - radius + margin)
+        right: int = min(width, center_x + radius - margin)
+        bottom: int = min(height, center_y + radius - margin)
+        
+        print(f"Bounding box: left={left}, top={top}, right={right}, bottom={bottom}")
+        print(f"Crop dimensions: {right-left}x{bottom-top}")
+        
+        return (left, top, right, bottom)
+    
+    print("No circle detected, falling back to brightness-based detection")
+    
+    # Fallback: use brightness threshold
+    threshold: int = 15
     binary_mask: np.ndarray = gray > threshold
     
-    print(f"Non-black pixels (threshold={threshold}): {np.sum(binary_mask)}")
-    
-    # Apply morphological closing to fill small holes
-    from scipy.ndimage import binary_closing
-    binary_mask = binary_closing(binary_mask, structure=np.ones((5, 5)))
-    
-    # Label connected components
-    labeled_array: np.ndarray
-    num_features: int
-    labeled_array, num_features = ndimage.label(binary_mask)
-    
-    print(f"Found {num_features} connected components")
-    
-    if num_features == 0:
-        print("No components detected!")
-        return None
-    
-    # Find the largest component
-    component_sizes: np.ndarray = np.bincount(labeled_array.ravel())
-    component_sizes[0] = 0  # Ignore background (label 0)
-    
-    largest_component_label: int = int(np.argmax(component_sizes))
-    largest_component_size: int = int(component_sizes[largest_component_label])
-    
-    print(f"Largest component: label={largest_component_label}, size={largest_component_size} pixels")
-    
-    # Create mask of largest component
-    largest_component_mask: np.ndarray = labeled_array == largest_component_label
-    
-    # Find bounding box of largest component
-    rows: np.ndarray = np.any(largest_component_mask, axis=1)
-    cols: np.ndarray = np.any(largest_component_mask, axis=0)
+    rows: np.ndarray = np.any(binary_mask, axis=1)
+    cols: np.ndarray = np.any(binary_mask, axis=0)
     
     if not np.any(rows) or not np.any(cols):
-        print("Could not find bounds of largest component!")
         return None
     
-    top: int = int(np.argmax(rows))
-    bottom: int = int(len(rows) - np.argmax(rows[::-1]))
-    left: int = int(np.argmax(cols))
-    right: int = int(len(cols) - np.argmax(cols[::-1]))
+    top = int(np.argmax(rows))
+    bottom = int(len(rows) - np.argmax(rows[::-1]))
+    left = int(np.argmax(cols))
+    right = int(len(cols) - np.argmax(cols[::-1]))
     
-    # Apply vignette cropping - remove edges to eliminate dark circular border
-    width: int = right - left
-    height: int = bottom - top
+    # Apply small margin
+    margin_percent: float = 0.05
+    width_margin: int = int((right - left) * margin_percent)
+    height_margin: int = int((bottom - top) * margin_percent)
     
-    crop_pixels_horizontal: int = int(width * VIGNETTE_CROP_PERCENT)
-    crop_pixels_vertical: int = int(height * VIGNETTE_CROP_PERCENT)
+    left = max(0, left + width_margin)
+    right = min(width, right - width_margin)
+    top = max(0, top + height_margin)
+    bottom = min(height, bottom - height_margin)
     
-    left += crop_pixels_horizontal
-    right -= crop_pixels_horizontal
-    top += crop_pixels_vertical
-    bottom -= crop_pixels_vertical
-    
-    print(f"Initial bounds: left={left-crop_pixels_horizontal}, top={top-crop_pixels_vertical}, right={right+crop_pixels_horizontal}, bottom={bottom+crop_pixels_vertical}")
-    print(f"After vignette crop: left={left}, top={top}, right={right}, bottom={bottom}")
-    print(f"Final crop dimensions: {right-left}x{bottom-top}")
+    print(f"Fallback bounds: left={left}, top={top}, right={right}, bottom={bottom}")
     
     return (left, top, right, bottom)
 
 def crop_nvg_images(input_folder: str, output_folder: str | None = None, 
-                    threshold: int = 30, per_image_detection: bool = False,
+                    per_image_detection: bool = True,
                     manual_crop: Tuple[int, int, int, int] | None = None) -> None:
     """
     Crop night vision images to remove black circular borders.
@@ -102,8 +106,7 @@ def crop_nvg_images(input_folder: str, output_folder: str | None = None,
     Args:
         input_folder: Path to folder containing input images
         output_folder: Path to folder for output images. If None, uses input_folder
-        threshold: Pixel brightness threshold for detecting non-black areas (default 30)
-        per_image_detection: If True, detect bounds for each image separately. If False, use first image bounds for all.
+        per_image_detection: If True, detect bounds for each image separately
         manual_crop: Manual crop box as (left, top, right, bottom). Overrides auto-detection.
     """
     input_path: Path = Path(input_folder)
@@ -153,14 +156,14 @@ def crop_nvg_images(input_folder: str, output_folder: str | None = None,
                 print(f"Processing: {image_file.name}")
                 print(f"{'='*60}")
                 img_array: np.ndarray = np.array(img)
-                current_bounds: Tuple[int, int, int, int] | None = find_largest_component_bounds(img_array, threshold)
+                current_bounds: Tuple[int, int, int, int] | None = find_circular_nvg_bounds(img_array)
                 
                 if current_bounds:
-                    print(f"✓ Auto-detected crop bounds: {current_bounds}\n")
+                    print(f"✓ Detected crop bounds: {current_bounds}\n")
                     if not per_image_detection:
                         detected_bounds = current_bounds
                 else:
-                    print(f"✗ Could not auto-detect bounds for {image_file.name}\n")
+                    print(f"✗ Could not detect bounds for {image_file.name}\n")
                     failed_count += 1
                     continue
             else:
@@ -215,6 +218,4 @@ if __name__ == "__main__":
             print(f"Saving cropped images to: {input_folder_path} (same as input)")
         print()
         
-        # Use higher threshold (30) and detect per image if they vary
-        crop_nvg_images(input_folder_path, output_folder_path, 
-                       threshold=30, per_image_detection=True)
+        crop_nvg_images(input_folder_path, output_folder_path, per_image_detection=True)
