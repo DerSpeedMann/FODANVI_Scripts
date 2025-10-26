@@ -74,34 +74,27 @@ def fix_image_orientation(input_folder: str, output_folder: str | None = None,
             
             # Apply EXIF orientation
             oriented_img: Image.Image = ImageOps.exif_transpose(img)
-            
+
             # Check if image was actually rotated
             if oriented_img is None:
                 oriented_img = img
-                if not in_place:
-                    print(f"No orientation change: {image_file.name}")
-                    no_change_count += 1
+
+            # Determine what happened with this image
+            if has_exif_orientation:
+                print(f"{'Fixing' if in_place else 'Fixed'}: {image_file.name} -> {output_file_path.name if not in_place else 'in-place'}")
+                fixed_count += 1
             else:
-                if has_exif_orientation:
-                    print(f"{'Fixing' if in_place else 'Fixed'}: {image_file.name} -> {output_file_path.name if not in_place else 'in-place'}")
-                    fixed_count += 1
-                else:
-                    if not in_place:
-                        print(f"No EXIF orientation: {image_file.name}")
-                        no_change_count += 1
-            
-            # Save the image
+                print(f"No rotation needed: {image_file.name} -> {output_file_path.name if not in_place else 'in-place'}")
+                no_change_count += 1
+
+            # Save the image (always save, even if no rotation was needed)
             # Preserve quality for JPEG
             save_kwargs = {}
             if image_file.suffix.lower() in ['.jpg', '.jpeg']:
                 save_kwargs['quality'] = 95
                 save_kwargs['subsampling'] = 0
-            
+
             oriented_img.save(output_file_path, **save_kwargs)
-            
-            if not has_exif_orientation and not in_place:
-                # Still count as processed even if no change
-                pass
                 
         except Exception as e:
             print(f"Error processing {image_file.name}: {e}")
