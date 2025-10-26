@@ -9,29 +9,40 @@ PROCESSED_SUFFIX: str = "_processed"
 
 def enhance_nvg_image(img_array: np.ndarray) -> np.ndarray:
     """
-    Enhance NVG image to be more similar to RGB training data
+    Enhance NVG image while preserving color information
     """
-    # Convert PIL RGB to BGR for OpenCV
-    if len(img_array.shape) == 3:
-        img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-        gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-    else:
-        gray = img_array
-    
-    # 1. Histogram equalization for better contrast
-    equalized = cv2.equalizeHist(gray)
-    
-    # 2. Apply CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    # Handle grayscale images
+    if len(img_array.shape) == 2:
+        # Grayscale processing
+        equalized = cv2.equalizeHist(img_array)
+        clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+        enhanced = clahe.apply(equalized)
+        denoised = cv2.fastNlMeansDenoising(enhanced, None, h=10, templateWindowSize=7, searchWindowSize=21)
+        # Convert to RGB by duplicating channel
+        return cv2.cvtColor(denoised, cv2.COLOR_GRAY2RGB)
+
+    # Color image processing - preserve color!
+    img_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+
+    # Apply CLAHE to each color channel separately to preserve color
+    # Convert to LAB color space to enhance only luminance
+    lab = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+
+    # Apply CLAHE to L channel (luminance) only
     clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-    enhanced = clahe.apply(equalized)
-    
-    # 3. Denoise
-    denoised = cv2.fastNlMeansDenoising(enhanced, None, h=10, templateWindowSize=7, searchWindowSize=21)
-    
-    # 4. Convert back to RGB (duplicate gray channel)
-    rgb_output = cv2.cvtColor(denoised, cv2.COLOR_GRAY2RGB)
-    
-    return cv2.cvtColor(rgb_output, cv2.COLOR_BGR2RGB)
+    l_enhanced = clahe.apply(l)
+
+    # Merge back
+    lab_enhanced = cv2.merge([l_enhanced, a, b])
+    enhanced_bgr = cv2.cvtColor(lab_enhanced, cv2.COLOR_LAB2BGR)
+
+    # Denoise in color
+    denoised = cv2.fastNlMeansDenoisingColored(enhanced_bgr, None, h=10, hColor=10,
+                                                templateWindowSize=7, searchWindowSize=21)
+
+    # Convert back to RGB
+    return cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB)
 
 def process_images_for_detection(input_folder: str, output_folder: str | None = None) -> None:
     """Preprocess NVG images to improve detection rates"""
