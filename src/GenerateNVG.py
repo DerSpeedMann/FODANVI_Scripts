@@ -12,7 +12,7 @@ NVG_SUFFIX: str = "_nvg"
 NOISE_INTENSITY: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
 BLOOM_THRESHOLD: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
 BLOOM_INTENSITY: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
-BLUR_AMOUNT: int = 7  # Slight blur kernel size (must be odd: 3, 5, 7, etc.) - more blur = tighter histogram
+BLUR_AMOUNT: int = 9  # Slight blur kernel size (must be odd: 3, 5, 7, 9, etc.) - smooths grain
 CONTRAST_ALPHA: float = 0.75  # Contrast adjustment (0.5-1.5) - reduced further to narrow spread more
 CONTRAST_BETA: int = 70  # Brightness adjustment (-100 to 100) - shift histogram significantly right
 VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
@@ -74,9 +74,38 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
 
     # Add noise (grain) - characteristic of image intensifiers
     # Real NVG grain is ADDITIVE (lightening), not subtractive
-    # Use positive bias to make grain green-tinted and brightening on average
-    noise = np.random.normal(NOISE_INTENSITY, NOISE_INTENSITY, gray.shape).astype(np.int16)
-    gray = cv2.add(gray.astype(np.int16), noise)
+    # Grain should be visible mainly in mid-tones, less in dark areas, and cutoff in very bright areas
+
+    # Create brightness-dependent noise mask (normalized 0-1)
+    normalized_brightness = gray.astype(np.float32) / 255.0
+
+    # Create a bell curve for grain: low grain in dark and bright areas, peak in mid-tones
+    # Use power functions to shape the distribution
+    dark_threshold = 0.3  # Below this, grain decreases rapidly
+    bright_threshold = 0.8  # Above this, grain decreases
+
+    # Calculate grain mask with bell curve shape
+    brightness_mask = np.where(
+        normalized_brightness < dark_threshold,
+        # Dark areas: quadratic falloff (very little grain in shadows)
+        (normalized_brightness / dark_threshold) ** 2.5,
+        np.where(
+            normalized_brightness > bright_threshold,
+            # Bright areas: decrease grain (bloom/saturation effect)
+            ((1.0 - normalized_brightness) / (1.0 - bright_threshold)) ** 1.5,
+            # Mid-tones: full grain
+            1.0
+        )
+    )
+
+    # Generate base noise
+    base_noise = np.random.normal(NOISE_INTENSITY, NOISE_INTENSITY, gray.shape)
+
+    # Scale noise by brightness mask
+    scaled_noise = (base_noise * brightness_mask).astype(np.int16)
+
+    # Apply noise
+    gray = cv2.add(gray.astype(np.int16), scaled_noise)
     gray = np.clip(gray, 0, 255).astype(np.uint8)
 
     # Create realistic NVG channels based on real histogram analysis
