@@ -9,12 +9,12 @@ import cv2
 NVG_SUFFIX: str = "_nvg"
 
 # NVG Effect Parameters
-NOISE_INTENSITY: float = 10.0  # Grain/noise intensity (0-50) - keeps distribution tight
+NOISE_INTENSITY: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
 BLOOM_THRESHOLD: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
 BLOOM_INTENSITY: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
 BLUR_AMOUNT: int = 7  # Slight blur kernel size (must be odd: 3, 5, 7, etc.) - more blur = tighter histogram
 CONTRAST_ALPHA: float = 0.75  # Contrast adjustment (0.5-1.5) - reduced further to narrow spread more
-CONTRAST_BETA: int = 45  # Brightness adjustment (-100 to 100) - center the distribution
+CONTRAST_BETA: int = 70  # Brightness adjustment (-100 to 100) - shift histogram significantly right
 VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
 def has_nvg_suffix(filename: str) -> bool:
@@ -61,7 +61,7 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     bloom = cv2.GaussianBlur(bright, (15, 15), 0)
     gray = cv2.addWeighted(gray, 1.0, bloom, BLOOM_INTENSITY, 0)
 
-    # Adjust contrast and brightness to center the histogram
+    # Adjust contrast and brightness to shift histogram further right (brighter)
     gray = cv2.convertScaleAbs(gray, alpha=CONTRAST_ALPHA, beta=CONTRAST_BETA)
 
     # Add vignetting (darker edges - characteristic of circular NVG view)
@@ -73,8 +73,9 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     gray = (gray * mask).astype(np.uint8)
 
     # Add noise (grain) - characteristic of image intensifiers
-    # Apply noise only to the gray channel
-    noise = np.random.normal(0, NOISE_INTENSITY, gray.shape).astype(np.int16)
+    # Real NVG grain is ADDITIVE (lightening), not subtractive
+    # Use positive bias to make grain green-tinted and brightening on average
+    noise = np.random.normal(NOISE_INTENSITY, NOISE_INTENSITY, gray.shape).astype(np.int16)
     gray = cv2.add(gray.astype(np.int16), noise)
     gray = np.clip(gray, 0, 255).astype(np.uint8)
 
