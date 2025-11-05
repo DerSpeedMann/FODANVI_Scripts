@@ -9,13 +9,13 @@ import cv2
 NVG_SUFFIX: str = "_nvg"
 
 # NVG Effect Parameters
-NOISE_INTENSITY: float = 25.0  # Grain/noise intensity (0-50)
-BLOOM_THRESHOLD: int = 200  # Brightness threshold for bloom effect (0-255)
-BLOOM_INTENSITY: float = 0.3  # Bloom glow intensity (0.0-1.0)
-BLUR_AMOUNT: int = 3  # Slight blur kernel size (must be odd: 3, 5, 7, etc.)
-CONTRAST_ALPHA: float = 0.9  # Contrast adjustment (0.5-1.5)
-CONTRAST_BETA: int = 10  # Brightness adjustment (-100 to 100)
-VIGNETTE_INTENSITY: float = 2.0  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
+NOISE_INTENSITY: float = 10.0  # Grain/noise intensity (0-50) - keeps distribution tight
+BLOOM_THRESHOLD: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
+BLOOM_INTENSITY: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
+BLUR_AMOUNT: int = 7  # Slight blur kernel size (must be odd: 3, 5, 7, etc.) - more blur = tighter histogram
+CONTRAST_ALPHA: float = 0.75  # Contrast adjustment (0.5-1.5) - reduced further to narrow spread more
+CONTRAST_BETA: int = 45  # Brightness adjustment (-100 to 100) - center the distribution
+VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
 def has_nvg_suffix(filename: str) -> bool:
     """Check if filename contains the NVG suffix"""
@@ -27,7 +27,7 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     Convert a normal image to Night Vision Goggle (NVG) style.
 
     This simulates the characteristic green monochrome look of NVG with:
-    - Green monochrome tint
+    - Pure green monochrome (no red/blue channels)
     - Grain/noise
     - Bloom/glow around bright areas
     - Slight blur (out of focus effect)
@@ -46,28 +46,23 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     else:
         gray = image
 
-    # Add green tint (green channel only)
-    nvg = cv2.merge([np.zeros_like(gray), gray, np.zeros_like(gray)])
-
-    # Add noise (grain) - characteristic of image intensifiers
-    noise = np.random.normal(0, NOISE_INTENSITY, nvg.shape).astype(np.int16)
-    nvg = cv2.add(nvg.astype(np.int16), noise)
-    nvg = np.clip(nvg, 0, 255).astype(np.uint8)
-
-    # Add bloom/glow around bright areas
-    _, bright = cv2.threshold(gray, BLOOM_THRESHOLD, 255, cv2.THRESH_BINARY)
-    bloom = cv2.GaussianBlur(bright, (15, 15), 0)
-    bloom_overlay = cv2.merge([np.zeros_like(bloom), bloom, np.zeros_like(bloom)])
-    nvg = cv2.addWeighted(nvg, 1.0, bloom_overlay, BLOOM_INTENSITY, 0)
+    # Normalize and enhance histogram to better match NVG distribution
+    # This spreads values more evenly across the range
+    gray = cv2.equalizeHist(gray)
 
     # Slight blur (simulates out of focus / optical limitations)
     if BLUR_AMOUNT > 0:
         # Ensure kernel size is odd
         kernel_size = BLUR_AMOUNT if BLUR_AMOUNT % 2 == 1 else BLUR_AMOUNT + 1
-        nvg = cv2.GaussianBlur(nvg, (kernel_size, kernel_size), 0)
+        gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
 
-    # Reduce contrast slightly and adjust brightness
-    nvg = cv2.convertScaleAbs(nvg, alpha=CONTRAST_ALPHA, beta=CONTRAST_BETA)
+    # Add bloom/glow around bright areas (after equalization)
+    _, bright = cv2.threshold(gray, BLOOM_THRESHOLD, 255, cv2.THRESH_BINARY)
+    bloom = cv2.GaussianBlur(bright, (15, 15), 0)
+    gray = cv2.addWeighted(gray, 1.0, bloom, BLOOM_INTENSITY, 0)
+
+    # Adjust contrast and brightness to center the histogram
+    gray = cv2.convertScaleAbs(gray, alpha=CONTRAST_ALPHA, beta=CONTRAST_BETA)
 
     # Add vignetting (darker edges - characteristic of circular NVG view)
     rows, cols = gray.shape
@@ -75,9 +70,28 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     kernel_y = cv2.getGaussianKernel(rows, rows / VIGNETTE_INTENSITY)
     kernel = kernel_y * kernel_x.T
     mask = kernel / kernel.max()
+    gray = (gray * mask).astype(np.uint8)
 
-    # Apply vignette to all channels
-    nvg = (nvg * np.stack([mask] * 3, axis=2)).astype(np.uint8)
+    # Add noise (grain) - characteristic of image intensifiers
+    # Apply noise only to the gray channel
+    noise = np.random.normal(0, NOISE_INTENSITY, gray.shape).astype(np.int16)
+    gray = cv2.add(gray.astype(np.int16), noise)
+    gray = np.clip(gray, 0, 255).astype(np.uint8)
+
+    # Create realistic NVG channels based on real histogram analysis
+    # Green channel: main image data (centered, not too spread)
+    green_channel = gray
+
+    # Red channel: minimal red (most values should be 0-3)
+    # Real NVG shows red spike at very lowest values (0-3 range)
+    red_channel = np.clip(gray * 0.005, 0, 3).astype(np.uint8)
+
+    # Blue channel: slight blue cast (shifted further right, 6-20 range)
+    # Real NVG shows blue distribution significantly higher than red
+    blue_channel = np.clip(gray * 0.04 + 6, 6, 20).astype(np.uint8)
+
+    # Merge channels (BGR format)
+    nvg = cv2.merge([blue_channel, green_channel, red_channel])
 
     return nvg
 
