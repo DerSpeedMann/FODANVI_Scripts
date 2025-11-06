@@ -6,7 +6,6 @@ import numpy as np
 import cv2
 
 # Global configuration
-NVG_SUFFIX: str = "_nvg"
 NVG_COLOR: str = "white"  # "green" or "white" - sets the NVG type (white = cyan color)
 
 # NVG Effect Parameters (Green NVG)
@@ -20,12 +19,20 @@ CONTRAST_BETA: int = 40  # Brightness adjustment (-100 to 100) - shift histogram
 VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
 
-def has_nvg_suffix(filename: str) -> bool:
-    """Check if filename contains the NVG suffix"""
-    stem: str = Path(filename).stem
-    return NVG_SUFFIX in stem
+def get_nvg_suffix(color: str) -> str:
+    """Get the NVG suffix based on color mode"""
+    if color.lower() == "white":
+        return "_nvg_white"
+    else:
+        return "_nvg_green"
 
-def simulate_nvg(image: np.ndarray) -> np.ndarray:
+def has_nvg_suffix(filename: str, color: str) -> bool:
+    """Check if filename contains the NVG suffix for the given color"""
+    stem: str = Path(filename).stem
+    suffix = get_nvg_suffix(color)
+    return suffix in stem
+
+def simulate_nvg(image: np.ndarray, nvg_color: str = NVG_COLOR) -> np.ndarray:
     """
     Convert a normal image to Night Vision Goggle (NVG) style.
 
@@ -68,7 +75,7 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     # White NVG uses higher brightness and lower contrast to reduce dark/bright extremes
     contrast_alpha = CONTRAST_ALPHA
     contrast_beta = CONTRAST_BETA
-    if NVG_COLOR.lower() == "white":
+    if nvg_color.lower() == "white":
         # White NVG: reduce contrast by ~17% to lift shadows, increase brightness by ~50%
         contrast_alpha = CONTRAST_ALPHA * 0.83
         contrast_beta = int(CONTRAST_BETA * 1.5)
@@ -133,7 +140,7 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     # Create realistic NVG channels based on real histogram analysis
     # Support green and white (cyan-colored) NVG types
 
-    if NVG_COLOR.lower() == "white":
+    if nvg_color.lower() == "white":
         # White NVG (very desaturated - nearly equal RGB with subtle cyan shift)
         # Histogram shows all channels close together with slight separation
 
@@ -164,13 +171,15 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
 
     return nvg
 
-def convert_to_nvg(input_folder: str, output_folder: str | None = None) -> None:
+def convert_to_nvg(input_folder: str, output_folder: str | None = None,
+                   nvg_color: str = NVG_COLOR) -> None:
     """
     Convert all images in a folder to NVG style.
 
     Args:
         input_folder: Path to folder containing input images
         output_folder: Path to folder for output images. If None, uses input_folder
+        nvg_color: NVG color mode ("green" or "white")
     """
     input_path: Path = Path(input_folder)
     output_path: Path = Path(output_folder) if output_folder else input_path
@@ -189,9 +198,12 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None) -> None:
     skipped_count: int = 0
     failed_count: int = 0
 
+    # Get color-specific suffix
+    nvg_suffix = get_nvg_suffix(nvg_color)
+
     print(f"Found {len(image_files)} images to process")
     print(f"\nNVG Effect Settings:")
-    print(f"  NVG Color:           {NVG_COLOR.upper()}")
+    print(f"  NVG Color:           {nvg_color.upper()}")
     print(f"  Noise Intensity:     {NOISE_INTENSITY}")
     print(f"  Grain Size:          {GRAIN_SIZE}")
     print(f"  Bloom Threshold:     {BLOOM_THRESHOLD}")
@@ -204,13 +216,13 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None) -> None:
 
     for image_file in image_files:
         # Skip if filename already has NVG suffix
-        if has_nvg_suffix(image_file.name):
+        if has_nvg_suffix(image_file.name, nvg_color):
             print(f"Skipping (already NVG): {image_file.name}")
             skipped_count += 1
             continue
 
         # Create output filename
-        output_name: str = f"{image_file.stem}{NVG_SUFFIX}{image_file.suffix}"
+        output_name: str = f"{image_file.stem}{nvg_suffix}{image_file.suffix}"
         output_file_path: Path = output_path / output_name
 
         # Check if NVG version already exists
@@ -232,7 +244,7 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None) -> None:
                 continue
 
             # Apply NVG effect
-            nvg_img = simulate_nvg(img_bgr)
+            nvg_img = simulate_nvg(img_bgr, nvg_color)
 
             # Save with high quality
             save_params = []
@@ -266,22 +278,30 @@ if __name__ == "__main__":
 
     input_folder_path: str
     output_folder_path: str | None = None
+    nvg_color: str = NVG_COLOR
 
     if len(sys.argv) > 1:
         input_folder_path = sys.argv[1]
         if len(sys.argv) > 2:
             output_folder_path = sys.argv[2]
+        if len(sys.argv) > 3:
+            nvg_color = sys.argv[3]
     else:
         input_folder_path = os.getcwd()
+
+    # Validate color parameter
+    if nvg_color.lower() not in ["green", "white"]:
+        print(f"Error: Invalid NVG color '{nvg_color}'. Must be 'green' or 'white'")
+        exit(1)
 
     if not os.path.exists(input_folder_path):
         print(f"Error: Input folder '{input_folder_path}' does not exist")
     else:
-        print(f"Converting images to NVG style from: {input_folder_path}")
+        print(f"Converting images to {nvg_color.upper()} NVG style from: {input_folder_path}")
         if output_folder_path:
             print(f"Saving NVG images to: {output_folder_path}")
         else:
             print(f"Saving NVG images to: {input_folder_path} (same as input)")
         print()
 
-        convert_to_nvg(input_folder_path, output_folder_path)
+        convert_to_nvg(input_folder_path, output_folder_path, nvg_color)
