@@ -65,13 +65,13 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     gray = cv2.addWeighted(gray, 1.0, bloom, BLOOM_INTENSITY, 0)
 
     # Adjust contrast and brightness to shift histogram further right (brighter)
-    # White NVG uses higher brightness and similar contrast to green NVG
+    # White NVG uses higher brightness and lower contrast to reduce dark/bright extremes
     contrast_alpha = CONTRAST_ALPHA
     contrast_beta = CONTRAST_BETA
     if NVG_COLOR.lower() == "white":
-        # White NVG: keep contrast similar, increase brightness by ~25%
-        contrast_alpha = CONTRAST_ALPHA * 1.0
-        contrast_beta = int(CONTRAST_BETA * 1.25)
+        # White NVG: reduce contrast by ~17% to lift shadows, increase brightness by ~50%
+        contrast_alpha = CONTRAST_ALPHA * 0.83
+        contrast_beta = int(CONTRAST_BETA * 1.5)
 
     gray = cv2.convertScaleAbs(gray, alpha=contrast_alpha, beta=contrast_beta)
 
@@ -136,11 +136,15 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     if NVG_COLOR.lower() == "white":
         # White NVG (very desaturated - nearly equal RGB with subtle cyan shift)
         # Histogram shows all channels close together with slight separation
-        blue_channel = gray
-        green_channel = gray
 
-        # Red channel: reduce to 60% of gray for more visible cyan tint
-        # Creates cyan tint while keeping it mostly neutral
+        # Green channel: boost for more green tint
+        green_channel = np.clip(gray * 1.08, 0, 255).astype(np.uint8)
+
+        # Blue channel: reduce slightly from full gray
+        blue_channel = np.clip(gray * 0.95, 0, 255).astype(np.uint8)
+
+        # Red channel: reduce to 60% of gray for cyan-green tint
+        # Creates cyan-green tint while keeping it mostly neutral
         red_channel = np.clip(gray * 0.60, 0, 255).astype(np.uint8)
 
     else:  # Default green NVG
