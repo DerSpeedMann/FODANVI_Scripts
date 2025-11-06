@@ -15,7 +15,7 @@ BLOOM_THRESHOLD: int = 235  # Brightness threshold for bloom effect (0-255) - mi
 BLOOM_INTENSITY: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
 BLUR_AMOUNT: int = 9  # Slight blur kernel size (must be odd: 3, 5, 7, 9, etc.) - smooths grain
 CONTRAST_ALPHA: float = 0.60  # Contrast adjustment (0.5-1.5) - compress range to reduce extremes
-CONTRAST_BETA: int = 50  # Brightness adjustment (-100 to 100) - shift histogram right
+CONTRAST_BETA: int = 40  # Brightness adjustment (-100 to 100) - shift histogram right
 VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
 def has_nvg_suffix(filename: str) -> bool:
