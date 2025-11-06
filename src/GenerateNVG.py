@@ -9,7 +9,7 @@ import cv2
 NVG_SUFFIX: str = "_nvg"
 NVG_COLOR: str = "white"  # "green" or "white" - sets the NVG type (white = cyan color)
 
-# NVG Effect Parameters
+# NVG Effect Parameters (Green NVG)
 NOISE_INTENSITY: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
 GRAIN_SIZE: int = 3  # Grain particle size (1, 3, 5, 7, etc.) - higher = coarser/larger grain
 BLOOM_THRESHOLD: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
@@ -18,6 +18,7 @@ BLUR_AMOUNT: int = 9  # Slight blur kernel size (must be odd: 3, 5, 7, 9, etc.) 
 CONTRAST_ALPHA: float = 0.60  # Contrast adjustment (0.5-1.5) - compress range to reduce extremes
 CONTRAST_BETA: int = 40  # Brightness adjustment (-100 to 100) - shift histogram right
 VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
+
 
 def has_nvg_suffix(filename: str) -> bool:
     """Check if filename contains the NVG suffix"""
@@ -64,7 +65,15 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     gray = cv2.addWeighted(gray, 1.0, bloom, BLOOM_INTENSITY, 0)
 
     # Adjust contrast and brightness to shift histogram further right (brighter)
-    gray = cv2.convertScaleAbs(gray, alpha=CONTRAST_ALPHA, beta=CONTRAST_BETA)
+    # White NVG uses higher brightness and similar contrast to green NVG
+    contrast_alpha = CONTRAST_ALPHA
+    contrast_beta = CONTRAST_BETA
+    if NVG_COLOR.lower() == "white":
+        # White NVG: keep contrast similar, increase brightness by ~25%
+        contrast_alpha = CONTRAST_ALPHA * 1.0
+        contrast_beta = int(CONTRAST_BETA * 1.25)
+
+    gray = cv2.convertScaleAbs(gray, alpha=contrast_alpha, beta=contrast_beta)
 
     # Add vignetting (darker edges - characteristic of circular NVG view)
     rows, cols = gray.shape
@@ -125,13 +134,14 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     # Support green and white (cyan-colored) NVG types
 
     if NVG_COLOR.lower() == "white":
-        # White NVG (cyan color - blue + green, minimal red)
-        # Despite the name "white", this produces cyan color
+        # White NVG (very desaturated - nearly equal RGB with subtle cyan shift)
+        # Histogram shows all channels close together with slight separation
         blue_channel = gray
         green_channel = gray
 
-        # Red channel: minimal red (0-3 range) to create cyan cast
-        red_channel = np.clip(gray * 0.005, 0, 3).astype(np.uint8)
+        # Red channel: reduce to 60% of gray for more visible cyan tint
+        # Creates cyan tint while keeping it mostly neutral
+        red_channel = np.clip(gray * 0.60, 0, 255).astype(np.uint8)
 
     else:  # Default green NVG
         # Green channel: main image data (centered, not too spread)
