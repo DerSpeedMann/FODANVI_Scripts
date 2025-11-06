@@ -7,6 +7,7 @@ import cv2
 
 # Global configuration
 NVG_SUFFIX: str = "_nvg"
+NVG_COLOR: str = "white"  # "green" or "white" - sets the NVG type (white = cyan color)
 
 # NVG Effect Parameters
 NOISE_INTENSITY: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
@@ -121,16 +122,28 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     gray = np.clip(gray, 0, 255).astype(np.uint8)
 
     # Create realistic NVG channels based on real histogram analysis
-    # Green channel: main image data (centered, not too spread)
-    green_channel = gray
+    # Support green and white (cyan-colored) NVG types
 
-    # Red channel: minimal red (most values should be 0-3)
-    # Real NVG shows red spike at very lowest values (0-3 range)
-    red_channel = np.clip(gray * 0.005, 0, 3).astype(np.uint8)
+    if NVG_COLOR.lower() == "white":
+        # White NVG (cyan color - blue + green, minimal red)
+        # Despite the name "white", this produces cyan color
+        blue_channel = gray
+        green_channel = gray
 
-    # Blue channel: slight blue cast (shifted further right, 6-20 range)
-    # Real NVG shows blue distribution significantly higher than red
-    blue_channel = np.clip(gray * 0.04 + 6, 6, 20).astype(np.uint8)
+        # Red channel: minimal red (0-3 range) to create cyan cast
+        red_channel = np.clip(gray * 0.005, 0, 3).astype(np.uint8)
+
+    else:  # Default green NVG
+        # Green channel: main image data (centered, not too spread)
+        green_channel = gray
+
+        # Red channel: minimal red (most values should be 0-3)
+        # Real NVG shows red spike at very lowest values (0-3 range)
+        red_channel = np.clip(gray * 0.005, 0, 3).astype(np.uint8)
+
+        # Blue channel: slight blue cast (shifted further right, 6-20 range)
+        # Real NVG shows blue distribution significantly higher than red
+        blue_channel = np.clip(gray * 0.04 + 6, 6, 20).astype(np.uint8)
 
     # Merge channels (BGR format)
     nvg = cv2.merge([blue_channel, green_channel, red_channel])
@@ -164,6 +177,7 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None) -> None:
 
     print(f"Found {len(image_files)} images to process")
     print(f"\nNVG Effect Settings:")
+    print(f"  NVG Color:           {NVG_COLOR.upper()}")
     print(f"  Noise Intensity:     {NOISE_INTENSITY}")
     print(f"  Grain Size:          {GRAIN_SIZE}")
     print(f"  Bloom Threshold:     {BLOOM_THRESHOLD}")
