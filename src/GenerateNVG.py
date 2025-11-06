@@ -10,11 +10,12 @@ NVG_SUFFIX: str = "_nvg"
 
 # NVG Effect Parameters
 NOISE_INTENSITY: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
+GRAIN_SIZE: int = 3  # Grain particle size (1, 3, 5, 7, etc.) - higher = coarser/larger grain
 BLOOM_THRESHOLD: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
 BLOOM_INTENSITY: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
 BLUR_AMOUNT: int = 9  # Slight blur kernel size (must be odd: 3, 5, 7, 9, etc.) - smooths grain
-CONTRAST_ALPHA: float = 0.75  # Contrast adjustment (0.5-1.5) - reduced further to narrow spread more
-CONTRAST_BETA: int = 70  # Brightness adjustment (-100 to 100) - shift histogram significantly right
+CONTRAST_ALPHA: float = 0.60  # Contrast adjustment (0.5-1.5) - compress range to reduce extremes
+CONTRAST_BETA: int = 50  # Brightness adjustment (-100 to 100) - shift histogram right
 VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
 def has_nvg_suffix(filename: str) -> bool:
@@ -50,7 +51,7 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
     # This spreads values more evenly across the range
     gray = cv2.equalizeHist(gray)
 
-    # Slight blur (simulates out of focus / optical limitations)
+    # Slight blur before grain (simulates out of focus / optical limitations)
     if BLUR_AMOUNT > 0:
         # Ensure kernel size is odd
         kernel_size = BLUR_AMOUNT if BLUR_AMOUNT % 2 == 1 else BLUR_AMOUNT + 1
@@ -98,11 +99,22 @@ def simulate_nvg(image: np.ndarray) -> np.ndarray:
         )
     )
 
-    # Generate base noise
-    base_noise = np.random.normal(NOISE_INTENSITY, NOISE_INTENSITY, gray.shape)
+    # Generate brightness-dependent noise
+    # The AMOUNT of grain varies (via standard deviation), not the intensity (mean stays constant)
+    # This keeps grain additive/lightening but varies its quantity
+    mean = NOISE_INTENSITY  # Constant mean (always lightening)
+    std_dev = NOISE_INTENSITY * brightness_mask  # Variable amount based on brightness
 
-    # Scale noise by brightness mask
-    scaled_noise = (base_noise * brightness_mask).astype(np.int16)
+    # Generate noise with spatially-varying standard deviation
+    base_noise = np.random.normal(mean, 1.0, gray.shape)
+
+    # Apply blur to noise to create larger grain particles (if GRAIN_SIZE > 1)
+    if GRAIN_SIZE > 1:
+        # Ensure kernel size is odd
+        grain_kernel = GRAIN_SIZE if GRAIN_SIZE % 2 == 1 else GRAIN_SIZE + 1
+        base_noise = cv2.GaussianBlur(base_noise.astype(np.float32), (grain_kernel, grain_kernel), 0)
+
+    scaled_noise = (base_noise * std_dev).astype(np.int16)
 
     # Apply noise
     gray = cv2.add(gray.astype(np.int16), scaled_noise)
@@ -153,6 +165,7 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None) -> None:
     print(f"Found {len(image_files)} images to process")
     print(f"\nNVG Effect Settings:")
     print(f"  Noise Intensity:     {NOISE_INTENSITY}")
+    print(f"  Grain Size:          {GRAIN_SIZE}")
     print(f"  Bloom Threshold:     {BLOOM_THRESHOLD}")
     print(f"  Bloom Intensity:     {BLOOM_INTENSITY}")
     print(f"  Blur Amount:         {BLUR_AMOUNT}")
