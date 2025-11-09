@@ -1,8 +1,8 @@
 import os
 from PIL import Image
 from pathlib import Path
-from typing import List, Dict
-from dataclasses import dataclass, field
+from typing import List
+from dataclasses import dataclass
 import numpy as np
 import cv2
 
@@ -10,14 +10,37 @@ import cv2
 @dataclass
 class ColorSettings:
     """Color-specific settings for NVG effect"""
+    suffix: str  # File suffix for this color mode (e.g., "_nvg_green")
+
     # Channel multipliers for color tinting
-    red_multiplier: float = 0.005  # Red channel multiplier (0.0-1.0)
-    green_multiplier: float = 1.0  # Green channel multiplier (0.0-1.0+)
-    blue_multiplier: float = 0.005  # Blue channel multiplier (0.0-1.0)
+    red_multiplier: float  # Red channel multiplier (0.0-1.0)
+    green_multiplier: float  # Green channel multiplier (0.0-1.0+)
+    blue_multiplier: float  # Blue channel multiplier (0.0-1.0)
 
     # Contrast/brightness adjustments (multipliers applied to base values)
-    contrast_multiplier: float = 1.0  # Multiply base contrast_alpha by this
-    brightness_multiplier: float = 1.0  # Multiply base contrast_beta by this
+    contrast_multiplier: float  # Multiply base contrast_alpha by this
+    brightness_multiplier: float  # Multiply base contrast_beta by this
+
+
+# Global color mode definitions
+COLOR_MODES = {
+    "green": ColorSettings(
+        suffix="_nvg_green",
+        red_multiplier=0.005,
+        green_multiplier=1.0,
+        blue_multiplier=0.005,
+        contrast_multiplier=1.0,
+        brightness_multiplier=1.0
+    ),
+    "white": ColorSettings(
+        suffix="_nvg_white",
+        red_multiplier=0.60,
+        green_multiplier=1.08,
+        blue_multiplier=0.95,
+        contrast_multiplier=0.83,  # White NVG: reduce contrast by ~17%
+        brightness_multiplier=1.5   # White NVG: increase brightness by ~50%
+    )
+}
 
 
 @dataclass
@@ -36,41 +59,19 @@ class NVGConfig:
     contrast_beta: int = 40  # Base brightness adjustment (-100 to 100) - shift histogram right
     vignette_intensity: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
-    # Color-specific settings
-    color_settings: Dict[str, ColorSettings] = field(default_factory=lambda: {
-        "green": ColorSettings(
-            red_multiplier=0.005,
-            green_multiplier=1.0,
-            blue_multiplier=0.005,
-            contrast_multiplier=1.0,
-            brightness_multiplier=1.0
-        ),
-        "white": ColorSettings(
-            red_multiplier=0.60,
-            green_multiplier=1.08,
-            blue_multiplier=0.95,
-            contrast_multiplier=0.83,  # White NVG: reduce contrast by ~17%
-            brightness_multiplier=1.5   # White NVG: increase brightness by ~50%
-        )
-    })
-
     def get_color_settings(self) -> ColorSettings:
         """Get the color settings for the current color mode"""
-        return self.color_settings.get(self.color.lower(), self.color_settings["green"])
+        return COLOR_MODES.get(self.color.lower(), COLOR_MODES["green"])
+
+    def get_suffix(self) -> str:
+        """Get the file suffix for the current color mode"""
+        return self.get_color_settings().suffix
 
 
-def get_nvg_suffix(color: str) -> str:
-    """Get the NVG suffix based on color mode"""
-    if color.lower() == "white":
-        return "_nvg_white"
-    else:
-        return "_nvg_green"
-
-def has_nvg_suffix(filename: str, color: str) -> bool:
-    """Check if filename contains the NVG suffix for the given color"""
+def has_nvg_suffix(filename: str, config: NVGConfig) -> bool:
+    """Check if filename contains the NVG suffix"""
     stem: str = Path(filename).stem
-    suffix = get_nvg_suffix(color)
-    return suffix in stem
+    return config.get_suffix() in stem
 
 def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
     """
@@ -219,9 +220,6 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
     skipped_count: int = 0
     failed_count: int = 0
 
-    # Get color-specific suffix
-    nvg_suffix = get_nvg_suffix(config.color)
-
     print(f"Found {len(image_files)} images to process")
     print(f"\nNVG Effect Settings:")
     print(f"  NVG Color:           {config.color.upper()}")
@@ -237,13 +235,13 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
 
     for image_file in image_files:
         # Skip if filename already has NVG suffix
-        if has_nvg_suffix(image_file.name, config.color):
+        if has_nvg_suffix(image_file.name, config):
             print(f"Skipping (already NVG): {image_file.name}")
             skipped_count += 1
             continue
 
         # Create output filename
-        output_name: str = f"{image_file.stem}{nvg_suffix}{image_file.suffix}"
+        output_name: str = f"{image_file.stem}{config.get_suffix()}{image_file.suffix}"
         output_file_path: Path = output_path / output_name
 
         # Check if NVG version already exists
