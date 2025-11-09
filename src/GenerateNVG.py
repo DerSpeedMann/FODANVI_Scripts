@@ -50,6 +50,7 @@ class NVGConfig:
     color: str = "white"  # "green" or "white" - sets the NVG type
 
     # Base effect parameters (used for all color modes)
+    equalize_histogram: bool = True  # Apply histogram equalization (can add grain-like appearance)
     noise_intensity: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
     grain_size: int = 3  # Grain particle size (1, 3, 5, 7, etc.) - higher = coarser/larger grain
     bloom_threshold: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
@@ -82,7 +83,8 @@ def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
 
     # Normalize and enhance histogram to better match NVG distribution
     # This spreads values more evenly across the range
-    gray = cv2.equalizeHist(gray)
+    if config.equalize_histogram:
+        gray = cv2.equalizeHist(gray)
 
     # Slight blur before grain (simulates out of focus / optical limitations)
     if config.blur_amount > 0:
@@ -287,6 +289,8 @@ if __name__ == "__main__":
     # NVG effect parameters
     parser.add_argument('--color', '-c', type=str, default='white', choices=['green', 'white'],
                         help='NVG color mode: green or white (default: white)')
+    parser.add_argument('--no-equalize', action='store_true',
+                        help='Disable histogram equalization (reduces grain-like appearance)')
     parser.add_argument('--noise-intensity', type=float, default=None,
                         help='Grain/noise intensity 0-50 (default: 8.0)')
     parser.add_argument('--grain-size', type=int, default=None,
@@ -311,6 +315,7 @@ if __name__ == "__main__":
 
     # Override with command-line arguments
     config.color = args.color
+    config.equalize_histogram = not args.no_equalize
     if args.noise_intensity is not None:
         config.noise_intensity = args.noise_intensity
     if args.grain_size is not None:
