@@ -74,24 +74,6 @@ def has_nvg_suffix(filename: str, config: NVGConfig) -> bool:
     return config.get_suffix() in stem
 
 def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
-    """
-    Convert a normal image to Night Vision Goggle (NVG) style.
-
-    This simulates the characteristic green monochrome look of NVG with:
-    - Pure green monochrome (no red/blue channels)
-    - Grain/noise
-    - Bloom/glow around bright areas
-    - Slight blur (out of focus effect)
-    - Reduced contrast
-    - Vignetting (darker edges)
-
-    Args:
-        image: Input image as numpy array (BGR format from OpenCV)
-        config: NVGConfig object with all effect parameters
-
-    Returns:
-        NVG-styled image as numpy array
-    """
     # Convert to grayscale
     if len(image.shape) == 3:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
