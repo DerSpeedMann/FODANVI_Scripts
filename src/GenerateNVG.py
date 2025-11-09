@@ -1,27 +1,62 @@
 import os
 from PIL import Image
 from pathlib import Path
-from typing import List
-from dataclasses import dataclass
+from typing import List, Dict
+from dataclasses import dataclass, field
 import numpy as np
 import cv2
+
+
+@dataclass
+class ColorSettings:
+    """Color-specific settings for NVG effect"""
+    # Channel multipliers for color tinting
+    red_multiplier: float = 0.005  # Red channel multiplier (0.0-1.0)
+    green_multiplier: float = 1.0  # Green channel multiplier (0.0-1.0+)
+    blue_multiplier: float = 0.005  # Blue channel multiplier (0.0-1.0)
+
+    # Contrast/brightness adjustments (multipliers applied to base values)
+    contrast_multiplier: float = 1.0  # Multiply base contrast_alpha by this
+    brightness_multiplier: float = 1.0  # Multiply base contrast_beta by this
 
 
 @dataclass
 class NVGConfig:
     """Configuration for NVG effect parameters"""
     # Color mode
-    color: str = "white"  # "green" or "white" - sets the NVG type (white = cyan color)
+    color: str = "white"  # "green" or "white" - sets the NVG type
 
-    # Effect parameters
+    # Base effect parameters (used for all color modes)
     noise_intensity: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
     grain_size: int = 3  # Grain particle size (1, 3, 5, 7, etc.) - higher = coarser/larger grain
     bloom_threshold: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
     bloom_intensity: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
     blur_amount: int = 9  # Slight blur kernel size (must be odd: 3, 5, 7, 9, etc.) - smooths grain
-    contrast_alpha: float = 0.60  # Contrast adjustment (0.5-1.5) - compress range to reduce extremes
-    contrast_beta: int = 40  # Brightness adjustment (-100 to 100) - shift histogram right
+    contrast_alpha: float = 0.60  # Base contrast adjustment (0.5-1.5) - compress range to reduce extremes
+    contrast_beta: int = 40  # Base brightness adjustment (-100 to 100) - shift histogram right
     vignette_intensity: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
+
+    # Color-specific settings
+    color_settings: Dict[str, ColorSettings] = field(default_factory=lambda: {
+        "green": ColorSettings(
+            red_multiplier=0.005,
+            green_multiplier=1.0,
+            blue_multiplier=0.005,
+            contrast_multiplier=1.0,
+            brightness_multiplier=1.0
+        ),
+        "white": ColorSettings(
+            red_multiplier=0.60,
+            green_multiplier=1.08,
+            blue_multiplier=0.95,
+            contrast_multiplier=0.83,  # White NVG: reduce contrast by ~17%
+            brightness_multiplier=1.5   # White NVG: increase brightness by ~50%
+        )
+    })
+
+    def get_color_settings(self) -> ColorSettings:
+        """Get the color settings for the current color mode"""
+        return self.color_settings.get(self.color.lower(), self.color_settings["green"])
 
 
 def get_nvg_suffix(color: str) -> str:
@@ -79,13 +114,10 @@ def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
         gray = cv2.addWeighted(gray, 1.0, bloom, config.bloom_intensity, 0)
 
     # Adjust contrast and brightness to shift histogram further right (brighter)
-    # White NVG uses higher brightness and lower contrast to reduce dark/bright extremes
-    final_contrast_alpha = config.contrast_alpha
-    final_contrast_beta = config.contrast_beta
-    if config.color.lower() == "white":
-        # White NVG: reduce contrast by ~17% to lift shadows, increase brightness by ~50%
-        final_contrast_alpha = config.contrast_alpha * 0.83
-        final_contrast_beta = int(config.contrast_beta * 1.5)
+    # Apply color-specific multipliers to base values
+    color_settings = config.get_color_settings()
+    final_contrast_alpha = config.contrast_alpha * color_settings.contrast_multiplier
+    final_contrast_beta = int(config.contrast_beta * color_settings.brightness_multiplier)
 
     gray = cv2.convertScaleAbs(gray, alpha=final_contrast_alpha, beta=final_contrast_beta)
 
@@ -146,34 +178,11 @@ def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
         gray = cv2.add(gray.astype(np.int16), scaled_noise)
         gray = np.clip(gray, 0, 255).astype(np.uint8)
 
-    # Create realistic NVG channels based on real histogram analysis
-    # Support green and white (cyan-colored) NVG types
-
-    if config.color.lower() == "white":
-        # White NVG (very desaturated - nearly equal RGB with subtle cyan shift)
-        # Histogram shows all channels close together with slight separation
-
-        # Green channel: boost for more green tint
-        green_channel = np.clip(gray * 1.08, 0, 255).astype(np.uint8)
-
-        # Blue channel: reduce slightly from full gray
-        blue_channel = np.clip(gray * 0.95, 0, 255).astype(np.uint8)
-
-        # Red channel: reduce to 60% of gray for cyan-green tint
-        # Creates cyan-green tint while keeping it mostly neutral
-        red_channel = np.clip(gray * 0.60, 0, 255).astype(np.uint8)
-
-    else:  # Default green NVG
-        # Green channel: main image data (centered, not too spread)
-        green_channel = gray
-
-        # Red channel: minimal red (most values should be 0-3)
-        # Real NVG shows red spike at very lowest values (0-3 range)
-        red_channel = np.clip(gray * 0.005, 0, 3).astype(np.uint8)
-
-        # Blue channel: slight blue cast (shifted further right, 6-20 range)
-        # Real NVG shows blue distribution significantly higher than red
-        blue_channel = np.clip(gray * 0.04 + 6, 6, 20).astype(np.uint8)
+    # Create realistic NVG channels based on color-specific settings
+    # Apply color multipliers from color settings
+    red_channel = np.clip(gray * color_settings.red_multiplier, 0, 255).astype(np.uint8)
+    green_channel = np.clip(gray * color_settings.green_multiplier, 0, 255).astype(np.uint8)
+    blue_channel = np.clip(gray * color_settings.blue_multiplier, 0, 255).astype(np.uint8)
 
     # Merge channels (BGR format)
     nvg = cv2.merge([blue_channel, green_channel, red_channel])
