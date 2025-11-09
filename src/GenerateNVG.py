@@ -2,21 +2,26 @@ import os
 from PIL import Image
 from pathlib import Path
 from typing import List
+from dataclasses import dataclass
 import numpy as np
 import cv2
 
-# Global configuration
-NVG_COLOR: str = "white"  # "green" or "white" - sets the NVG type (white = cyan color)
 
-# NVG Effect Parameters (Green NVG)
-NOISE_INTENSITY: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
-GRAIN_SIZE: int = 3  # Grain particle size (1, 3, 5, 7, etc.) - higher = coarser/larger grain
-BLOOM_THRESHOLD: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
-BLOOM_INTENSITY: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
-BLUR_AMOUNT: int = 9  # Slight blur kernel size (must be odd: 3, 5, 7, 9, etc.) - smooths grain
-CONTRAST_ALPHA: float = 0.60  # Contrast adjustment (0.5-1.5) - compress range to reduce extremes
-CONTRAST_BETA: int = 40  # Brightness adjustment (-100 to 100) - shift histogram right
-VIGNETTE_INTENSITY: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
+@dataclass
+class NVGConfig:
+    """Configuration for NVG effect parameters"""
+    # Color mode
+    color: str = "white"  # "green" or "white" - sets the NVG type (white = cyan color)
+
+    # Effect parameters
+    noise_intensity: float = 8.0  # Grain/noise intensity (0-50) - additive grain for lightening effect
+    grain_size: int = 3  # Grain particle size (1, 3, 5, 7, etc.) - higher = coarser/larger grain
+    bloom_threshold: int = 235  # Brightness threshold for bloom effect (0-255) - minimal bloom
+    bloom_intensity: float = 0.08  # Bloom glow intensity (0.0-1.0) - very subtle
+    blur_amount: int = 9  # Slight blur kernel size (must be odd: 3, 5, 7, 9, etc.) - smooths grain
+    contrast_alpha: float = 0.60  # Contrast adjustment (0.5-1.5) - compress range to reduce extremes
+    contrast_beta: int = 40  # Brightness adjustment (-100 to 100) - shift histogram right
+    vignette_intensity: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
 
 def get_nvg_suffix(color: str) -> str:
@@ -32,7 +37,7 @@ def has_nvg_suffix(filename: str, color: str) -> bool:
     suffix = get_nvg_suffix(color)
     return suffix in stem
 
-def simulate_nvg(image: np.ndarray, nvg_color: str = NVG_COLOR) -> np.ndarray:
+def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
     """
     Convert a normal image to Night Vision Goggle (NVG) style.
 
@@ -46,6 +51,7 @@ def simulate_nvg(image: np.ndarray, nvg_color: str = NVG_COLOR) -> np.ndarray:
 
     Args:
         image: Input image as numpy array (BGR format from OpenCV)
+        config: NVGConfig object with all effect parameters
 
     Returns:
         NVG-styled image as numpy array
@@ -61,86 +67,89 @@ def simulate_nvg(image: np.ndarray, nvg_color: str = NVG_COLOR) -> np.ndarray:
     gray = cv2.equalizeHist(gray)
 
     # Slight blur before grain (simulates out of focus / optical limitations)
-    if BLUR_AMOUNT > 0:
+    if config.blur_amount > 0:
         # Ensure kernel size is odd
-        kernel_size = BLUR_AMOUNT if BLUR_AMOUNT % 2 == 1 else BLUR_AMOUNT + 1
+        kernel_size = config.blur_amount if config.blur_amount % 2 == 1 else config.blur_amount + 1
         gray = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0)
 
     # Add bloom/glow around bright areas (after equalization)
-    _, bright = cv2.threshold(gray, BLOOM_THRESHOLD, 255, cv2.THRESH_BINARY)
-    bloom = cv2.GaussianBlur(bright, (15, 15), 0)
-    gray = cv2.addWeighted(gray, 1.0, bloom, BLOOM_INTENSITY, 0)
+    if config.bloom_intensity > 0:
+        _, bright = cv2.threshold(gray, config.bloom_threshold, 255, cv2.THRESH_BINARY)
+        bloom = cv2.GaussianBlur(bright, (15, 15), 0)
+        gray = cv2.addWeighted(gray, 1.0, bloom, config.bloom_intensity, 0)
 
     # Adjust contrast and brightness to shift histogram further right (brighter)
     # White NVG uses higher brightness and lower contrast to reduce dark/bright extremes
-    contrast_alpha = CONTRAST_ALPHA
-    contrast_beta = CONTRAST_BETA
-    if nvg_color.lower() == "white":
+    final_contrast_alpha = config.contrast_alpha
+    final_contrast_beta = config.contrast_beta
+    if config.color.lower() == "white":
         # White NVG: reduce contrast by ~17% to lift shadows, increase brightness by ~50%
-        contrast_alpha = CONTRAST_ALPHA * 0.83
-        contrast_beta = int(CONTRAST_BETA * 1.5)
+        final_contrast_alpha = config.contrast_alpha * 0.83
+        final_contrast_beta = int(config.contrast_beta * 1.5)
 
-    gray = cv2.convertScaleAbs(gray, alpha=contrast_alpha, beta=contrast_beta)
+    gray = cv2.convertScaleAbs(gray, alpha=final_contrast_alpha, beta=final_contrast_beta)
 
     # Add vignetting (darker edges - characteristic of circular NVG view)
-    rows, cols = gray.shape
-    kernel_x = cv2.getGaussianKernel(cols, cols / VIGNETTE_INTENSITY)
-    kernel_y = cv2.getGaussianKernel(rows, rows / VIGNETTE_INTENSITY)
-    kernel = kernel_y * kernel_x.T
-    mask = kernel / kernel.max()
-    gray = (gray * mask).astype(np.uint8)
+    if config.vignette_intensity > 0:
+        rows, cols = gray.shape
+        kernel_x = cv2.getGaussianKernel(cols, cols / config.vignette_intensity)
+        kernel_y = cv2.getGaussianKernel(rows, rows / config.vignette_intensity)
+        kernel = kernel_y * kernel_x.T
+        mask = kernel / kernel.max()
+        gray = (gray * mask).astype(np.uint8)
 
     # Add noise (grain) - characteristic of image intensifiers
     # Real NVG grain is ADDITIVE (lightening), not subtractive
     # Grain should be visible mainly in mid-tones, less in dark areas, and cutoff in very bright areas
 
-    # Create brightness-dependent noise mask (normalized 0-1)
-    normalized_brightness = gray.astype(np.float32) / 255.0
+    if config.noise_intensity > 0:
+        # Create brightness-dependent noise mask (normalized 0-1)
+        normalized_brightness = gray.astype(np.float32) / 255.0
 
-    # Create a bell curve for grain: low grain in dark and bright areas, peak in mid-tones
-    # Use power functions to shape the distribution
-    dark_threshold = 0.3  # Below this, grain decreases rapidly
-    bright_threshold = 0.8  # Above this, grain decreases
+        # Create a bell curve for grain: low grain in dark and bright areas, peak in mid-tones
+        # Use power functions to shape the distribution
+        dark_threshold = 0.3  # Below this, grain decreases rapidly
+        bright_threshold = 0.8  # Above this, grain decreases
 
-    # Calculate grain mask with bell curve shape
-    brightness_mask = np.where(
-        normalized_brightness < dark_threshold,
-        # Dark areas: quadratic falloff (very little grain in shadows)
-        (normalized_brightness / dark_threshold) ** 2.5,
-        np.where(
-            normalized_brightness > bright_threshold,
-            # Bright areas: decrease grain (bloom/saturation effect)
-            ((1.0 - normalized_brightness) / (1.0 - bright_threshold)) ** 1.5,
-            # Mid-tones: full grain
-            1.0
+        # Calculate grain mask with bell curve shape
+        brightness_mask = np.where(
+            normalized_brightness < dark_threshold,
+            # Dark areas: quadratic falloff (very little grain in shadows)
+            (normalized_brightness / dark_threshold) ** 2.5,
+            np.where(
+                normalized_brightness > bright_threshold,
+                # Bright areas: decrease grain (bloom/saturation effect)
+                ((1.0 - normalized_brightness) / (1.0 - bright_threshold)) ** 1.5,
+                # Mid-tones: full grain
+                1.0
+            )
         )
-    )
 
-    # Generate brightness-dependent noise
-    # The AMOUNT of grain varies (via standard deviation), not the intensity (mean stays constant)
-    # This keeps grain additive/lightening but varies its quantity
-    mean = NOISE_INTENSITY  # Constant mean (always lightening)
-    std_dev = NOISE_INTENSITY * brightness_mask  # Variable amount based on brightness
+        # Generate brightness-dependent noise
+        # The AMOUNT of grain varies (via standard deviation), not the intensity (mean stays constant)
+        # This keeps grain additive/lightening but varies its quantity
+        mean = config.noise_intensity  # Constant mean (always lightening)
+        std_dev = config.noise_intensity * brightness_mask  # Variable amount based on brightness
 
-    # Generate noise with spatially-varying standard deviation
-    base_noise = np.random.normal(mean, 1.0, gray.shape)
+        # Generate noise with spatially-varying standard deviation
+        base_noise = np.random.normal(mean, 1.0, gray.shape)
 
-    # Apply blur to noise to create larger grain particles (if GRAIN_SIZE > 1)
-    if GRAIN_SIZE > 1:
-        # Ensure kernel size is odd
-        grain_kernel = GRAIN_SIZE if GRAIN_SIZE % 2 == 1 else GRAIN_SIZE + 1
-        base_noise = cv2.GaussianBlur(base_noise.astype(np.float32), (grain_kernel, grain_kernel), 0)
+        # Apply blur to noise to create larger grain particles (if grain_size > 1)
+        if config.grain_size > 1:
+            # Ensure kernel size is odd
+            grain_kernel = config.grain_size if config.grain_size % 2 == 1 else config.grain_size + 1
+            base_noise = cv2.GaussianBlur(base_noise.astype(np.float32), (grain_kernel, grain_kernel), 0)
 
-    scaled_noise = (base_noise * std_dev).astype(np.int16)
+        scaled_noise = (base_noise * std_dev).astype(np.int16)
 
-    # Apply noise
-    gray = cv2.add(gray.astype(np.int16), scaled_noise)
-    gray = np.clip(gray, 0, 255).astype(np.uint8)
+        # Apply noise
+        gray = cv2.add(gray.astype(np.int16), scaled_noise)
+        gray = np.clip(gray, 0, 255).astype(np.uint8)
 
     # Create realistic NVG channels based on real histogram analysis
     # Support green and white (cyan-colored) NVG types
 
-    if nvg_color.lower() == "white":
+    if config.color.lower() == "white":
         # White NVG (very desaturated - nearly equal RGB with subtle cyan shift)
         # Histogram shows all channels close together with slight separation
 
@@ -172,15 +181,18 @@ def simulate_nvg(image: np.ndarray, nvg_color: str = NVG_COLOR) -> np.ndarray:
     return nvg
 
 def convert_to_nvg(input_folder: str, output_folder: str | None = None,
-                   nvg_color: str = NVG_COLOR) -> None:
+                   config: NVGConfig = None) -> None:
     """
     Convert all images in a folder to NVG style.
 
     Args:
         input_folder: Path to folder containing input images
         output_folder: Path to folder for output images. If None, uses input_folder
-        nvg_color: NVG color mode ("green" or "white")
+        config: NVGConfig object with effect parameters. If None, uses defaults
     """
+    if config is None:
+        config = NVGConfig()
+
     input_path: Path = Path(input_folder)
     output_path: Path = Path(output_folder) if output_folder else input_path
 
@@ -199,24 +211,24 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
     failed_count: int = 0
 
     # Get color-specific suffix
-    nvg_suffix = get_nvg_suffix(nvg_color)
+    nvg_suffix = get_nvg_suffix(config.color)
 
     print(f"Found {len(image_files)} images to process")
     print(f"\nNVG Effect Settings:")
-    print(f"  NVG Color:           {nvg_color.upper()}")
-    print(f"  Noise Intensity:     {NOISE_INTENSITY}")
-    print(f"  Grain Size:          {GRAIN_SIZE}")
-    print(f"  Bloom Threshold:     {BLOOM_THRESHOLD}")
-    print(f"  Bloom Intensity:     {BLOOM_INTENSITY}")
-    print(f"  Blur Amount:         {BLUR_AMOUNT}")
-    print(f"  Contrast Alpha:      {CONTRAST_ALPHA}")
-    print(f"  Contrast Beta:       {CONTRAST_BETA}")
-    print(f"  Vignette Intensity:  {VIGNETTE_INTENSITY}")
+    print(f"  NVG Color:           {config.color.upper()}")
+    print(f"  Noise Intensity:     {config.noise_intensity}")
+    print(f"  Grain Size:          {config.grain_size}")
+    print(f"  Bloom Threshold:     {config.bloom_threshold}")
+    print(f"  Bloom Intensity:     {config.bloom_intensity}")
+    print(f"  Blur Amount:         {config.blur_amount}")
+    print(f"  Contrast Alpha:      {config.contrast_alpha}")
+    print(f"  Contrast Beta:       {config.contrast_beta}")
+    print(f"  Vignette Intensity:  {config.vignette_intensity}")
     print()
 
     for image_file in image_files:
         # Skip if filename already has NVG suffix
-        if has_nvg_suffix(image_file.name, nvg_color):
+        if has_nvg_suffix(image_file.name, config.color):
             print(f"Skipping (already NVG): {image_file.name}")
             skipped_count += 1
             continue
@@ -244,7 +256,7 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
                 continue
 
             # Apply NVG effect
-            nvg_img = simulate_nvg(img_bgr, nvg_color)
+            nvg_img = simulate_nvg(img_bgr, config)
 
             # Save with high quality
             save_params = []
@@ -274,34 +286,68 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
     print(f"Output folder: {output_path.absolute()}")
 
 if __name__ == "__main__":
-    import sys
+    import argparse
 
-    input_folder_path: str
-    output_folder_path: str | None = None
-    nvg_color: str = NVG_COLOR
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Generate NVG (Night Vision Goggle) effect on images')
+    parser.add_argument('input_folder', nargs='?', default=os.getcwd(),
+                        help='Input folder containing images (default: current directory)')
+    parser.add_argument('output_folder', nargs='?', default=None,
+                        help='Output folder for processed images (default: same as input)')
 
-    if len(sys.argv) > 1:
-        input_folder_path = sys.argv[1]
-        if len(sys.argv) > 2:
-            output_folder_path = sys.argv[2]
-        if len(sys.argv) > 3:
-            nvg_color = sys.argv[3]
-    else:
-        input_folder_path = os.getcwd()
+    # NVG effect parameters
+    parser.add_argument('--color', '-c', type=str, default='white', choices=['green', 'white'],
+                        help='NVG color mode: green or white (default: white)')
+    parser.add_argument('--noise-intensity', type=float, default=None,
+                        help='Grain/noise intensity 0-50 (default: 8.0)')
+    parser.add_argument('--grain-size', type=int, default=None,
+                        help='Grain particle size - must be odd (default: 3)')
+    parser.add_argument('--bloom-threshold', type=int, default=None,
+                        help='Brightness threshold for bloom 0-255 (default: 235)')
+    parser.add_argument('--bloom-intensity', type=float, default=None,
+                        help='Bloom glow intensity 0.0-1.0 (default: 0.08)')
+    parser.add_argument('--blur-amount', type=int, default=None,
+                        help='Blur kernel size - must be odd (default: 9)')
+    parser.add_argument('--contrast-alpha', type=float, default=None,
+                        help='Contrast adjustment 0.5-1.5 (default: 0.60)')
+    parser.add_argument('--contrast-beta', type=int, default=None,
+                        help='Brightness adjustment -100 to 100 (default: 40)')
+    parser.add_argument('--vignette-intensity', type=float, default=None,
+                        help='Vignette strength 1.0-4.0 (default: 2.2)')
 
-    # Validate color parameter
-    if nvg_color.lower() not in ["green", "white"]:
-        print(f"Error: Invalid NVG color '{nvg_color}'. Must be 'green' or 'white'")
+    args = parser.parse_args()
+
+    # Create config with defaults
+    config = NVGConfig()
+
+    # Override with command-line arguments
+    config.color = args.color
+    if args.noise_intensity is not None:
+        config.noise_intensity = args.noise_intensity
+    if args.grain_size is not None:
+        config.grain_size = args.grain_size
+    if args.bloom_threshold is not None:
+        config.bloom_threshold = args.bloom_threshold
+    if args.bloom_intensity is not None:
+        config.bloom_intensity = args.bloom_intensity
+    if args.blur_amount is not None:
+        config.blur_amount = args.blur_amount
+    if args.contrast_alpha is not None:
+        config.contrast_alpha = args.contrast_alpha
+    if args.contrast_beta is not None:
+        config.contrast_beta = args.contrast_beta
+    if args.vignette_intensity is not None:
+        config.vignette_intensity = args.vignette_intensity
+
+    if not os.path.exists(args.input_folder):
+        print(f"Error: Input folder '{args.input_folder}' does not exist")
         exit(1)
 
-    if not os.path.exists(input_folder_path):
-        print(f"Error: Input folder '{input_folder_path}' does not exist")
+    print(f"Converting images to {config.color.upper()} NVG style from: {args.input_folder}")
+    if args.output_folder:
+        print(f"Saving NVG images to: {args.output_folder}")
     else:
-        print(f"Converting images to {nvg_color.upper()} NVG style from: {input_folder_path}")
-        if output_folder_path:
-            print(f"Saving NVG images to: {output_folder_path}")
-        else:
-            print(f"Saving NVG images to: {input_folder_path} (same as input)")
-        print()
+        print(f"Saving NVG images to: {args.input_folder} (same as input)")
+    print()
 
-        convert_to_nvg(input_folder_path, output_folder_path, nvg_color)
+    convert_to_nvg(args.input_folder, args.output_folder, config)
