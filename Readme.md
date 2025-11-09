@@ -120,14 +120,16 @@ docker run --gpus all --rm `
   yolo detect train `
     model=/models/yolo11s.pt `
     data=/datasets/coco_nvg.yaml `
-	lr0=0.0001 `
-	lrf=0.001 `
-	warmup_epochs=5.0 `
-	epochs=100 `
+    optimizer=SGD `
+    lr0=0.0001 `
+    lrf=0.01 `
+    momentum=0.937 `
+    warmup_epochs=5.0 `
+    epochs=100 `
     batch=16 `
     imgsz=640 `
     patience=30 `
-	workers=4 `
+    workers=4 `
     project=/ultralytics/runs/detect `
     name=finetune_yolo11s_nvg
 
