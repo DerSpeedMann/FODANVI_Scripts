@@ -220,7 +220,6 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
     for image_file in image_files:
         # Skip if filename already has NVG suffix
         if has_nvg_suffix(image_file.name, config):
-            print(f"Skipping (already NVG): {image_file.name}")
             skipped_count += 1
             continue
 
@@ -230,14 +229,11 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
 
         # Check if NVG version already exists
         if output_file_path.exists():
-            print(f"Skipping (NVG version exists): {image_file.name}")
             skipped_count += 1
             continue
 
         # Process image
         try:
-            print(f"Processing: {image_file.name}")
-
             # Read with OpenCV (BGR format)
             img_bgr = cv2.imread(str(image_file))
 
@@ -257,7 +253,6 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
             success = cv2.imwrite(str(output_file_path), nvg_img, save_params)
 
             if success:
-                print(f"✓ Saved: {output_name}")
                 processed_count += 1
             else:
                 print(f"✗ Failed to save: {output_name}")

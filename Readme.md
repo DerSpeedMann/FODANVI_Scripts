@@ -46,10 +46,10 @@ docker run --gpus all --rm `
 
 Apply NVG styling to images:
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_white/images/val2017 white
+python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_white/images/val2017 -c white
 python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_white/labels/val2017 _nvg_white
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_green/images/val2017 green
+python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_green/images/val2017 -c green
 python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_green/labels/val2017 _nvg_green
 
  
@@ -119,7 +119,7 @@ docker run --gpus all --rm `
   ultralytics/ultralytics:latest `
   yolo detect train `
     model=/models/yolo11s.pt `
-    data=/datasets/coco_nvg.yaml `
+    data=/datasets/coco_nvg_clean.yaml `
     optimizer=SGD `
     lr0=0.0001 `
     lrf=0.01 `
@@ -131,10 +131,62 @@ docker run --gpus all --rm `
     patience=30 `
     workers=4 `
     project=/ultralytics/runs/detect `
-    name=finetune_yolo11s_nvg
+    name=finetune_yolo11s_nvg_clean
+	
+Fine Tune with noisy images ontop:
+
+docker run --gpus all --rm `
+  --shm-size=12g `
+  -v ${PWD}\datasets:/datasets `
+  -v ${PWD}\models:/models `
+  -v ${PWD}\results:/ultralytics/runs/detect `
+  ultralytics/ultralytics:latest `
+  yolo detect train `
+    model=/models/yolo11s_clean.pt `
+    data=/datasets/coco_nvg_noisy.yaml `
+    optimizer=SGD `
+    lr0=0.0005 `
+    lrf=0.01 `
+    momentum=0.937 `
+    warmup_epochs=5.0 `
+    epochs=100 `
+    batch=16 `
+    imgsz=640 `
+    patience=30 `
+    workers=4 `
+    project=/ultralytics/runs/detect `
+    name=finetune_yolo11s_nvg_clean-noisy
+	
+	
+	
+Performance testing:
+
+docker run --gpus all --rm `
+  --shm-size=12g `
+  -v ${PWD}\datasets:/datasets `
+  -v ${PWD}\models:/models `
+  -v ${PWD}\results:/ultralytics/runs/detect `
+  ultralytics/ultralytics:latest `
+  yolo detect val `
+    model=/models/yolo11s_clean-noisy.pt `
+    data=/datasets/coco_nvg_clean.yaml `
+    project=/ultralytics/runs/detect `
+    name=validate_clean-noisy_on_clean
+	
+docker run --gpus all --rm `
+  --shm-size=12g `
+  -v ${PWD}\datasets:/datasets `
+  -v ${PWD}\models:/models `
+  -v ${PWD}\results:/ultralytics/runs/detect `
+  ultralytics/ultralytics:latest `
+  yolo detect val `
+    model=/models/yolo11s_clean-noisy.pt `
+    data=/datasets/coco_nvg_noisy.yaml `
+    project=/ultralytics/runs/detect `
+    name=validate_clean-noisy_on_noisy
 
   
-Modesl:
+Models:
 
 yolo11n.pt - Nano (fastest, least accurate)
 yolo11s.pt - Small
