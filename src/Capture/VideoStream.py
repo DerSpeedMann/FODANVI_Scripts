@@ -46,26 +46,84 @@ class CameraControl:
     min_val: float
     max_val: float
     step: float
-    key_increase: str
-    key_decrease: str
+    supported: bool = True
 
 
-# Adjustable camera controls with their key bindings
-# Use number keys 1-9 to select property, then +/- to adjust
-CAMERA_CONTROLS = [
-    CameraControl(cv2.CAP_PROP_BRIGHTNESS, "Brightness", -64, 64, 5, None, None),
-    CameraControl(cv2.CAP_PROP_CONTRAST, "Contrast", 0, 100, 5, None, None),
-    CameraControl(cv2.CAP_PROP_SATURATION, "Saturation", 0, 100, 5, None, None),
-    CameraControl(cv2.CAP_PROP_SHARPNESS, "Sharpness", 0, 10, 1, None, None),
-    CameraControl(cv2.CAP_PROP_GAMMA, "Gamma", 50, 200, 10, None, None),
-    CameraControl(cv2.CAP_PROP_GAIN, "Gain", 0, 255, 10, None, None),
-    CameraControl(cv2.CAP_PROP_ISO_SPEED, "ISO", 100, 3200, 100, None, None),
-    CameraControl(cv2.CAP_PROP_EXPOSURE, "Exposure", -13, 0, 1, None, None),
-    CameraControl(cv2.CAP_PROP_TEMPERATURE, "WB Temp", 2800, 6500, 200, None, None),
+# Camera control definitions (min/max will be detected at runtime)
+CAMERA_CONTROL_DEFS = [
+    (cv2.CAP_PROP_BRIGHTNESS, "Brightness", 5),
+    (cv2.CAP_PROP_CONTRAST, "Contrast", 5),
+    (cv2.CAP_PROP_SATURATION, "Saturation", 5),
+    (cv2.CAP_PROP_SHARPNESS, "Sharpness", 1),
+    (cv2.CAP_PROP_GAMMA, "Gamma", 10),
+    (cv2.CAP_PROP_GAIN, "Gain", 10),
+    (cv2.CAP_PROP_EXPOSURE, "Exposure", 1),
 ]
+
+# Will be populated at runtime with detected min/max values
+CAMERA_CONTROLS: list = []
 
 # Track manually set values (camera may not report changes correctly)
 control_values = {}
+
+
+def detect_property_range(cap: cv2.VideoCapture, prop_id: int) -> Tuple[float, float]:
+    """
+    Detect the min/max range of a camera property by probing extreme values.
+
+    Args:
+        cap: VideoCapture object
+        prop_id: Property ID to probe
+
+    Returns:
+        Tuple of (min_val, max_val)
+    """
+    # Get current value
+    original = cap.get(prop_id)
+
+    # Try to find minimum by setting very low value
+    cap.set(prop_id, -10000)
+    min_val = cap.get(prop_id)
+
+    # Try to find maximum by setting very high value
+    cap.set(prop_id, 10000)
+    max_val = cap.get(prop_id)
+
+    # Restore original value
+    cap.set(prop_id, original)
+
+    # If we couldn't detect valid range, use wide defaults
+    if min_val == max_val or min_val == -1 or max_val == -1:
+        return -10000, 10000
+
+    return min_val, max_val
+
+
+def initialize_camera_controls(cap: cv2.VideoCapture) -> None:
+    """
+    Initialize camera controls by detecting supported properties and their ranges.
+
+    Args:
+        cap: VideoCapture object to probe
+    """
+    global CAMERA_CONTROLS
+    CAMERA_CONTROLS = []
+
+    print("\nDetecting camera control ranges...")
+
+    for prop_id, name, step in CAMERA_CONTROL_DEFS:
+        min_val, max_val = detect_property_range(cap, prop_id)
+        current = cap.get(prop_id)
+
+        control = CameraControl(prop_id, name, min_val, max_val, step, True)
+        CAMERA_CONTROLS.append(control)
+
+        if min_val == -10000 and max_val == 10000:
+            print(f"  {name}: unknown range (current: {current})")
+        else:
+            print(f"  {name}: {min_val} - {max_val} (current: {current})")
+
+    print(f"\nLoaded {len(CAMERA_CONTROLS)} controls\n")
 
 
 def adjust_camera_property(cap: cv2.VideoCapture, control: CameraControl, increase: bool) -> Tuple[float, float]:
@@ -166,6 +224,9 @@ def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.Vid
 
     if fourcc_str != "MJPG":
         print(f"Warning: MJPEG not active - expect lower FPS at high resolutions")
+
+    # Detect supported camera controls and their ranges
+    initialize_camera_controls(cap)
 
     return cap
 
@@ -366,7 +427,7 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
             if show_controls_flag:
                 panel_x = frame_width - 280
                 panel_y = 70
-                draw_text_with_background(display_frame, "Camera Controls [1-9]",
+                draw_text_with_background(display_frame, "Camera Controls",
                                         (panel_x, panel_y),
                                         TEXT_FONT, TEXT_SCALE, (255, 255, 0), TEXT_THICKNESS)
 
@@ -440,13 +501,13 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
             # Windows: UP=2490368, DOWN=2621440, LEFT=2424832, RIGHT=2555904
             # Linux: UP=65362, DOWN=65364, LEFT=65361, RIGHT=65363
             elif key_raw == 2490368 or key_raw == 65362:  # UP arrow
-                if show_controls_flag and selected_control > 0:
+                if show_controls_flag and CAMERA_CONTROLS and selected_control > 0:
                     selected_control -= 1
                     control = CAMERA_CONTROLS[selected_control]
                     val = cap.get(control.prop_id)
                     print(f"Selected: {control.name} = {val}")
             elif key_raw == 2621440 or key_raw == 65364:  # DOWN arrow
-                if show_controls_flag and selected_control < len(CAMERA_CONTROLS) - 1:
+                if show_controls_flag and CAMERA_CONTROLS and selected_control < len(CAMERA_CONTROLS) - 1:
                     selected_control += 1
                     control = CAMERA_CONTROLS[selected_control]
                     val = cap.get(control.prop_id)
@@ -454,12 +515,12 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
 
             # Camera control adjustment (LEFT/RIGHT arrows or +/-)
             elif key_raw == 2424832 or key_raw == 65361 or key == ord('-') or key == ord('_'):  # LEFT arrow or -
-                if show_controls_flag:
+                if show_controls_flag and CAMERA_CONTROLS:
                     control = CAMERA_CONTROLS[selected_control]
                     requested, actual = adjust_camera_property(cap, control, increase=False)
                     print(f"{control.name}: {requested} (camera: {actual})")
             elif key_raw == 2555904 or key_raw == 65363 or key == ord('+') or key == ord('='):  # RIGHT arrow or +
-                if show_controls_flag:
+                if show_controls_flag and CAMERA_CONTROLS:
                     control = CAMERA_CONTROLS[selected_control]
                     requested, actual = adjust_camera_property(cap, control, increase=True)
                     print(f"{control.name}: {requested} (camera: {actual})")
