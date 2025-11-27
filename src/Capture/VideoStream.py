@@ -11,16 +11,17 @@ from dataclasses import dataclass
 
 # Camera settings
 CAMERA_INDEX: int = 0  # Change this to match your camera index from CameraFinder
-RESOLUTION_WIDTH: int = 1600
-RESOLUTION_HEIGHT: int = 1200
+RESOLUTION_WIDTH: int = 800
+RESOLUTION_HEIGHT: int = 600
 CAMERA_FPS: int = 30  # Set camera FPS (may improve performance)
 CAMERA_BUFFER_SIZE: int = 1  # Reduce buffer to minimize lag
+CAMERA_INIT_DELAY: float = 1.0  # Seconds to wait for camera to settle before reading controls
 
 # Video recording settings
 OUTPUT_FOLDER: str = "recorded_videos"  # Folder to save videos
 VIDEO_PREFIX: str = "recording"  # Prefix for video filenames
 VIDEO_CODEC: str = "mp4v"  # Video codec (mp4v, XVID, H264, MJPG)
-VIDEO_FPS: float = 30.0  # FPS for saved video
+VIDEO_FPS: float = 15.0  # FPS for saved video
 
 # Stream display settings
 WINDOW_NAME: str = "Camera Stream"  # Window name for video stream
@@ -49,15 +50,26 @@ class CameraControl:
     supported: bool = True
 
 
-# Camera control definitions (min/max will be detected at runtime)
+# Camera control definitions: (prop_id, name, step, min, max, enabled, default)
+# default=None means use camera's current value
 CAMERA_CONTROL_DEFS = [
-    (cv2.CAP_PROP_BRIGHTNESS, "Brightness", 5),
-    (cv2.CAP_PROP_CONTRAST, "Contrast", 5),
-    (cv2.CAP_PROP_SATURATION, "Saturation", 5),
-    (cv2.CAP_PROP_SHARPNESS, "Sharpness", 1),
-    (cv2.CAP_PROP_GAMMA, "Gamma", 10),
-    (cv2.CAP_PROP_GAIN, "Gain", 10),
-    (cv2.CAP_PROP_EXPOSURE, "Exposure", 1),
+    (cv2.CAP_PROP_BRIGHTNESS, "Brightness", 2, 0, 64, True, None),
+    (cv2.CAP_PROP_CONTRAST, "Contrast", 2, 0, 64, True, None),
+    (cv2.CAP_PROP_SATURATION, "Saturation", 5, 0, 125, True, None),
+    (cv2.CAP_PROP_HUE, "Hue", 1, -40, 40, True, None),
+    (cv2.CAP_PROP_SHARPNESS, "Sharpness", 1, 0, 6, True, None),
+    (cv2.CAP_PROP_GAMMA, "Gamma", 10, 80, 500, True, None),
+    (cv2.CAP_PROP_GAIN, "Gain", 5, 0, 100, True, None),
+    (cv2.CAP_PROP_EXPOSURE, "Exposure", 1, -13, -1, True, None),
+    (cv2.CAP_PROP_BACKLIGHT, "Backlight", 1, 0, 2, True, None),
+    (cv2.CAP_PROP_WB_TEMPERATURE, "WB Temp", 400, None, None, False, None),
+    (cv2.CAP_PROP_AUTO_EXPOSURE, "Auto Exp", 1, 0, 1, True, 0),
+    (cv2.CAP_PROP_AUTOFOCUS, "Autofocus", 1, None, None, False, None),
+    (cv2.CAP_PROP_AUTO_WB, "Auto WB", 1, 0, 1, True, 0),
+    (cv2.CAP_PROP_FOCUS, "Focus", 1, None, None, False, None),
+    (cv2.CAP_PROP_ZOOM, "Zoom", 1, None, None, False, None),
+    (cv2.CAP_PROP_ISO_SPEED, "ISO Speed", 100, None, None, False, None),
+    (cv2.CAP_PROP_TEMPERATURE, "Temp", 100, None, None, False, None),
 ]
 
 # Will be populated at runtime with detected min/max values
@@ -66,42 +78,13 @@ CAMERA_CONTROLS: list = []
 # Track manually set values (camera may not report changes correctly)
 control_values = {}
 
-
-def detect_property_range(cap: cv2.VideoCapture, prop_id: int) -> Tuple[float, float]:
-    """
-    Detect the min/max range of a camera property by probing extreme values.
-
-    Args:
-        cap: VideoCapture object
-        prop_id: Property ID to probe
-
-    Returns:
-        Tuple of (min_val, max_val)
-    """
-    # Get current value
-    original = cap.get(prop_id)
-
-    # Try to find minimum by setting very low value
-    cap.set(prop_id, -10000)
-    min_val = cap.get(prop_id)
-
-    # Try to find maximum by setting very high value
-    cap.set(prop_id, 10000)
-    max_val = cap.get(prop_id)
-
-    # Restore original value
-    cap.set(prop_id, original)
-
-    # If we couldn't detect valid range, use wide defaults
-    if min_val == max_val or min_val == -1 or max_val == -1:
-        return -10000, 10000
-
-    return min_val, max_val
+# Fallback range for properties that can't be auto-detected
+FALLBACK_RANGE: int = 255  # Use -FALLBACK_RANGE to +FALLBACK_RANGE
 
 
 def initialize_camera_controls(cap: cv2.VideoCapture) -> None:
     """
-    Initialize camera controls by detecting supported properties and their ranges.
+    Initialize camera controls with preset limits.
 
     Args:
         cap: VideoCapture object to probe
@@ -109,21 +92,38 @@ def initialize_camera_controls(cap: cv2.VideoCapture) -> None:
     global CAMERA_CONTROLS
     CAMERA_CONTROLS = []
 
-    print("\nDetecting camera control ranges...")
+    print("\n" + "="*50)
+    print("CAMERA CONTROLS")
+    print("="*50)
 
-    for prop_id, name, step in CAMERA_CONTROL_DEFS:
-        min_val, max_val = detect_property_range(cap, prop_id)
-        current = cap.get(prop_id)
+    for prop_id, name, step, min_val, max_val, enabled, default in CAMERA_CONTROL_DEFS:
+        if not enabled:
+            continue
 
-        control = CameraControl(prop_id, name, min_val, max_val, step, True)
+        # Use preset limits, or infinity if None
+        actual_min = min_val if min_val is not None else float('-inf')
+        actual_max = max_val if max_val is not None else float('inf')
+        control = CameraControl(prop_id, name, actual_min, actual_max, step, True)
         CAMERA_CONTROLS.append(control)
 
-        if min_val == -10000 and max_val == 10000:
-            print(f"  {name}: unknown range (current: {current})")
+        # Apply default value if specified, otherwise use camera's current value
+        if default is not None:
+            cap.set(prop_id, default)
+            control_values[prop_id] = default
+            applied = default
         else:
-            print(f"  {name}: {min_val} - {max_val} (current: {current})")
+            current = cap.get(prop_id)
+            control_values[prop_id] = current
+            applied = current
 
-    print(f"\nLoaded {len(CAMERA_CONTROLS)} controls\n")
+        # Format limit display
+        min_str = str(int(min_val)) if min_val is not None else "?"
+        max_str = str(int(max_val)) if max_val is not None else "?"
+        default_str = f" [default: {int(default)}]" if default is not None else ""
+        print(f"  {name:12s}: {min_str}-{max_str} (set: {applied}){default_str}")
+
+    print("="*50)
+    print(f"Loaded {len(CAMERA_CONTROLS)} controls\n")
 
 
 def adjust_camera_property(cap: cv2.VideoCapture, control: CameraControl, increase: bool) -> Tuple[float, float]:
@@ -194,9 +194,9 @@ def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.Vid
         print("Run CameraFinder.py to see available cameras")
         return None
 
-    # IMPORTANT: Set FOURCC before resolution for proper format selection
-    # MJPEG is much faster than uncompressed YUV at high resolutions
-    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+    # Set FOURCC before resolution for proper format selection
+    # YUY2 performs better than MJPEG on this camera (tested with CameraProbe.py)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('Y', 'U', 'Y', '2'))
 
     # Set resolution after FOURCC
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
@@ -217,13 +217,14 @@ def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.Vid
     print(f"Requested resolution: {width}x{height}")
     print(f"Actual resolution: {actual_width}x{actual_height}")
     print(f"Camera FPS: {actual_fps}")
-    print(f"Camera Format: {fourcc_str} (MJPG = fast, YUY2/other = slow)")
+    print(f"Camera Format: {fourcc_str}")
 
     if actual_width != width or actual_height != height:
         print(f"Warning: Camera does not support requested resolution")
 
-    if fourcc_str != "MJPG":
-        print(f"Warning: MJPEG not active - expect lower FPS at high resolutions")
+    # Wait for camera to settle before reading control values
+    print("Waiting for camera to initialize...")
+    time.sleep(CAMERA_INIT_DELAY)
 
     # Detect supported camera controls and their ranges
     initialize_camera_controls(cap)
