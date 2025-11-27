@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Tuple
+from dataclasses import dataclass
 
 # ============================================================================
 # GLOBAL CONFIGURATION
@@ -34,6 +35,80 @@ TEXT_SCALE: float = 0.6
 TEXT_THICKNESS: int = 2
 
 # ============================================================================
+# CAMERA CONTROL SETTINGS
+# ============================================================================
+
+@dataclass
+class CameraControl:
+    """Definition for an adjustable camera property"""
+    prop_id: int
+    name: str
+    min_val: float
+    max_val: float
+    step: float
+    key_increase: str
+    key_decrease: str
+
+
+# Adjustable camera controls with their key bindings
+# Use number keys 1-9 to select property, then +/- to adjust
+CAMERA_CONTROLS = [
+    CameraControl(cv2.CAP_PROP_BRIGHTNESS, "Brightness", -64, 64, 5, None, None),
+    CameraControl(cv2.CAP_PROP_CONTRAST, "Contrast", 0, 100, 5, None, None),
+    CameraControl(cv2.CAP_PROP_SATURATION, "Saturation", 0, 100, 5, None, None),
+    CameraControl(cv2.CAP_PROP_SHARPNESS, "Sharpness", 0, 10, 1, None, None),
+    CameraControl(cv2.CAP_PROP_GAMMA, "Gamma", 50, 200, 10, None, None),
+    CameraControl(cv2.CAP_PROP_GAIN, "Gain", 0, 255, 10, None, None),
+    CameraControl(cv2.CAP_PROP_ISO_SPEED, "ISO", 100, 3200, 100, None, None),
+    CameraControl(cv2.CAP_PROP_EXPOSURE, "Exposure", -13, 0, 1, None, None),
+    CameraControl(cv2.CAP_PROP_TEMPERATURE, "WB Temp", 2800, 6500, 200, None, None),
+]
+
+# Track manually set values (camera may not report changes correctly)
+control_values = {}
+
+
+def adjust_camera_property(cap: cv2.VideoCapture, control: CameraControl, increase: bool) -> Tuple[float, float]:
+    """
+    Adjust a camera property up or down by its step value
+
+    Args:
+        cap: VideoCapture object
+        control: CameraControl definition
+        increase: True to increase, False to decrease
+
+    Returns:
+        Tuple of (requested_value, actual_value)
+    """
+    # Get current value from our tracking or from camera
+    if control.prop_id in control_values:
+        current = control_values[control.prop_id]
+    else:
+        current = cap.get(control.prop_id)
+
+    if increase:
+        new_val = min(current + control.step, control.max_val)
+    else:
+        new_val = max(current - control.step, control.min_val)
+
+    # Store the requested value
+    control_values[control.prop_id] = new_val
+
+    # Try to set on camera
+    cap.set(control.prop_id, new_val)
+    actual = cap.get(control.prop_id)
+
+    return new_val, actual
+
+
+def get_camera_control_values(cap: cv2.VideoCapture) -> list:
+    """Get current values for all camera controls"""
+    values = []
+    for control in CAMERA_CONTROLS:
+        val = cap.get(control.prop_id)
+        values.append((control.name, val, control.min_val, control.max_val))
+    return values
+
 
 def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.VideoCapture]:
     """
@@ -48,14 +123,24 @@ def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.Vid
         VideoCapture object if successful, None otherwise
     """
     print(f"Opening camera at index {camera_index}...")
-    cap = cv2.VideoCapture(camera_index)
+
+    # On Windows, use DirectShow backend for better performance
+    cap = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+
+    if not cap.isOpened():
+        print(f"DirectShow failed, trying default backend...")
+        cap = cv2.VideoCapture(camera_index)
 
     if not cap.isOpened():
         print(f"Error: Could not open camera at index {camera_index}")
         print("Run CameraFinder.py to see available cameras")
         return None
 
-    # Set resolution
+    # IMPORTANT: Set FOURCC before resolution for proper format selection
+    # MJPEG is much faster than uncompressed YUV at high resolutions
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+
+    # Set resolution after FOURCC
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
@@ -63,21 +148,24 @@ def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.Vid
     cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS)  # Set target FPS
     cap.set(cv2.CAP_PROP_BUFFERSIZE, CAMERA_BUFFER_SIZE)  # Reduce buffer lag
 
-    # Try to set MJPEG codec for better performance
-    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-
-    # Verify actual resolution
+    # Verify actual settings
     actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    fourcc_code = int(cap.get(cv2.CAP_PROP_FOURCC))
+    fourcc_str = "".join([chr((fourcc_code >> 8 * i) & 0xFF) for i in range(4)])
 
     print(f"Camera opened successfully!")
     print(f"Requested resolution: {width}x{height}")
     print(f"Actual resolution: {actual_width}x{actual_height}")
     print(f"Camera FPS: {actual_fps}")
+    print(f"Camera Format: {fourcc_str} (MJPG = fast, YUY2/other = slow)")
 
     if actual_width != width or actual_height != height:
         print(f"Warning: Camera does not support requested resolution")
+
+    if fourcc_str != "MJPG":
+        print(f"Warning: MJPEG not active - expect lower FPS at high resolutions")
 
     return cap
 
@@ -204,7 +292,9 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
     recording = True
     show_fps_flag = show_fps
     show_info_flag = show_info
+    show_controls_flag = False  # Show camera controls overlay
     saved_count = 0
+    selected_control = 0  # Currently selected camera control (0-8)
 
     print("\nControls:")
     print("  'q' or ESC : Stop recording and quit")
@@ -212,7 +302,12 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
     print("  's'        : Save current frame")
     print("  'f'        : Toggle FPS display")
     print("  'i'        : Toggle info display")
+    print("  'c'        : Toggle camera controls overlay")
     print("  SPACE      : Pause/Resume stream")
+    print("\nCamera Adjustment (when controls visible):")
+    print("  UP/DOWN    : Navigate between properties")
+    print("  LEFT/RIGHT : Decrease/Increase value")
+    print("  +/-        : Decrease/Increase value")
     print("\nRecording started... Press 'q' or ESC to stop\n")
 
     try:
@@ -267,10 +362,53 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
                                             TEXT_FONT, TEXT_SCALE - 0.1,
                                             TEXT_COLOR, TEXT_THICKNESS - 1)
 
+            # Draw camera controls panel
+            if show_controls_flag:
+                panel_x = frame_width - 280
+                panel_y = 70
+                draw_text_with_background(display_frame, "Camera Controls [1-9]",
+                                        (panel_x, panel_y),
+                                        TEXT_FONT, TEXT_SCALE, (255, 255, 0), TEXT_THICKNESS)
+
+                for i, control in enumerate(CAMERA_CONTROLS):
+                    # Use tracked value if available, otherwise get from camera
+                    if control.prop_id in control_values:
+                        val = control_values[control.prop_id]
+                    else:
+                        val = cap.get(control.prop_id)
+
+                    # Highlight selected control
+                    if i == selected_control:
+                        color = (0, 255, 255)  # Yellow for selected
+                        prefix = ">"
+                    else:
+                        color = TEXT_COLOR
+                        prefix = " "
+
+                    # Format value
+                    if val == int(val):
+                        val_str = f"{int(val)}"
+                    else:
+                        val_str = f"{val:.1f}"
+
+                    text = f"{prefix}{i+1}. {control.name}: {val_str}"
+                    draw_text_with_background(display_frame, text,
+                                            (panel_x, panel_y + 30 + i * 25),
+                                            TEXT_FONT, TEXT_SCALE - 0.1,
+                                            color, TEXT_THICKNESS - 1)
+
+                # Draw instructions at bottom of panel
+                draw_text_with_background(display_frame, "UP/DOWN:Nav  LEFT/RIGHT:Adjust",
+                                        (panel_x, panel_y + 30 + len(CAMERA_CONTROLS) * 25 + 10),
+                                        TEXT_FONT, TEXT_SCALE - 0.15,
+                                        (200, 200, 200), 1)
+
             cv2.imshow(window_name, display_frame)
 
             # Handle key presses (reduced wait time for better FPS)
-            key = cv2.waitKey(1) & 0xFF
+            # Use waitKeyEx for proper arrow key detection on Windows
+            key_raw = cv2.waitKeyEx(1)
+            key = key_raw & 0xFF  # Lower byte for regular keys
 
             if key == ord('q') or key == 27:  # 'q' or ESC
                 print("\nStopping stream...")
@@ -290,9 +428,41 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
             elif key == ord('i'):  # Toggle info
                 show_info_flag = not show_info_flag
                 print(f"Info display: {'ON' if show_info_flag else 'OFF'}")
+            elif key == ord('c'):  # Toggle camera controls
+                show_controls_flag = not show_controls_flag
+                print(f"Camera controls: {'ON' if show_controls_flag else 'OFF'}")
             elif key == 32:  # SPACE - pause/resume
                 paused = not paused
                 print(f"Stream: {'PAUSED' if paused else 'RESUMED'}")
+
+            # Camera control navigation (UP/DOWN arrows)
+            # Arrow key codes with waitKeyEx:
+            # Windows: UP=2490368, DOWN=2621440, LEFT=2424832, RIGHT=2555904
+            # Linux: UP=65362, DOWN=65364, LEFT=65361, RIGHT=65363
+            elif key_raw == 2490368 or key_raw == 65362:  # UP arrow
+                if show_controls_flag and selected_control > 0:
+                    selected_control -= 1
+                    control = CAMERA_CONTROLS[selected_control]
+                    val = cap.get(control.prop_id)
+                    print(f"Selected: {control.name} = {val}")
+            elif key_raw == 2621440 or key_raw == 65364:  # DOWN arrow
+                if show_controls_flag and selected_control < len(CAMERA_CONTROLS) - 1:
+                    selected_control += 1
+                    control = CAMERA_CONTROLS[selected_control]
+                    val = cap.get(control.prop_id)
+                    print(f"Selected: {control.name} = {val}")
+
+            # Camera control adjustment (LEFT/RIGHT arrows or +/-)
+            elif key_raw == 2424832 or key_raw == 65361 or key == ord('-') or key == ord('_'):  # LEFT arrow or -
+                if show_controls_flag:
+                    control = CAMERA_CONTROLS[selected_control]
+                    requested, actual = adjust_camera_property(cap, control, increase=False)
+                    print(f"{control.name}: {requested} (camera: {actual})")
+            elif key_raw == 2555904 or key_raw == 65363 or key == ord('+') or key == ord('='):  # RIGHT arrow or +
+                if show_controls_flag:
+                    control = CAMERA_CONTROLS[selected_control]
+                    requested, actual = adjust_camera_property(cap, control, increase=True)
+                    print(f"{control.name}: {requested} (camera: {actual})")
 
     except KeyboardInterrupt:
         print("\n\nStream interrupted by user!")
