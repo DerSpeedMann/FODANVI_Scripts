@@ -169,12 +169,12 @@ control_values: dict = {}
 # ============================================================================
 
 def detect_control_limits(picam2: Picamera2, control_name: str,
-                          search_min: float = -10000, search_max: float = 10000,
-                          tolerance: float = 0.01, max_iterations: int = 20) -> Tuple[Optional[float], Optional[float]]:
+                          search_min: int = -100, search_max: int = 100,
+                          max_iterations: int = 30) -> Tuple[Optional[int], Optional[int]]:
     """
     Auto-detect min and max limits for a control using binary search.
 
-    Tests values and checks the camera's actual response via metadata.
+    Tests integer values and checks the camera's actual response via metadata.
     Uses binary search to find where the camera stops accepting values.
 
     Args:
@@ -182,13 +182,12 @@ def detect_control_limits(picam2: Picamera2, control_name: str,
         control_name: Name of the control to test
         search_min: Starting minimum to search from
         search_max: Starting maximum to search to
-        tolerance: Stop searching when range is smaller than this
         max_iterations: Maximum binary search iterations
 
     Returns:
         Tuple of (detected_min, detected_max), None if detection fails
     """
-    def get_actual_value(test_val: float) -> Optional[float]:
+    def get_actual_value(test_val: int) -> Optional[float]:
         """Set a value and read back what the camera actually used."""
         try:
             picam2.set_controls({control_name: test_val})
@@ -200,12 +199,12 @@ def detect_control_limits(picam2: Picamera2, control_name: str,
         except Exception:
             return None
 
-    # First, find a working value near 0 or 1 to establish baseline
+    # First, find a working value to establish baseline
     baseline_val = None
-    for test in [0, 1, 0.5, -1]:
+    for test in [0, 1, 100, 1000, 10000]:
         actual = get_actual_value(test)
         if actual is not None:
-            baseline_val = actual
+            baseline_val = int(actual)
             break
 
     if baseline_val is None:
@@ -213,14 +212,14 @@ def detect_control_limits(picam2: Picamera2, control_name: str,
 
     # Binary search for minimum
     detected_min = None
-    low, high = search_min, baseline_val
+    low, high = int(search_min), int(baseline_val)
     for _ in range(max_iterations):
-        if high - low < tolerance:
+        if high - low <= 1:
             break
-        mid = (low + high) / 2
+        mid = (low + high) // 2
         actual = get_actual_value(mid)
-        if actual is not None and abs(actual - mid) < tolerance * 10:
-            # Camera accepted this value
+        if actual is not None and abs(actual - mid) < max(1, abs(mid) * 0.1):
+            # Camera accepted this value (within 10% or 1 unit)
             high = mid
             detected_min = mid
         else:
@@ -228,18 +227,18 @@ def detect_control_limits(picam2: Picamera2, control_name: str,
             low = mid
 
     if detected_min is None:
-        detected_min = baseline_val
+        detected_min = int(baseline_val)
 
     # Binary search for maximum
     detected_max = None
-    low, high = baseline_val, search_max
+    low, high = int(baseline_val), int(search_max)
     for _ in range(max_iterations):
-        if high - low < tolerance:
+        if high - low <= 1:
             break
-        mid = (low + high) / 2
+        mid = (low + high) // 2
         actual = get_actual_value(mid)
-        if actual is not None and abs(actual - mid) < tolerance * 10:
-            # Camera accepted this value
+        if actual is not None and abs(actual - mid) < max(1, abs(mid) * 0.1):
+            # Camera accepted this value (within 10% or 1 unit)
             low = mid
             detected_max = mid
         else:
@@ -247,10 +246,10 @@ def detect_control_limits(picam2: Picamera2, control_name: str,
             high = mid
 
     if detected_max is None:
-        detected_max = baseline_val
+        detected_max = int(baseline_val)
 
     # Reset to baseline
-    get_actual_value(baseline_val)
+    get_actual_value(int(baseline_val))
 
     return detected_min, detected_max
 
@@ -274,21 +273,23 @@ def auto_detect_all_limits(picam2: Picamera2) -> None:
 
         print(f"  {ctrl.name:12s}: detecting...", end="", flush=True)
 
+        # Determine search range based on control type
+        if ctrl.control_name == "ExposureTime":
+            # ExposureTime is in microseconds, search up to 10 seconds
+            search_min = 0 if ctrl.min_val is None else int(ctrl.min_val)
+            search_max = 10000000 if ctrl.max_val is None else int(ctrl.max_val)
+        else:
+            # Standard range for most controls
+            search_min = -100 if ctrl.min_val is None else int(ctrl.min_val)
+            search_max = 100 if ctrl.max_val is None else int(ctrl.max_val)
+
         detected_min, detected_max = detect_control_limits(
             picam2, ctrl.control_name,
-            search_min=-10000 if ctrl.min_val is None else ctrl.min_val,
-            search_max=10000 if ctrl.max_val is None else ctrl.max_val
+            search_min=search_min,
+            search_max=search_max
         )
 
         if detected_min is not None and detected_max is not None:
-            # Round to reasonable precision
-            if abs(detected_min) < 100 and abs(detected_max) < 100:
-                detected_min = round(detected_min, 2)
-                detected_max = round(detected_max, 2)
-            else:
-                detected_min = round(detected_min)
-                detected_max = round(detected_max)
-
             # Update the control definition
             CONTROL_DEFS[i] = CameraControl(
                 ctrl.name, ctrl.control_name,
