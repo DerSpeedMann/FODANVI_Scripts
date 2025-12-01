@@ -1,207 +1,484 @@
 import cv2
 import time
 import os
+import sys
+import json
+import select
+import termios
+import tty
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple, Dict, Any
+from dataclasses import dataclass, asdict
+
+from picamera2 import Picamera2
 
 # ============================================================================
 # GLOBAL CONFIGURATION
 # ============================================================================
 
-# Camera settings
-CAMERA_INDEX: int = 0  # Change this to match your camera index from CameraFinder
+@dataclass
+class CaptureConfig:
+    """Configuration for camera settings"""
+    resolution_width: int = 1920
+    resolution_height: int = 1080
+    camera_init_delay: float = 1.0
+    image_prefix: str = "capture"
+    image_format: str = "jpg"
+    jpeg_quality: int = 95
+    # Camera control values (control_name -> value)
+    control_values: Dict[str, float] = None
+
+    def __post_init__(self):
+        if self.control_values is None:
+            self.control_values = {}
+
+# Default values for backwards compatibility
 RESOLUTION_WIDTH: int = 1920
 RESOLUTION_HEIGHT: int = 1080
+CAMERA_INIT_DELAY: float = 1.0
+OUTPUT_FOLDER: str = "captured_images"
+IMAGE_PREFIX: str = "capture"
+IMAGE_FORMAT: str = "jpg"
+JPEG_QUALITY: int = 95
 
-# Capture settings
-NUM_IMAGES: int = 5  # Number of images to capture
-DELAY_BETWEEN_CAPTURES: float = 2.0  # Delay in seconds between captures
-
-# Output settings
-OUTPUT_FOLDER: str = "captured_images"  # Folder to save images
-IMAGE_PREFIX: str = "capture"  # Prefix for image filenames
-IMAGE_FORMAT: str = "jpg"  # Image format (jpg, png, bmp, etc.)
-JPEG_QUALITY: int = 95  # JPEG quality (0-100, only applies to jpg format)
 
 # ============================================================================
+# CONFIG FILE FUNCTIONS
+# ============================================================================
 
-def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.VideoCapture]:
+def load_config(config_path: str) -> CaptureConfig:
     """
-    Initialize and configure camera
+    Load configuration from a JSON file.
 
     Args:
-        camera_index: Camera index to open
-        width: Desired frame width
-        height: Desired frame height
+        config_path: Path to the JSON config file
 
     Returns:
-        VideoCapture object if successful, None otherwise
-    """
-    print(f"Opening camera at index {camera_index}...")
-    cap = cv2.VideoCapture(camera_index)
+        CaptureConfig object with loaded settings
 
-    if not cap.isOpened():
-        print(f"Error: Could not open camera at index {camera_index}")
-        print("Run CameraFinder.py to see available cameras")
+    Raises:
+        FileNotFoundError: If config file doesn't exist
+        json.JSONDecodeError: If config file is not valid JSON
+        ValueError: If config contains invalid values
+    """
+    path = Path(config_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    with open(path, 'r') as f:
+        data = json.load(f)
+
+    # Validate required fields
+    if 'resolution_width' in data and not isinstance(data['resolution_width'], int):
+        raise ValueError(f"resolution_width must be an integer, got {type(data['resolution_width']).__name__}")
+    if 'resolution_height' in data and not isinstance(data['resolution_height'], int):
+        raise ValueError(f"resolution_height must be an integer, got {type(data['resolution_height']).__name__}")
+    if 'jpeg_quality' in data:
+        if not isinstance(data['jpeg_quality'], int) or not (1 <= data['jpeg_quality'] <= 100):
+            raise ValueError(f"jpeg_quality must be an integer between 1 and 100")
+
+    # Extract control_values separately to handle it properly
+    control_vals = data.pop('control_values', {})
+
+    # Create config with remaining fields
+    config = CaptureConfig(**data)
+    config.control_values = control_vals
+
+    return config
+
+
+def save_config(config: CaptureConfig, config_path: str) -> None:
+    """
+    Save configuration to a JSON file.
+
+    Args:
+        config: CaptureConfig object to save
+        config_path: Path to save the JSON config file
+    """
+    path = Path(config_path)
+
+    # Ensure parent directory exists
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    data = asdict(config)
+
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+
+    print(f"Config saved to: {path.absolute()}")
+
+# ============================================================================
+# CAMERA CONTROL SETTINGS
+# ============================================================================
+
+@dataclass
+class CameraControl:
+    """Definition for an adjustable camera property"""
+    name: str
+    control_name: str  # libcamera control name
+    min_val: float
+    max_val: float
+    step: float
+    default: Optional[float] = None
+
+# Picamera2 control definitions
+# See libcamera controls: https://libcamera.org/api-html/controls_8h.html
+CONTROL_DEFS = [
+    # Image adjustments
+    CameraControl("Brightness", "Brightness", -1.0, 1.0, 0.1, 0.0),
+    CameraControl("Contrast", "Contrast", 0.0, 2.0, 0.1, 1.0),
+    CameraControl("Saturation", "Saturation", 0.0, 2.0, 0.1, 1.0),
+    CameraControl("Sharpness", "Sharpness", 0.0, 2.0, 0.1, 1.0),
+    # Exposure controls
+    CameraControl("Exposure", "ExposureValue", -8.0, 8.0, 0.5, 0.0),
+    CameraControl("Exp Time", "ExposureTime", 100, 1000000, 10000, None),  # microseconds
+    CameraControl("Gain", "AnalogueGain", 1.0, 16.0, 0.5, 1.0),
+    CameraControl("Dig Gain", "DigitalGain", 1.0, 4.0, 0.25, 1.0),
+    # Auto controls
+    CameraControl("Auto Exp", "AeEnable", 0, 1, 1, 1),
+    CameraControl("Auto WB", "AwbEnable", 0, 1, 1, 1),
+    # White balance (manual when AwbEnable=0)
+    CameraControl("WB Red", "ColourGains", 0.5, 4.0, 0.1, None),  # Red gain
+    # Noise reduction
+    CameraControl("Denoise", "NoiseReductionMode", 0, 4, 1, 0),  # 0=off, 1=fast, 2=HQ, 3=minimal, 4=ZSL
+]
+
+# Runtime storage
+control_values: dict = {}
+
+# ============================================================================
+# CAMERA FUNCTIONS
+# ============================================================================
+
+def setup_camera(width: int, height: int, config_control_values: Dict[str, float] = None) -> Optional[Picamera2]:
+    """Initialize Raspberry Pi camera using picamera2."""
+    print("Opening Raspberry Pi camera...")
+
+    try:
+        picam2 = Picamera2()
+
+        config = picam2.create_still_configuration(
+            main={"size": (width, height), "format": "RGB888"},
+            buffer_count=2
+        )
+        picam2.configure(config)
+        picam2.start()
+
+        print("Waiting for camera to initialize...")
+        time.sleep(CAMERA_INIT_DELAY)
+
+        initialize_controls(picam2, config_control_values)
+
+        print(f"Camera opened successfully!")
+        print(f"Resolution: {width}x{height}")
+
+        return picam2
+
+    except Exception as e:
+        print(f"Error opening camera: {e}")
         return None
 
-    # Set resolution
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
 
-    # Verify actual resolution
-    actual_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    actual_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+def initialize_controls(picam2: Picamera2, config_control_values: Dict[str, float] = None) -> None:
+    """Initialize camera controls, optionally using values from config."""
+    global control_values
+    control_values = {}
 
-    print(f"Camera opened successfully!")
-    print(f"Requested resolution: {width}x{height}")
-    print(f"Actual resolution: {actual_width}x{actual_height}")
+    print("\n" + "=" * 50)
+    print("CAMERA CONTROLS")
+    print("=" * 50)
 
-    if actual_width != width or actual_height != height:
-        print(f"Warning: Camera does not support requested resolution")
+    for ctrl in CONTROL_DEFS:
+        # Priority: config value > default > min_val
+        if config_control_values and ctrl.control_name in config_control_values:
+            value = config_control_values[ctrl.control_name]
+            # Clamp to valid range
+            value = max(ctrl.min_val, min(ctrl.max_val, value))
+        elif ctrl.default is not None:
+            value = ctrl.default
+        else:
+            value = ctrl.min_val
 
-    return cap
+        try:
+            picam2.set_controls({ctrl.control_name: value})
+            control_values[ctrl.control_name] = value
+        except Exception:
+            control_values[ctrl.control_name] = value
 
-def capture_images(camera_index: int = CAMERA_INDEX,
-                  num_images: int = NUM_IMAGES,
-                  delay: float = DELAY_BETWEEN_CAPTURES,
-                  output_folder: str = OUTPUT_FOLDER,
-                  prefix: str = IMAGE_PREFIX,
-                  image_format: str = IMAGE_FORMAT,
-                  width: int = RESOLUTION_WIDTH,
-                  height: int = RESOLUTION_HEIGHT) -> int:
-    """
-    Capture multiple images from camera with delay between captures
+        print(f"  {ctrl.name:12s}: {ctrl.min_val} - {ctrl.max_val} (set: {control_values[ctrl.control_name]})")
 
-    Args:
-        camera_index: Camera index to use
-        num_images: Number of images to capture
-        delay: Delay in seconds between captures
-        output_folder: Folder to save images
-        prefix: Prefix for image filenames
-        image_format: Image format (jpg, png, etc.)
-        width: Desired frame width
-        height: Desired frame height
+    print("=" * 50)
+    print(f"Loaded {len(CONTROL_DEFS)} controls\n")
 
-    Returns:
-        Number of images successfully captured
-    """
-    # Create output folder
+
+def read_frame(picam2: Picamera2) -> Tuple[bool, any]:
+    """Read a frame from the camera."""
+    try:
+        frame = picam2.capture_array()
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+        return True, frame
+    except Exception:
+        return False, None
+
+
+def release_camera(picam2: Picamera2) -> None:
+    """Release the camera."""
+    try:
+        picam2.stop()
+        picam2.close()
+    except Exception:
+        pass
+
+
+def adjust_control(picam2: Picamera2, ctrl: CameraControl, increase: bool) -> Tuple[str, float]:
+    """Adjust a camera control up or down."""
+    current = control_values.get(ctrl.control_name, ctrl.min_val)
+
+    if increase:
+        new_val = min(current + ctrl.step, ctrl.max_val)
+    else:
+        new_val = max(current - ctrl.step, ctrl.min_val)
+
+    control_values[ctrl.control_name] = new_val
+
+    try:
+        picam2.set_controls({ctrl.control_name: new_val})
+    except Exception as e:
+        print(f"Error setting {ctrl.name}: {e}")
+
+    return ctrl.name, new_val
+
+
+# ============================================================================
+# CAPTURE FUNCTION
+# ============================================================================
+
+def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOLDER) -> int:
+    """Interactive image capture with terminal-based controls."""
+
+    # Use provided config or create default
+    if config is None:
+        config = CaptureConfig()
+
+    prefix = config.image_prefix
+    image_format = config.image_format
+    jpeg_quality = config.jpeg_quality
+    width = config.resolution_width
+    height = config.resolution_height
+
     output_path = Path(output_folder)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    print(f"\n{'='*80}")
-    print(f"CAPTURE CONFIGURATION")
-    print(f"{'='*80}")
-    print(f"Camera Index:        {camera_index}")
-    print(f"Number of Images:    {num_images}")
-    print(f"Delay Between:       {delay} seconds")
-    print(f"Output Folder:       {output_path.absolute()}")
-    print(f"Image Format:        {image_format}")
-    print(f"Resolution:          {width}x{height}")
-    print(f"{'='*80}\n")
+    print(f"\n{'='*60}")
+    print(f"IMAGE CAPTURE")
+    print(f"{'='*60}")
+    print(f"Output Folder:  {output_path.absolute()}")
+    print(f"Image Format:   {image_format}")
+    print(f"Resolution:     {width}x{height}")
+    print(f"{'='*60}\n")
 
-    # Setup camera
-    cap = setup_camera(camera_index, width, height)
-    if cap is None:
+    picam2 = setup_camera(width, height, config.control_values)
+    if picam2 is None:
         return 0
 
-    # Warm up camera
+    # Warm up
     print("Warming up camera...")
     for _ in range(5):
-        cap.read()
+        read_frame(picam2)
     time.sleep(0.5)
 
-    print(f"\nStarting capture sequence...\n")
-
     captured_count = 0
+    selected_control = 0
+
+    def print_status():
+        print("\n" + "-" * 50)
+        print(f"Captures: {captured_count} | Output: {output_path}")
+        print("-" * 50)
+        print("Controls:")
+        for i, ctrl in enumerate(CONTROL_DEFS):
+            val = control_values.get(ctrl.control_name, 0)
+            marker = ">>>" if i == selected_control else "   "
+            if isinstance(val, float) and val != int(val):
+                print(f"  {marker} [{i+1}] {ctrl.name}: {val:.2f} ({ctrl.min_val} - {ctrl.max_val})")
+            else:
+                print(f"  {marker} [{i+1}] {ctrl.name}: {int(val)} ({int(ctrl.min_val)} - {int(ctrl.max_val)})")
+        print("-" * 50)
+
+    def print_help():
+        print("\n" + "=" * 50)
+        print("COMMANDS")
+        print("=" * 50)
+        print("  c / ENTER    : Capture image")
+        print("  q            : Quit")
+        print("  l            : List status/controls")
+        print("  h            : Show this help")
+        print("  e            : Export current settings to config file")
+        print("")
+        print("  1-9, 0       : Select control by number (0=10th)")
+        print("  w / s        : Select prev/next control")
+        print("  + / -        : Adjust selected control")
+        print("=" * 50)
+
+    print_help()
+    print_status()
+    print("\nReady! (c=capture, q=quit, h=help)")
 
     try:
-        for i in range(num_images):
-            # Countdown
-            if delay > 0 and i > 0:
-                print(f"Waiting {delay} seconds...", end=" ", flush=True)
-                time.sleep(delay)
-                print("Ready!")
+        while True:
+            # Non-blocking input
+            old_settings = termios.tcgetattr(sys.stdin)
+            try:
+                tty.setcbreak(sys.stdin.fileno())
+                if select.select([sys.stdin], [], [], 0.1)[0]:
+                    key = sys.stdin.read(1).lower()
+                else:
+                    continue
+            finally:
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
 
-            # Capture frame
-            ret, frame = cap.read()
+            # Quit
+            if key == 'q':
+                print("\nQuitting...")
+                break
 
-            if not ret:
-                print(f"Error: Could not capture image {i + 1}")
-                continue
+            # Capture
+            elif key == 'c' or key == '\r' or key == '\n':
+                ret, frame = read_frame(picam2)
+                if not ret or frame is None:
+                    print("\nError: Could not capture frame")
+                    continue
 
-            # Generate filename with timestamp
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
-            filename = f"{prefix}_{timestamp}.{image_format}"
-            filepath = output_path / filename
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
+                filename = f"{prefix}_{timestamp}.{image_format}"
+                filepath = output_path / filename
 
-            # Save image
-            save_params = []
-            if image_format.lower() in ['jpg', 'jpeg']:
-                save_params = [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY]
+                save_params = []
+                if image_format.lower() in ['jpg', 'jpeg']:
+                    save_params = [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality]
 
-            success = cv2.imwrite(str(filepath), frame, save_params)
+                success = cv2.imwrite(str(filepath), frame, save_params)
 
-            if success:
-                file_size = os.path.getsize(filepath) / 1024  # Size in KB
-                print(f"✓ [{i + 1}/{num_images}] Captured: {filename} ({file_size:.1f} KB)")
-                captured_count += 1
-            else:
-                print(f"✗ [{i + 1}/{num_images}] Failed to save: {filename}")
+                if success:
+                    file_size = os.path.getsize(filepath) / 1024
+                    captured_count += 1
+                    print(f"\n[{captured_count}] Captured: {filename} ({file_size:.1f} KB)")
+                else:
+                    print(f"\nFailed to save: {filename}")
+
+            # Help
+            elif key == 'h':
+                print_help()
+
+            # Status
+            elif key == 'l':
+                print_status()
+
+            # Export config
+            elif key == 'e':
+                export_config = CaptureConfig(
+                    resolution_width=width,
+                    resolution_height=height,
+                    camera_init_delay=config.camera_init_delay,
+                    image_prefix=prefix,
+                    image_format=image_format,
+                    jpeg_quality=jpeg_quality,
+                    control_values=dict(control_values)
+                )
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                config_filename = f"capture_config_{timestamp}.json"
+                config_path = output_path / config_filename
+                save_config(export_config, str(config_path))
+
+            # Select control by number (1-9 = controls 1-9, 0 = control 10)
+            elif key.isdigit():
+                if key == '0':
+                    idx = 9  # 0 maps to 10th control (index 9)
+                else:
+                    idx = int(key) - 1
+                if 0 <= idx < len(CONTROL_DEFS):
+                    selected_control = idx
+                    ctrl = CONTROL_DEFS[selected_control]
+                    val = control_values.get(ctrl.control_name, 0)
+                    print(f"\nSelected: {ctrl.name} = {val}")
+
+            # Previous control
+            elif key == 'w':
+                if selected_control > 0:
+                    selected_control -= 1
+                    ctrl = CONTROL_DEFS[selected_control]
+                    val = control_values.get(ctrl.control_name, 0)
+                    print(f"\nSelected: {ctrl.name} = {val}")
+
+            # Next control
+            elif key == 's':
+                if selected_control < len(CONTROL_DEFS) - 1:
+                    selected_control += 1
+                    ctrl = CONTROL_DEFS[selected_control]
+                    val = control_values.get(ctrl.control_name, 0)
+                    print(f"\nSelected: {ctrl.name} = {val}")
+
+            # Decrease control
+            elif key == '-' or key == '_':
+                ctrl = CONTROL_DEFS[selected_control]
+                name, val = adjust_control(picam2, ctrl, increase=False)
+                print(f"\n{name}: {val}")
+
+            # Increase control
+            elif key == '+' or key == '=':
+                ctrl = CONTROL_DEFS[selected_control]
+                name, val = adjust_control(picam2, ctrl, increase=True)
+                print(f"\n{name}: {val}")
 
     except KeyboardInterrupt:
-        print("\n\nCapture interrupted by user!")
-    finally:
-        cap.release()
-        print(f"\nCamera released")
+        print("\n\nInterrupted!")
 
-    print(f"\n{'='*80}")
+    release_camera(picam2)
+    print(f"\nCamera released")
+
+    print(f"\n{'='*60}")
     print(f"CAPTURE COMPLETE")
-    print(f"{'='*80}")
-    print(f"Images Captured:     {captured_count}/{num_images}")
-    print(f"Output Location:     {output_path.absolute()}")
-    print(f"{'='*80}\n")
+    print(f"{'='*60}")
+    print(f"Images Captured: {captured_count}")
+    print(f"Output:          {output_path.absolute()}")
+    print(f"{'='*60}\n")
 
     return captured_count
 
+
 if __name__ == "__main__":
-    import sys
+    config: CaptureConfig = None
+    output_dir = OUTPUT_FOLDER
 
-    # Parse command line arguments
-    camera_idx = CAMERA_INDEX
-    num_imgs = NUM_IMAGES
-    delay_sec = DELAY_BETWEEN_CAPTURES
+    if len(sys.argv) < 2:
+        print("Error: Config file is required")
+        print("Usage: python CaptureImages.py <config_file.json> [output_folder]")
+        print("       Press 'e' during capture to export current settings")
+        sys.exit(1)
 
-    if len(sys.argv) > 1:
-        try:
-            camera_idx = int(sys.argv[1])
-        except ValueError:
-            print(f"Error: Invalid camera index '{sys.argv[1]}'")
-            print("Usage: python CaptureImages.py [camera_index] [num_images] [delay]")
-            exit(1)
+    config_path = sys.argv[1]
+
+    try:
+        config = load_config(config_path)
+        print(f"Loaded config from: {config_path}")
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        print("Usage: python CaptureImages.py <config_file.json> [output_folder]")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in config file: {e}")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: Invalid config value: {e}")
+        sys.exit(1)
+    except TypeError as e:
+        print(f"Error: Unknown field in config file: {e}")
+        sys.exit(1)
 
     if len(sys.argv) > 2:
-        try:
-            num_imgs = int(sys.argv[2])
-        except ValueError:
-            print(f"Error: Invalid number of images '{sys.argv[2]}'")
-            exit(1)
+        output_dir = sys.argv[2]
 
-    if len(sys.argv) > 3:
-        try:
-            delay_sec = float(sys.argv[3])
-        except ValueError:
-            print(f"Error: Invalid delay '{sys.argv[3]}'")
-            exit(1)
+    captured = capture_images(config, output_folder=output_dir)
 
-    # Capture images
-    captured = capture_images(
-        camera_index=camera_idx,
-        num_images=num_imgs,
-        delay=delay_sec
-    )
-
-    # Exit with appropriate code
-    exit(0 if captured > 0 else 1)
+    sys.exit(0 if captured > 0 else 1)
