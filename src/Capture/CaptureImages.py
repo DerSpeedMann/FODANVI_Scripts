@@ -165,11 +165,157 @@ CONTROL_DEFS = [
 control_values: dict = {}
 
 # ============================================================================
+# CONTROL LIMIT DETECTION
+# ============================================================================
+
+def detect_control_limits(picam2: Picamera2, control_name: str,
+                          search_min: float = -10000, search_max: float = 10000,
+                          tolerance: float = 0.01, max_iterations: int = 20) -> Tuple[Optional[float], Optional[float]]:
+    """
+    Auto-detect min and max limits for a control using binary search.
+
+    Tests values and checks the camera's actual response via metadata.
+    Uses binary search to find where the camera stops accepting values.
+
+    Args:
+        picam2: Picamera2 instance
+        control_name: Name of the control to test
+        search_min: Starting minimum to search from
+        search_max: Starting maximum to search to
+        tolerance: Stop searching when range is smaller than this
+        max_iterations: Maximum binary search iterations
+
+    Returns:
+        Tuple of (detected_min, detected_max), None if detection fails
+    """
+    def get_actual_value(test_val: float) -> Optional[float]:
+        """Set a value and read back what the camera actually used."""
+        try:
+            picam2.set_controls({control_name: test_val})
+            time.sleep(0.05)  # Brief wait for control to apply
+            metadata = picam2.capture_metadata()
+            if control_name in metadata:
+                return metadata[control_name]
+            return None
+        except Exception:
+            return None
+
+    # First, find a working value near 0 or 1 to establish baseline
+    baseline_val = None
+    for test in [0, 1, 0.5, -1]:
+        actual = get_actual_value(test)
+        if actual is not None:
+            baseline_val = actual
+            break
+
+    if baseline_val is None:
+        return None, None
+
+    # Binary search for minimum
+    detected_min = None
+    low, high = search_min, baseline_val
+    for _ in range(max_iterations):
+        if high - low < tolerance:
+            break
+        mid = (low + high) / 2
+        actual = get_actual_value(mid)
+        if actual is not None and abs(actual - mid) < tolerance * 10:
+            # Camera accepted this value
+            high = mid
+            detected_min = mid
+        else:
+            # Camera clamped or rejected - actual min is higher
+            low = mid
+
+    if detected_min is None:
+        detected_min = baseline_val
+
+    # Binary search for maximum
+    detected_max = None
+    low, high = baseline_val, search_max
+    for _ in range(max_iterations):
+        if high - low < tolerance:
+            break
+        mid = (low + high) / 2
+        actual = get_actual_value(mid)
+        if actual is not None and abs(actual - mid) < tolerance * 10:
+            # Camera accepted this value
+            low = mid
+            detected_max = mid
+        else:
+            # Camera clamped or rejected - actual max is lower
+            high = mid
+
+    if detected_max is None:
+        detected_max = baseline_val
+
+    # Reset to baseline
+    get_actual_value(baseline_val)
+
+    return detected_min, detected_max
+
+
+def auto_detect_all_limits(picam2: Picamera2) -> None:
+    """
+    Auto-detect min/max limits for all controls that have None limits.
+    Updates CONTROL_DEFS in place.
+    """
+    global CONTROL_DEFS
+
+    print("\n" + "=" * 50)
+    print("AUTO-DETECTING CONTROL LIMITS")
+    print("=" * 50)
+
+    for i, ctrl in enumerate(CONTROL_DEFS):
+        # Skip controls that already have defined limits
+        if ctrl.min_val is not None and ctrl.max_val is not None:
+            print(f"  {ctrl.name:12s}: using preset {ctrl.min_val} - {ctrl.max_val}")
+            continue
+
+        print(f"  {ctrl.name:12s}: detecting...", end="", flush=True)
+
+        detected_min, detected_max = detect_control_limits(
+            picam2, ctrl.control_name,
+            search_min=-10000 if ctrl.min_val is None else ctrl.min_val,
+            search_max=10000 if ctrl.max_val is None else ctrl.max_val
+        )
+
+        if detected_min is not None and detected_max is not None:
+            # Round to reasonable precision
+            if abs(detected_min) < 100 and abs(detected_max) < 100:
+                detected_min = round(detected_min, 2)
+                detected_max = round(detected_max, 2)
+            else:
+                detected_min = round(detected_min)
+                detected_max = round(detected_max)
+
+            # Update the control definition
+            CONTROL_DEFS[i] = CameraControl(
+                ctrl.name, ctrl.control_name,
+                detected_min, detected_max,
+                ctrl.step, ctrl.default
+            )
+            print(f" {detected_min} - {detected_max}")
+        else:
+            print(f" failed (keeping defaults)")
+
+    print("=" * 50 + "\n")
+
+
+# ============================================================================
 # CAMERA FUNCTIONS
 # ============================================================================
 
-def setup_camera(width: int, height: int, config_controls: Dict[str, dict] = None) -> Optional[Picamera2]:
-    """Initialize Raspberry Pi camera using picamera2."""
+def setup_camera(width: int, height: int, config_controls: Dict[str, dict] = None,
+                 auto_detect_limits: bool = False) -> Optional[Picamera2]:
+    """Initialize Raspberry Pi camera using picamera2.
+
+    Args:
+        width: Resolution width
+        height: Resolution height
+        config_controls: Optional control settings from config file
+        auto_detect_limits: If True and no config_controls provided, auto-detect min/max limits
+    """
     print("Opening Raspberry Pi camera...")
 
     try:
@@ -195,6 +341,10 @@ def setup_camera(width: int, height: int, config_controls: Dict[str, dict] = Non
 
         print("Waiting for camera to initialize...")
         time.sleep(CAMERA_INIT_DELAY)
+
+        # Auto-detect limits only if no config controls provided
+        if auto_detect_limits and not config_controls:
+            auto_detect_all_limits(picam2)
 
         initialize_controls(picam2, config_controls)
 
@@ -331,8 +481,15 @@ def adjust_control(picam2: Picamera2, ctrl: CameraControl, increase: bool) -> Tu
 # CAPTURE FUNCTION
 # ============================================================================
 
-def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOLDER) -> int:
-    """Interactive image capture with terminal-based controls."""
+def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOLDER,
+                   auto_detect: bool = False) -> int:
+    """Interactive image capture with terminal-based controls.
+
+    Args:
+        config: Camera configuration (uses defaults if None)
+        output_folder: Folder to save captured images
+        auto_detect: If True, auto-detect control limits when no config controls provided
+    """
 
     # Use provided config or create default
     if config is None:
@@ -355,7 +512,9 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
     print(f"Resolution:     {width}x{height}")
     print(f"{'='*60}\n")
 
-    picam2 = setup_camera(width, height, config.controls)
+    # Auto-detect limits only when no config controls provided
+    should_auto_detect = auto_detect and not config.controls
+    picam2 = setup_camera(width, height, config.controls, auto_detect_limits=should_auto_detect)
     if picam2 is None:
         return 0
 
@@ -548,9 +707,10 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
 if __name__ == "__main__":
     config: CaptureConfig = CaptureConfig()  # Default config
     output_dir = OUTPUT_FOLDER
+    config_loaded = False  # Track if a config file was loaded
 
     # Parse arguments: [config_file.json] [output_folder]
-    # Config file is optional - if not provided, uses defaults for camera discovery
+    # Config file is optional - if not provided, uses defaults and auto-detects limits
     arg_idx = 1
 
     if len(sys.argv) > arg_idx:
@@ -560,6 +720,7 @@ if __name__ == "__main__":
             # It's a config file
             try:
                 config = load_config(first_arg)
+                config_loaded = True
                 print(f"Loaded config from: {first_arg}")
             except FileNotFoundError as e:
                 print(f"Error: {e}")
@@ -578,12 +739,13 @@ if __name__ == "__main__":
             # First arg is output folder, no config file
             output_dir = first_arg
             arg_idx += 1
-            print("No config file specified, using defaults (discovery mode)")
+            print("No config file specified - will auto-detect control limits")
             print("Press 'e' during capture to export current settings\n")
 
     if len(sys.argv) > arg_idx:
         output_dir = sys.argv[arg_idx]
 
-    captured = capture_images(config, output_folder=output_dir)
+    # Auto-detect limits only when no config file was loaded
+    captured = capture_images(config, output_folder=output_dir, auto_detect=not config_loaded)
 
     sys.exit(0 if captured > 0 else 1)
