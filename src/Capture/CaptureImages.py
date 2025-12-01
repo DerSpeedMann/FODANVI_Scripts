@@ -140,8 +140,6 @@ CONTROL_DEFS = [
     # Auto controls
     CameraControl("Auto Exp", "AeEnable", 0, 1, 1, 1),
     CameraControl("Auto WB", "AwbEnable", 0, 1, 1, 1),
-    # White balance (manual when AwbEnable=0)
-    CameraControl("WB Red", "ColourGains", None, None, 0.1, None),  # Red gain
     # Noise reduction
     CameraControl("Denoise", "NoiseReductionMode", 0, 4, 1, 0),  # 0=off, 1=fast, 2=HQ, 3=minimal, 4=ZSL
 ]
@@ -159,7 +157,18 @@ def setup_camera(width: int, height: int, config_control_values: Dict[str, float
 
     try:
         picam2 = Picamera2()
+    except IndexError:
+        print("Error: No camera detected!")
+        print("  - Check camera cable connection")
+        print("  - Verify camera: libcamera-hello --list-cameras")
+        print("  - Check /boot/config.txt for camera settings")
+        print("  - Reboot if recently connected")
+        return None
+    except Exception as e:
+        print(f"Error initializing Picamera2: {e}")
+        return None
 
+    try:
         config = picam2.create_still_configuration(
             main={"size": (width, height), "format": "RGB888"},
             buffer_count=2
@@ -178,7 +187,11 @@ def setup_camera(width: int, height: int, config_control_values: Dict[str, float
         return picam2
 
     except Exception as e:
-        print(f"Error opening camera: {e}")
+        print(f"Error configuring camera: {e}")
+        try:
+            picam2.close()
+        except Exception:
+            pass
         return None
 
 
@@ -259,11 +272,16 @@ def adjust_control(picam2: Picamera2, ctrl: CameraControl, increase: bool) -> Tu
         if ctrl.min_val is not None:
             new_val = max(new_val, ctrl.min_val)
 
+    actual_val = new_val
     try:
         picam2.set_controls({ctrl.control_name: new_val})
         # Read back actual value from camera metadata
-        metadata = picam2.capture_metadata()
-        actual_val = metadata.get(ctrl.control_name, new_val)
+        try:
+            metadata = picam2.capture_metadata()
+            if ctrl.control_name in metadata:
+                actual_val = metadata[ctrl.control_name]
+        except Exception:
+            pass  # Metadata read failed, use requested value
         control_values[ctrl.control_name] = actual_val
     except Exception as e:
         print(f"Error setting {ctrl.name}: {e}")
