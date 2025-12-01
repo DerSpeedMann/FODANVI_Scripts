@@ -118,29 +118,30 @@ class CameraControl:
     """Definition for an adjustable camera property"""
     name: str
     control_name: str  # libcamera control name
-    min_val: float
-    max_val: float
+    min_val: Optional[float]  # None = no lower limit (discovery mode)
+    max_val: Optional[float]  # None = no upper limit (discovery mode)
     step: float
     default: Optional[float] = None
 
 # Picamera2 control definitions
 # See libcamera controls: https://libcamera.org/api-html/controls_8h.html
+# min_val/max_val = None means no limit (for discovering camera capabilities)
 CONTROL_DEFS = [
     # Image adjustments
-    CameraControl("Brightness", "Brightness", -1.0, 1.0, 0.1, 0.0),
-    CameraControl("Contrast", "Contrast", 0.0, 2.0, 0.1, 1.0),
-    CameraControl("Saturation", "Saturation", 0.0, 2.0, 0.1, 1.0),
-    CameraControl("Sharpness", "Sharpness", 0.0, 2.0, 0.1, 1.0),
+    CameraControl("Brightness", "Brightness", None, None, 0.1, 0.0),
+    CameraControl("Contrast", "Contrast", None, None, 0.1, 1.0),
+    CameraControl("Saturation", "Saturation", None, None, 0.1, 1.0),
+    CameraControl("Sharpness", "Sharpness", None, None, 0.1, 1.0),
     # Exposure controls
-    CameraControl("Exposure", "ExposureValue", -8.0, 8.0, 0.5, 0.0),
-    CameraControl("Exp Time", "ExposureTime", 100, 1000000, 10000, None),  # microseconds
-    CameraControl("Gain", "AnalogueGain", 1.0, 16.0, 0.5, 1.0),
-    CameraControl("Dig Gain", "DigitalGain", 1.0, 4.0, 0.25, 1.0),
+    CameraControl("Exposure", "ExposureValue", None, None, 0.5, 0.0),
+    CameraControl("Exp Time", "ExposureTime", None, None, 10000, None),  # microseconds
+    CameraControl("Gain", "AnalogueGain", None, None, 0.5, 1.0),
+    CameraControl("Dig Gain", "DigitalGain", None, None, 0.25, 1.0),
     # Auto controls
     CameraControl("Auto Exp", "AeEnable", 0, 1, 1, 1),
     CameraControl("Auto WB", "AwbEnable", 0, 1, 1, 1),
     # White balance (manual when AwbEnable=0)
-    CameraControl("WB Red", "ColourGains", 0.5, 4.0, 0.1, None),  # Red gain
+    CameraControl("WB Red", "ColourGains", None, None, 0.1, None),  # Red gain
     # Noise reduction
     CameraControl("Denoise", "NoiseReductionMode", 0, 4, 1, 0),  # 0=off, 1=fast, 2=HQ, 3=minimal, 4=ZSL
 ]
@@ -191,15 +192,19 @@ def initialize_controls(picam2: Picamera2, config_control_values: Dict[str, floa
     print("=" * 50)
 
     for ctrl in CONTROL_DEFS:
-        # Priority: config value > default > min_val
+        # Priority: config value > default > 0
         if config_control_values and ctrl.control_name in config_control_values:
             value = config_control_values[ctrl.control_name]
-            # Clamp to valid range
-            value = max(ctrl.min_val, min(ctrl.max_val, value))
+            # Clamp to valid range if limits are defined
+            if ctrl.min_val is not None:
+                value = max(ctrl.min_val, value)
+            if ctrl.max_val is not None:
+                value = min(ctrl.max_val, value)
         elif ctrl.default is not None:
             value = ctrl.default
         else:
-            value = ctrl.min_val
+            # No default, use min_val if defined, otherwise 0
+            value = ctrl.min_val if ctrl.min_val is not None else 0
 
         try:
             picam2.set_controls({ctrl.control_name: value})
@@ -207,7 +212,10 @@ def initialize_controls(picam2: Picamera2, config_control_values: Dict[str, floa
         except Exception:
             control_values[ctrl.control_name] = value
 
-        print(f"  {ctrl.name:12s}: {ctrl.min_val} - {ctrl.max_val} (set: {control_values[ctrl.control_name]})")
+        # Format limits display
+        min_str = str(ctrl.min_val) if ctrl.min_val is not None else "?"
+        max_str = str(ctrl.max_val) if ctrl.max_val is not None else "?"
+        print(f"  {ctrl.name:12s}: {min_str} - {max_str} (set: {control_values[ctrl.control_name]})")
 
     print("=" * 50)
     print(f"Loaded {len(CONTROL_DEFS)} controls\n")
@@ -231,23 +239,38 @@ def release_camera(picam2: Picamera2) -> None:
         pass
 
 
-def adjust_control(picam2: Picamera2, ctrl: CameraControl, increase: bool) -> Tuple[str, float]:
-    """Adjust a camera control up or down."""
-    current = control_values.get(ctrl.control_name, ctrl.min_val)
+def adjust_control(picam2: Picamera2, ctrl: CameraControl, increase: bool) -> Tuple[str, float, float]:
+    """Adjust a camera control up or down.
+
+    Returns:
+        Tuple of (name, requested_value, actual_value)
+    """
+    default_val = ctrl.default if ctrl.default is not None else 0
+    current = control_values.get(ctrl.control_name, default_val)
 
     if increase:
-        new_val = min(current + ctrl.step, ctrl.max_val)
+        new_val = current + ctrl.step
+        # Apply max limit only if defined
+        if ctrl.max_val is not None:
+            new_val = min(new_val, ctrl.max_val)
     else:
-        new_val = max(current - ctrl.step, ctrl.min_val)
-
-    control_values[ctrl.control_name] = new_val
+        new_val = current - ctrl.step
+        # Apply min limit only if defined
+        if ctrl.min_val is not None:
+            new_val = max(new_val, ctrl.min_val)
 
     try:
         picam2.set_controls({ctrl.control_name: new_val})
+        # Read back actual value from camera metadata
+        metadata = picam2.capture_metadata()
+        actual_val = metadata.get(ctrl.control_name, new_val)
+        control_values[ctrl.control_name] = actual_val
     except Exception as e:
         print(f"Error setting {ctrl.name}: {e}")
+        actual_val = current  # Keep old value on error
+        control_values[ctrl.control_name] = actual_val
 
-    return ctrl.name, new_val
+    return ctrl.name, new_val, actual_val
 
 
 # ============================================================================
@@ -299,10 +322,13 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
         for i, ctrl in enumerate(CONTROL_DEFS):
             val = control_values.get(ctrl.control_name, 0)
             marker = ">>>" if i == selected_control else "   "
+            # Format limits (? for unlimited)
+            min_str = "?" if ctrl.min_val is None else (f"{ctrl.min_val:.1f}" if isinstance(ctrl.min_val, float) and ctrl.min_val != int(ctrl.min_val) else str(int(ctrl.min_val)))
+            max_str = "?" if ctrl.max_val is None else (f"{ctrl.max_val:.1f}" if isinstance(ctrl.max_val, float) and ctrl.max_val != int(ctrl.max_val) else str(int(ctrl.max_val)))
             if isinstance(val, float) and val != int(val):
-                print(f"  {marker} [{i+1}] {ctrl.name}: {val:.2f} ({ctrl.min_val} - {ctrl.max_val})")
+                print(f"  {marker} [{i+1}] {ctrl.name}: {val:.2f} ({min_str} - {max_str})")
             else:
-                print(f"  {marker} [{i+1}] {ctrl.name}: {int(val)} ({int(ctrl.min_val)} - {int(ctrl.max_val)})")
+                print(f"  {marker} [{i+1}] {ctrl.name}: {int(val)} ({min_str} - {max_str})")
         print("-" * 50)
 
     def print_help():
@@ -425,14 +451,20 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
             # Decrease control
             elif key == '-' or key == '_':
                 ctrl = CONTROL_DEFS[selected_control]
-                name, val = adjust_control(picam2, ctrl, increase=False)
-                print(f"\n{name}: {val}")
+                name, requested, actual = adjust_control(picam2, ctrl, increase=False)
+                if requested != actual:
+                    print(f"\n{name}: {requested} -> actual: {actual}")
+                else:
+                    print(f"\n{name}: {actual}")
 
             # Increase control
             elif key == '+' or key == '=':
                 ctrl = CONTROL_DEFS[selected_control]
-                name, val = adjust_control(picam2, ctrl, increase=True)
-                print(f"\n{name}: {val}")
+                name, requested, actual = adjust_control(picam2, ctrl, increase=True)
+                if requested != actual:
+                    print(f"\n{name}: {requested} -> actual: {actual}")
+                else:
+                    print(f"\n{name}: {actual}")
 
     except KeyboardInterrupt:
         print("\n\nInterrupted!")
@@ -451,36 +483,43 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
 
 
 if __name__ == "__main__":
-    config: CaptureConfig = None
+    config: CaptureConfig = CaptureConfig()  # Default config
     output_dir = OUTPUT_FOLDER
 
-    if len(sys.argv) < 2:
-        print("Error: Config file is required")
-        print("Usage: python CaptureImages.py <config_file.json> [output_folder]")
-        print("       Press 'e' during capture to export current settings")
-        sys.exit(1)
+    # Parse arguments: [config_file.json] [output_folder]
+    # Config file is optional - if not provided, uses defaults for camera discovery
+    arg_idx = 1
 
-    config_path = sys.argv[1]
+    if len(sys.argv) > arg_idx:
+        # Check if first arg is a config file or output folder
+        first_arg = sys.argv[arg_idx]
+        if first_arg.endswith('.json'):
+            # It's a config file
+            try:
+                config = load_config(first_arg)
+                print(f"Loaded config from: {first_arg}")
+            except FileNotFoundError as e:
+                print(f"Error: {e}")
+                sys.exit(1)
+            except json.JSONDecodeError as e:
+                print(f"Error: Invalid JSON in config file: {e}")
+                sys.exit(1)
+            except ValueError as e:
+                print(f"Error: Invalid config value: {e}")
+                sys.exit(1)
+            except TypeError as e:
+                print(f"Error: Unknown field in config file: {e}")
+                sys.exit(1)
+            arg_idx += 1
+        else:
+            # First arg is output folder, no config file
+            output_dir = first_arg
+            arg_idx += 1
+            print("No config file specified, using defaults (discovery mode)")
+            print("Press 'e' during capture to export current settings\n")
 
-    try:
-        config = load_config(config_path)
-        print(f"Loaded config from: {config_path}")
-    except FileNotFoundError as e:
-        print(f"Error: {e}")
-        print("Usage: python CaptureImages.py <config_file.json> [output_folder]")
-        sys.exit(1)
-    except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON in config file: {e}")
-        sys.exit(1)
-    except ValueError as e:
-        print(f"Error: Invalid config value: {e}")
-        sys.exit(1)
-    except TypeError as e:
-        print(f"Error: Unknown field in config file: {e}")
-        sys.exit(1)
-
-    if len(sys.argv) > 2:
-        output_dir = sys.argv[2]
+    if len(sys.argv) > arg_idx:
+        output_dir = sys.argv[arg_idx]
 
     captured = capture_images(config, output_folder=output_dir)
 
