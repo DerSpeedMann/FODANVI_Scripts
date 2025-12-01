@@ -169,12 +169,12 @@ control_values: dict = {}
 # ============================================================================
 
 def detect_control_limits(picam2: Picamera2, control_name: str,
-                          search_min: int = -100, search_max: int = 100,
-                          max_iterations: int = 30) -> Tuple[Optional[int], Optional[int]]:
+                          search_min: float = -10000, search_max: float = 10000,
+                          max_iterations: int = 30) -> Tuple[Optional[float], Optional[float]]:
     """
     Auto-detect min and max limits for a control using binary search.
 
-    Tests integer values and checks the camera's actual response via metadata.
+    Tests values and checks the camera's actual response via metadata.
     Uses binary search to find where the camera stops accepting values.
 
     Args:
@@ -187,69 +187,76 @@ def detect_control_limits(picam2: Picamera2, control_name: str,
     Returns:
         Tuple of (detected_min, detected_max), None if detection fails
     """
-    def get_actual_value(test_val: int) -> Optional[float]:
+    # Determine if we're dealing with large integer values (like ExposureTime)
+    is_large_int = search_max > 1000
+
+    def round_val(val: float) -> float:
+        """Round value appropriately based on range."""
+        if is_large_int:
+            return int(val)
+        return round(val, 2)
+
+    def get_actual_value(test_val: float) -> Optional[float]:
         """Set a value and read back what the camera actually used."""
         try:
+            test_val = round_val(test_val)
             picam2.set_controls({control_name: test_val})
             time.sleep(0.05)  # Brief wait for control to apply
             metadata = picam2.capture_metadata()
             if control_name in metadata:
-                return metadata[control_name]
+                return round_val(metadata[control_name])
             return None
         except Exception:
             return None
 
-    # First, find a working value to establish baseline
-    baseline_val = None
-    for test in [0, 1, 100, 1000, 10000]:
-        actual = get_actual_value(test)
-        if actual is not None:
-            baseline_val = int(actual)
-            break
+    # Test if value was accepted (camera returned what we asked for)
+    def value_accepted(requested: float, actual: float) -> bool:
+        if actual is None:
+            return False
+        return round_val(actual) == round_val(requested)
 
-    if baseline_val is None:
+    # First, verify control exists by getting any response
+    actual = get_actual_value(0)
+    if actual is None:
+        actual = get_actual_value(1)
+    if actual is None:
         return None, None
 
-    # Binary search for minimum
-    detected_min = None
-    low, high = int(search_min), int(baseline_val)
-    for _ in range(max_iterations):
-        if high - low <= 1:
-            break
-        mid = (low + high) // 2
-        actual = get_actual_value(mid)
-        if actual is not None and abs(actual - mid) < max(1, abs(mid) * 0.1):
-            # Camera accepted this value (within 10% or 1 unit)
-            high = mid
-            detected_min = mid
-        else:
-            # Camera clamped or rejected - actual min is higher
-            low = mid
+    # Determine tolerance for binary search
+    tolerance = 1 if is_large_int else 0.01
 
-    if detected_min is None:
-        detected_min = int(baseline_val)
+    # Binary search for minimum
+    low, high = float(search_min), 0.0
+    for _ in range(max_iterations):
+        if high - low < tolerance:
+            break
+        mid = round_val((low + high) / 2)
+        actual = get_actual_value(mid)
+        if value_accepted(mid, actual):
+            # Camera accepted - try going lower
+            high = mid
+        else:
+            # Camera clamped - min is higher
+            low = mid
+    detected_min = round_val(high)  # high is the lowest accepted value
 
     # Binary search for maximum
-    detected_max = None
-    low, high = int(baseline_val), int(search_max)
+    low, high = 0.0, float(search_max)
     for _ in range(max_iterations):
-        if high - low <= 1:
+        if high - low < tolerance:
             break
-        mid = (low + high) // 2
+        mid = round_val((low + high) / 2)
         actual = get_actual_value(mid)
-        if actual is not None and abs(actual - mid) < max(1, abs(mid) * 0.1):
-            # Camera accepted this value (within 10% or 1 unit)
+        if value_accepted(mid, actual):
+            # Camera accepted - try going higher
             low = mid
-            detected_max = mid
         else:
-            # Camera clamped or rejected - actual max is lower
+            # Camera clamped - max is lower
             high = mid
+    detected_max = round_val(low)  # low is the highest accepted value
 
-    if detected_max is None:
-        detected_max = int(baseline_val)
-
-    # Reset to baseline
-    get_actual_value(int(baseline_val))
+    # Reset to 0
+    get_actual_value(0)
 
     return detected_min, detected_max
 
@@ -276,12 +283,20 @@ def auto_detect_all_limits(picam2: Picamera2) -> None:
         # Determine search range based on control type
         if ctrl.control_name == "ExposureTime":
             # ExposureTime is in microseconds, search up to 10 seconds
-            search_min = 0 if ctrl.min_val is None else int(ctrl.min_val)
-            search_max = 10000000 if ctrl.max_val is None else int(ctrl.max_val)
+            search_min = 0 if ctrl.min_val is None else ctrl.min_val
+            search_max = 10000000 if ctrl.max_val is None else ctrl.max_val
+        elif ctrl.control_name == "AnalogueGain":
+            # Gain typically 1.0 to 16.0 or higher
+            search_min = 1.0 if ctrl.min_val is None else ctrl.min_val
+            search_max = 64.0 if ctrl.max_val is None else ctrl.max_val
+        elif ctrl.control_name == "DigitalGain":
+            # Digital gain typically 1.0 to 4.0
+            search_min = 1.0 if ctrl.min_val is None else ctrl.min_val
+            search_max = 16.0 if ctrl.max_val is None else ctrl.max_val
         else:
-            # Standard range for most controls
-            search_min = -100 if ctrl.min_val is None else int(ctrl.min_val)
-            search_max = 100 if ctrl.max_val is None else int(ctrl.max_val)
+            # Standard controls - use wide range and let binary search find limits
+            search_min = -10000 if ctrl.min_val is None else ctrl.min_val
+            search_max = 10000 if ctrl.max_val is None else ctrl.max_val
 
         detected_min, detected_max = detect_control_limits(
             picam2, ctrl.control_name,
@@ -290,6 +305,10 @@ def auto_detect_all_limits(picam2: Picamera2) -> None:
         )
 
         if detected_min is not None and detected_max is not None:
+            # Round to 2 decimal places for readability
+            detected_min = round(detected_min, 2)
+            detected_max = round(detected_max, 2)
+
             # Update the control definition
             CONTROL_DEFS[i] = CameraControl(
                 ctrl.name, ctrl.control_name,
