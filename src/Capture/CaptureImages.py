@@ -170,7 +170,8 @@ control_values: dict = {}
 
 def detect_control_limits(picam2: Picamera2, control_name: str,
                           search_min: float = -10000, search_max: float = 10000,
-                          max_iterations: int = 30) -> Tuple[Optional[float], Optional[float]]:
+                          max_iterations: int = 30,
+                          debug: bool = False) -> Tuple[Optional[float], Optional[float]]:
     """
     Auto-detect min and max limits for a control using binary search.
 
@@ -183,94 +184,97 @@ def detect_control_limits(picam2: Picamera2, control_name: str,
         search_min: Starting minimum to search from
         search_max: Starting maximum to search to
         max_iterations: Maximum binary search iterations
+        debug: If True, print detailed debug output
 
     Returns:
         Tuple of (detected_min, detected_max), None if detection fails
     """
-    # Determine if we're dealing with large integer values (like ExposureTime)
-    is_large_int = search_max > 1000
-
-    def round_val(val: float) -> float:
-        """Round value appropriately based on range."""
-        if is_large_int:
-            return int(val)
-        return round(val, 2)
-
     def get_actual_value(test_val: float) -> Optional[float]:
         """Set a value and read back what the camera actually used."""
         try:
-            test_val = round_val(test_val)
             picam2.set_controls({control_name: test_val})
             time.sleep(0.05)  # Brief wait for control to apply
             metadata = picam2.capture_metadata()
             if control_name in metadata:
-                return round_val(metadata[control_name])
+                return metadata[control_name]
             return None
         except Exception:
             return None
+
+    # First, verify control exists and get baseline value
+    baseline = get_actual_value(0)
+    if baseline is None:
+        baseline = get_actual_value(1)
+    if baseline is None:
+        return None, None
+
+    if debug:
+        print(f"\n    [DEBUG] {control_name}: baseline={baseline}")
 
     # Test if value was accepted (camera returned what we asked for)
     def value_accepted(requested: float, actual: float) -> bool:
         if actual is None:
             return False
-        return round_val(actual) == round_val(requested)
+        # Round both to 2 decimal places for comparison
+        return round(actual, 2) == round(requested, 2)
 
-    # First, verify control exists by getting any response
-    actual = get_actual_value(0)
-    if actual is None:
-        actual = get_actual_value(1)
-    if actual is None:
-        return None, None
-
-    # Determine tolerance for binary search
-    tolerance = 1 if is_large_int else 0.01
-
-    # Binary search for minimum
-    low, high = float(search_min), 0.0
-    for _ in range(max_iterations):
-        if high - low < tolerance:
+    # Binary search for minimum (from search_min toward baseline)
+    low, high = float(search_min), float(baseline)
+    for i in range(max_iterations):
+        if high - low < 0.01:
             break
-        mid = round_val((low + high) / 2)
+        mid = round((low + high) / 2, 2)
         actual = get_actual_value(mid)
-        if value_accepted(mid, actual):
+        accepted = value_accepted(mid, actual)
+        if debug and i < 5:  # Only show first 5 iterations
+            print(f"    [DEBUG] min search: mid={mid}, actual={actual}, accepted={accepted}")
+        if accepted:
             # Camera accepted - try going lower
             high = mid
         else:
             # Camera clamped - min is higher
             low = mid
-    detected_min = round_val(high)  # high is the lowest accepted value
+    detected_min = round(high, 2)  # high is the lowest accepted value
 
-    # Binary search for maximum
-    low, high = 0.0, float(search_max)
-    for _ in range(max_iterations):
-        if high - low < tolerance:
+    # Binary search for maximum (from baseline toward search_max)
+    low, high = float(baseline), float(search_max)
+    for i in range(max_iterations):
+        if high - low < 0.01:
             break
-        mid = round_val((low + high) / 2)
+        mid = round((low + high) / 2, 2)
         actual = get_actual_value(mid)
-        if value_accepted(mid, actual):
+        accepted = value_accepted(mid, actual)
+        if debug and i < 5:  # Only show first 5 iterations
+            print(f"    [DEBUG] max search: mid={mid}, actual={actual}, accepted={accepted}")
+        if accepted:
             # Camera accepted - try going higher
             low = mid
         else:
             # Camera clamped - max is lower
             high = mid
-    detected_max = round_val(low)  # low is the highest accepted value
+    detected_max = round(low, 2)  # low is the highest accepted value
 
-    # Reset to 0
-    get_actual_value(0)
+    # Reset to baseline
+    get_actual_value(baseline)
 
     return detected_min, detected_max
 
 
-def auto_detect_all_limits(picam2: Picamera2) -> None:
+def auto_detect_all_limits(picam2: Picamera2, debug: bool = True) -> None:
     """
     Auto-detect min/max limits for all controls that have None limits.
     Updates CONTROL_DEFS in place.
+
+    Args:
+        debug: If True, print detailed debug output for first control
     """
     global CONTROL_DEFS
 
     print("\n" + "=" * 50)
     print("AUTO-DETECTING CONTROL LIMITS")
     print("=" * 50)
+
+    first_detection = True  # Enable debug for first control only
 
     for i, ctrl in enumerate(CONTROL_DEFS):
         # Skip controls that already have defined limits
@@ -301,8 +305,10 @@ def auto_detect_all_limits(picam2: Picamera2) -> None:
         detected_min, detected_max = detect_control_limits(
             picam2, ctrl.control_name,
             search_min=search_min,
-            search_max=search_max
+            search_max=search_max,
+            debug=debug and first_detection  # Only debug first control
         )
+        first_detection = False
 
         if detected_min is not None and detected_max is not None:
             # Round to 2 decimal places for readability
