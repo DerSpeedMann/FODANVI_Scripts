@@ -168,6 +168,74 @@ def get_camera_control_values(cap: cv2.VideoCapture) -> list:
     return values
 
 
+def save_settings_file(video_filepath: Path, frame_count: int,
+                       actual_fps: float, frame_width: int, frame_height: int) -> None:
+    """
+    Save camera settings to a .txt file alongside the video file.
+
+    Args:
+        video_filepath: Path to the video file
+        frame_count: Total frames recorded
+        actual_fps: Average FPS during recording
+        frame_width: Frame width
+        frame_height: Frame height
+    """
+    settings_filepath = video_filepath.with_suffix('.txt')
+
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    duration = frame_count / VIDEO_FPS if frame_count > 0 else 0
+
+    lines = [
+        f"Recording Settings",
+        f"=" * 50,
+        f"",
+        f"Date/Time:       {timestamp}",
+        f"Video File:      {video_filepath.name}",
+        f"",
+        f"Video Settings",
+        f"-" * 50,
+        f"Resolution:      {frame_width}x{frame_height}",
+        f"Video FPS:       {VIDEO_FPS}",
+        f"Video Codec:     {VIDEO_CODEC}",
+        f"Total Frames:    {frame_count}",
+        f"Duration:        {duration:.2f} seconds",
+        f"Avg Capture FPS: {actual_fps:.1f}",
+        f"",
+        f"Camera Settings",
+        f"-" * 50,
+        f"Camera Index:    {CAMERA_INDEX}",
+        f"Camera FPS:      {CAMERA_FPS}",
+        f"Buffer Size:     {CAMERA_BUFFER_SIZE}",
+        f"Init Delay:      {CAMERA_INIT_DELAY}s",
+        f"",
+        f"Camera Controls",
+        f"-" * 50,
+    ]
+
+    # Add all control values
+    for control in CAMERA_CONTROLS:
+        if control.prop_id in control_values:
+            val = control_values[control.prop_id]
+        else:
+            val = -1  # Unknown if camera already released
+
+        if val == int(val):
+            val_str = str(int(val))
+        else:
+            val_str = f"{val:.2f}"
+
+        lines.append(f"{control.name:12s}: {val_str}")
+
+    lines.append("")
+    lines.append("=" * 50)
+
+    # Write to file
+    with open(settings_filepath, 'w') as f:
+        f.write('\n'.join(lines))
+
+    print(f"Settings saved:      {settings_filepath}")
+
+
 def setup_camera(camera_index: int, width: int, height: int) -> Optional[cv2.VideoCapture]:
     """
     Initialize and configure camera with optimized settings
@@ -544,6 +612,10 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
         print(f"Total frames:        {frame_count}")
         print(f"Duration:            {duration:.2f} seconds")
         print(f"Average FPS:         {fps:.1f}")
+
+        # Save settings file alongside video
+        save_settings_file(video_filepath, frame_count, fps, frame_width, frame_height)
+
         if saved_count > 0:
             print(f"Snapshots saved:     {saved_count}")
         print(f"{'='*80}\n")
