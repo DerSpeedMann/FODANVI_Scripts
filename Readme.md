@@ -1,11 +1,11 @@
 Prepare Images:
 
-cd "C:\Users\micha\Desktop\private\FH\MA\Tests\"
-python .\GenerateCrops.py .\images_prepared .\images_cropped
+cd "C:\Users\micha\Desktop\private\FH\MA\Tests"
+python .\scripts\src\Processing\GenerateCrops.py .\images_prepared .\images_cropped
 Copy-Item -Path .\images_cropped\* -Destination .\images
-python .\scripts\src\Preprocess.py .\images_cropped\ .\images   
-python .\scripts\src\GenerateColorShift.py .\images\ .\images
-python .\scripts\src\GenerateGrayscales.py .\images\ .\images
+python .\scripts\src\Processing\Preprocess.py .\images_cropped\ .\images   
+python .\scripts\src\Processing\GenerateColorShift.py .\images\ .\images
+python .\scripts\src\Processing\GenerateGrayscales.py .\images\ .\images
 
 Check Images:
 
@@ -22,6 +22,15 @@ docker run --gpus all --rm `
   -v ${PWD}\models:/models `
   ultralytics/ultralytics:latest `
   yolo detect predict model=/models/yolo11x.pt source=/data save_txt=True
+
+
+docker run --gpus all --rm `
+  -v ${PWD}\images:/data `
+  -v ${PWD}\results:/ultralytics/runs/detect `
+  -v ${PWD}\models:/models `
+  ultralytics/ultralytics:latest `
+  yolo detect predict model=/models/yolo11s_clean-noisy.pt source=/data save_txt=True
+
 
 
 Validate models:

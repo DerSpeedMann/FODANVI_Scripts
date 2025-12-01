@@ -18,7 +18,7 @@ def has_crop_suffix(filename: str) -> bool:
 
 def find_circular_nvg_bounds(img_array: np.ndarray) -> Tuple[int, int, int, int] | None:
     """
-    Find the circular NVG view boundary using edge detection and circular Hough transform.
+    Find the circular NVG view boundary using contour detection.
     Returns (left, top, right, bottom) or None if not found.
     """
     # Convert to grayscale if color
@@ -26,62 +26,74 @@ def find_circular_nvg_bounds(img_array: np.ndarray) -> Tuple[int, int, int, int]
         gray: np.ndarray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
     else:
         gray = img_array
-    
+
     height, width = gray.shape
     print(f"Image shape: {img_array.shape}")
     print(f"Min: {np.min(gray)}, Max: {np.max(gray)}, Mean: {np.mean(gray):.1f}")
-    
-    # Apply Gaussian blur to reduce noise
-    blurred: np.ndarray = cv2.GaussianBlur(gray, (9, 9), 2)
-    
-    # Detect edges
-    edges: np.ndarray = cv2.Canny(blurred, 30, 100)
-    
-    # Detect circles using Hough Circle Transform
-    circles: np.ndarray | None = cv2.HoughCircles(
-        edges,
-        cv2.HOUGH_GRADIENT,
-        dp=1,
-        minDist=height//2,  # Only one main circle expected
-        param1=50,
-        param2=30,
-        minRadius=height//4,  # Assume circle is at least 1/4 of image height
-        maxRadius=max(height, width)//2  # At most half the image size
-    )
-    
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
-        # Take the largest/most prominent circle
-        circle = circles[0, 0]
-        center_x: int = int(circle[0])
-        center_y: int = int(circle[1])
-        detected_radius: int = int(circle[2])
-        
+
+    # Apply blur to reduce noise
+    blurred: np.ndarray = cv2.GaussianBlur(gray, (5, 5), 0)
+
+    # Use a very low fixed threshold to capture the full NVG circular region
+    # The objective lens area should be brighter than the surrounding black border
+    # We use a low threshold (5-10) to include dimmer edges of the lens
+    _, binary = cv2.threshold(blurred, 8, 255, cv2.THRESH_BINARY)
+
+    # Apply morphological closing to fill small gaps and smooth the boundary
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+    print(f"Binary mask coverage: {np.mean(binary > 0) * 100:.1f}%")
+
+    # Find contours
+    contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        print("No contours found")
+    else:
+        print(f"Found {len(contours)} contours")
+
+        # Find the largest contour by area
+        largest_contour = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(largest_contour)
+        print(f"Largest contour area: {area} pixels")
+
+        # Get the minimum enclosing circle
+        (cx, cy), radius = cv2.minEnclosingCircle(largest_contour)
+        center_x = int(cx)
+        center_y = int(cy)
+        detected_radius = int(radius)
+
+        # Verify this looks like a reasonable circle (area should be close to pi*r^2)
+        expected_area = math.pi * detected_radius * detected_radius
+        area_ratio = area / expected_area if expected_area > 0 else 0
         print(f"Detected circle: center=({center_x}, {center_y}), radius={detected_radius}")
-        
-        # Apply radius reduction to exclude vignette
-        cropped_radius: int = int(detected_radius * (1.0 - RADIUS_REDUCTION_FACTOR))
-        
-        print(f"Reduced radius by {RADIUS_REDUCTION_FACTOR*100:.1f}%: {detected_radius} -> {cropped_radius}")
+        print(f"Contour area vs circle area: {area_ratio:.2f} (1.0 = perfect circle)")
 
-        # Calculate inscribed square inside the circle
-        # For a square inscribed in a circle with radius r:
-        # The side length of the square is r * sqrt(2)
-        # This ensures the square fits entirely within the circle
-        half_side: int = int(cropped_radius / math.sqrt(2))
+        # Accept if contour fills at least 50% of the enclosing circle
+        if area_ratio >= 0.5:
+            # Apply radius reduction to exclude vignette
+            cropped_radius: int = int(detected_radius * (1.0 - RADIUS_REDUCTION_FACTOR))
 
-        left: int = max(0, center_x - half_side)
-        top: int = max(0, center_y - half_side)
-        right: int = min(width, center_x + half_side)
-        bottom: int = min(height, center_y + half_side)
+            print(f"Reduced radius by {RADIUS_REDUCTION_FACTOR*100:.1f}%: {detected_radius} -> {cropped_radius}")
 
-        print(f"Inscribed square half-side length: {half_side} (from radius {cropped_radius})")
-        print(f"Bounding box: left={left}, top={top}, right={right}, bottom={bottom}")
-        print(f"Crop dimensions: {right-left}x{bottom-top}")
-        
-        return (left, top, right, bottom)
-    
-    print("No circle detected, falling back to brightness-based detection")
+            # Calculate inscribed square inside the circle
+            half_side: int = int(cropped_radius / math.sqrt(2))
+
+            left: int = max(0, center_x - half_side)
+            top: int = max(0, center_y - half_side)
+            right: int = min(width, center_x + half_side)
+            bottom: int = min(height, center_y + half_side)
+
+            print(f"Inscribed square half-side length: {half_side} (from radius {cropped_radius})")
+            print(f"Bounding box: left={left}, top={top}, right={right}, bottom={bottom}")
+            print(f"Crop dimensions: {right-left}x{bottom-top}")
+
+            return (left, top, right, bottom)
+
+        print(f"Contour doesn't look circular enough (ratio={area_ratio:.2f})")
+
+    print("Contour detection failed, falling back to brightness-based detection")
     
     # Fallback: use brightness threshold
     threshold: int = 15
