@@ -18,6 +18,15 @@ from picamera2 import Picamera2
 # ============================================================================
 
 @dataclass
+class ControlConfig:
+    """Configuration for a single camera control"""
+    value: float
+    min_val: Optional[float] = None
+    max_val: Optional[float] = None
+    step: Optional[float] = None
+
+
+@dataclass
 class CaptureConfig:
     """Configuration for camera settings"""
     resolution_width: int = 1920
@@ -26,12 +35,12 @@ class CaptureConfig:
     image_prefix: str = "capture"
     image_format: str = "jpg"
     jpeg_quality: int = 95
-    # Camera control values (control_name -> value)
-    control_values: Dict[str, float] = None
+    # Camera control settings (control_name -> ControlConfig or just value for backwards compat)
+    controls: Dict[str, dict] = None
 
     def __post_init__(self):
-        if self.control_values is None:
-            self.control_values = {}
+        if self.controls is None:
+            self.controls = {}
 
 # Default values for backwards compatibility
 RESOLUTION_WIDTH: int = 1920
@@ -79,12 +88,20 @@ def load_config(config_path: str) -> CaptureConfig:
         if not isinstance(data['jpeg_quality'], int) or not (1 <= data['jpeg_quality'] <= 100):
             raise ValueError(f"jpeg_quality must be an integer between 1 and 100")
 
-    # Extract control_values separately to handle it properly
-    control_vals = data.pop('control_values', {})
+    # Extract controls separately to handle it properly
+    controls = data.pop('controls', {})
+
+    # Also support old 'control_values' format for backwards compatibility
+    if 'control_values' in data:
+        old_values = data.pop('control_values')
+        # Convert old format (just values) to new format
+        for name, val in old_values.items():
+            if name not in controls:
+                controls[name] = {"value": val}
 
     # Create config with remaining fields
     config = CaptureConfig(**data)
-    config.control_values = control_vals
+    config.controls = controls
 
     return config
 
@@ -151,7 +168,7 @@ control_values: dict = {}
 # CAMERA FUNCTIONS
 # ============================================================================
 
-def setup_camera(width: int, height: int, config_control_values: Dict[str, float] = None) -> Optional[Picamera2]:
+def setup_camera(width: int, height: int, config_controls: Dict[str, dict] = None) -> Optional[Picamera2]:
     """Initialize Raspberry Pi camera using picamera2."""
     print("Opening Raspberry Pi camera...")
 
@@ -179,7 +196,7 @@ def setup_camera(width: int, height: int, config_control_values: Dict[str, float
         print("Waiting for camera to initialize...")
         time.sleep(CAMERA_INIT_DELAY)
 
-        initialize_controls(picam2, config_control_values)
+        initialize_controls(picam2, config_controls)
 
         print(f"Camera opened successfully!")
         print(f"Resolution: {width}x{height}")
@@ -195,10 +212,28 @@ def setup_camera(width: int, height: int, config_control_values: Dict[str, float
         return None
 
 
-def initialize_controls(picam2: Picamera2, config_control_values: Dict[str, float] = None) -> None:
-    """Initialize camera controls, optionally using values from config."""
-    global control_values
+def initialize_controls(picam2: Picamera2, config_controls: Dict[str, dict] = None) -> None:
+    """Initialize camera controls, optionally using values from config.
+
+    Config controls can override min_val, max_val, and step from the defaults.
+    """
+    global control_values, CONTROL_DEFS
     control_values = {}
+
+    # Apply config overrides to CONTROL_DEFS
+    if config_controls:
+        for i, ctrl in enumerate(CONTROL_DEFS):
+            if ctrl.control_name in config_controls:
+                cfg = config_controls[ctrl.control_name]
+                # Override min/max/step if provided in config
+                new_min = cfg.get('min_val', ctrl.min_val)
+                new_max = cfg.get('max_val', ctrl.max_val)
+                new_step = cfg.get('step', ctrl.step)
+                new_default = cfg.get('value', ctrl.default)
+                CONTROL_DEFS[i] = CameraControl(
+                    ctrl.name, ctrl.control_name,
+                    new_min, new_max, new_step, new_default
+                )
 
     print("\n" + "=" * 50)
     print("CAMERA CONTROLS")
@@ -206,8 +241,9 @@ def initialize_controls(picam2: Picamera2, config_control_values: Dict[str, floa
 
     for ctrl in CONTROL_DEFS:
         # Priority: config value > default > 0
-        if config_control_values and ctrl.control_name in config_control_values:
-            value = config_control_values[ctrl.control_name]
+        if config_controls and ctrl.control_name in config_controls:
+            cfg = config_controls[ctrl.control_name]
+            value = cfg.get('value', ctrl.default if ctrl.default is not None else 0)
             # Clamp to valid range if limits are defined
             if ctrl.min_val is not None:
                 value = max(ctrl.min_val, value)
@@ -319,7 +355,7 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
     print(f"Resolution:     {width}x{height}")
     print(f"{'='*60}\n")
 
-    picam2 = setup_camera(width, height, config.control_values)
+    picam2 = setup_camera(width, height, config.controls)
     if picam2 is None:
         return 0
 
@@ -424,6 +460,15 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
 
             # Export config
             elif key == 'e':
+                # Build controls dict with value, min, max, step for each control
+                export_controls = {}
+                for ctrl in CONTROL_DEFS:
+                    export_controls[ctrl.control_name] = {
+                        "value": control_values.get(ctrl.control_name, 0),
+                        "min_val": ctrl.min_val,
+                        "max_val": ctrl.max_val,
+                        "step": ctrl.step
+                    }
                 export_config = CaptureConfig(
                     resolution_width=width,
                     resolution_height=height,
@@ -431,7 +476,7 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
                     image_prefix=prefix,
                     image_format=image_format,
                     jpeg_quality=jpeg_quality,
-                    control_values=dict(control_values)
+                    controls=export_controls
                 )
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 config_filename = f"capture_config_{timestamp}.json"
