@@ -1,4 +1,3 @@
-import cv2
 import time
 import os
 import sys
@@ -8,9 +7,10 @@ import termios
 import tty
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict
 from dataclasses import dataclass, asdict
 
+from PIL import Image
 from picamera2 import Picamera2
 
 # ============================================================================
@@ -217,8 +217,7 @@ def read_frame(picam2: Picamera2) -> Tuple[bool, any]:
     """Read a frame from the camera."""
     try:
         frame = picam2.capture_array()
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        return True, frame
+        return True, frame  # RGB format for PIL
     except Exception:
         return False, None
 
@@ -354,11 +353,15 @@ def capture_images(config: CaptureConfig = None, output_folder: str = OUTPUT_FOL
                 filename = f"{prefix}_{timestamp}.{image_format}"
                 filepath = output_path / filename
 
-                save_params = []
-                if image_format.lower() in ['jpg', 'jpeg']:
-                    save_params = [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality]
-
-                success = cv2.imwrite(str(filepath), frame, save_params)
+                try:
+                    img = Image.fromarray(frame)
+                    if image_format.lower() in ['jpg', 'jpeg']:
+                        img.save(filepath, quality=jpeg_quality)
+                    else:
+                        img.save(filepath)
+                    success = True
+                except Exception:
+                    success = False
 
                 if success:
                     file_size = os.path.getsize(filepath) / 1024
