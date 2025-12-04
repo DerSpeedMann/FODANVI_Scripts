@@ -14,7 +14,7 @@ from flask import Flask, render_template_string, jsonify, request, send_from_dir
 
 from .camera_core import (
     CaptureConfig, init_camera, capture_image, set_control,
-    get_controls, get_control_defs, close_camera,
+    get_controls, get_control_defs, close_camera, is_camera_ready,
     DEFAULT_OUTPUT_FOLDER, DEFAULT_CONFIG_FOLDER
 )
 from .gpio_button import setup_button, cleanup_button, is_gpio_available
@@ -48,9 +48,25 @@ HTML_TEMPLATE = """
             margin: 0; padding: 20px;
             background: #1a1a2e; color: #eee;
         }
-        h1 { color: #00d9ff; }
+        h1 { color: #00d9ff; margin: 0; }
         h2 { color: #00d9ff; border-bottom: 1px solid #333; padding-bottom: 10px; }
         .container { max-width: 800px; margin: 0 auto; }
+
+        .header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px;
+        }
+        .status-indicators {
+            display: flex; gap: 15px; font-size: 14px;
+        }
+        .status-item {
+            display: flex; align-items: center; gap: 5px;
+        }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+        }
+        .status-dot.green { background: #00ff88; }
+        .status-dot.red { background: #ff4444; }
 
         .btn {
             background: #00d9ff; color: #000;
@@ -65,7 +81,10 @@ HTML_TEMPLATE = """
             background: #16213e; padding: 15px;
             border-radius: 5px; margin: 20px 0;
             font-family: monospace;
+            display: none;
         }
+        .status.visible { display: block; }
+        .status.error { background: #3e1616; color: #ff6b6b; }
 
         .controls-section {
             margin: 20px 0;
@@ -91,9 +110,24 @@ HTML_TEMPLATE = """
             background: #16213e; padding: 15px;
             border-radius: 5px; margin: 10px 0;
         }
-        .control-group label { display: block; margin-bottom: 5px; }
-        .control-group input[type="range"] { width: 100%; margin: 10px 0; }
-        .control-value { color: #00d9ff; font-weight: bold; }
+        .control-group label { display: block; margin-bottom: 8px; }
+        .control-row {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .control-row input[type="range"] { flex: 1; }
+        .step-btn {
+            background: #333; color: #00d9ff;
+            border: 1px solid #444; width: 36px; height: 36px;
+            font-size: 18px; cursor: pointer; border-radius: 4px;
+        }
+        .step-btn:hover { background: #444; }
+        .step-btn:active { transform: scale(0.95); }
+        .value-input {
+            width: 70px; background: #0d1117; color: #00d9ff;
+            border: 1px solid #333; padding: 6px 8px;
+            font-size: 14px; border-radius: 4px; text-align: center;
+        }
+        .value-input:focus { outline: 1px solid #00d9ff; }
 
         .gallery {
             display: grid;
@@ -120,19 +154,28 @@ HTML_TEMPLATE = """
             position: absolute; top: 20px; right: 30px;
             color: #fff; font-size: 40px; cursor: pointer;
         }
-
-        .info { color: #888; font-size: 14px; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Pi Camera</h1>
+        <div class="header">
+            <h1>Pi Camera</h1>
+            <div class="status-indicators">
+                <div class="status-item">
+                    <span class="status-dot {{ 'green' if camera_ready else 'red' }}"></span>
+                    <span>CAM</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot {{ 'green' if gpio_available else 'red' }}"></span>
+                    <span>GPIO {{ gpio_pin }}</span>
+                </div>
+            </div>
+        </div>
 
         <button class="btn" onclick="capture()">Capture</button>
         <button class="btn" onclick="refreshGallery()">Refresh</button>
 
-        <div class="status" id="status">Ready</div>
-        <div class="info">GPIO button on pin {{ gpio_pin }} {{ gpio_status }}</div>
+        <div class="status" id="status"></div>
 
         <div class="controls-section">
             <button class="controls-toggle" onclick="toggleControls()">
@@ -153,6 +196,7 @@ HTML_TEMPLATE = """
 
     <script>
         let imageCount = {{ image_count }};
+        let controlMeta = {};
 
         function toggleControls() {
             const toggle = document.querySelector('.controls-toggle');
@@ -161,19 +205,31 @@ HTML_TEMPLATE = """
             content.classList.toggle('open');
         }
 
+        function showStatus(msg, isError = false) {
+            const el = document.getElementById('status');
+            el.innerText = msg;
+            el.classList.add('visible');
+            el.classList.toggle('error', isError);
+            if (!isError) {
+                setTimeout(() => el.classList.remove('visible'), 3000);
+            }
+        }
+
         async function capture() {
-            document.getElementById('status').innerText = 'Capturing...';
+            const statusEl = document.getElementById('status');
+            statusEl.classList.remove('visible', 'error');
             try {
                 const res = await fetch('/api/capture', { method: 'POST' });
                 const data = await res.json();
-                document.getElementById('status').innerText = data.message;
                 if (data.success) {
                     imageCount++;
                     document.getElementById('image-count').innerText = imageCount;
                     addImageToGallery(data.filename);
+                } else {
+                    showStatus(data.message, true);
                 }
             } catch (e) {
-                document.getElementById('status').innerText = 'Error: ' + e;
+                showStatus('Error: ' + e, true);
             }
         }
 
@@ -187,25 +243,36 @@ HTML_TEMPLATE = """
         }
 
         async function loadControls() {
+            const container = document.getElementById('controls');
+            if (!container) return;
+
             try {
                 const res = await fetch('/api/controls');
                 const data = await res.json();
-                const container = document.getElementById('controls');
                 container.innerHTML = '';
 
                 for (const ctrl of data.controls) {
-                    const div = document.createElement('div');
-                    div.className = 'control-group';
-
                     const min = ctrl.min !== null ? ctrl.min : -10;
                     const max = ctrl.max !== null ? ctrl.max : 10;
+                    controlMeta[ctrl.control_name] = { min, max, step: ctrl.step };
 
+                    const div = document.createElement('div');
+                    div.className = 'control-group';
                     div.innerHTML = `
-                        <label>${ctrl.name}: <span class="control-value" id="val-${ctrl.control_name}">${ctrl.value}</span></label>
-                        <input type="range"
-                               min="${min}" max="${max}" step="${ctrl.step}"
-                               value="${ctrl.value}"
-                               onchange="setControl('${ctrl.control_name}', this.value)">
+                        <label>${ctrl.name}</label>
+                        <div class="control-row">
+                            <button class="step-btn" onclick="stepControl('${ctrl.control_name}', -1)">-</button>
+                            <input type="range" id="slider-${ctrl.control_name}"
+                                   min="${min}" max="${max}" step="${ctrl.step}"
+                                   value="${ctrl.value}"
+                                   oninput="updateFromSlider('${ctrl.control_name}', this.value)"
+                                   onchange="setControl('${ctrl.control_name}', this.value)">
+                            <button class="step-btn" onclick="stepControl('${ctrl.control_name}', 1)">+</button>
+                            <input type="text" class="value-input" id="input-${ctrl.control_name}"
+                                   value="${ctrl.value}"
+                                   onkeydown="if(event.key==='Enter')applyInput('${ctrl.control_name}')"
+                                   onblur="applyInput('${ctrl.control_name}')">
+                        </div>
                     `;
                     container.appendChild(div);
                 }
@@ -214,8 +281,34 @@ HTML_TEMPLATE = """
             }
         }
 
+        function updateFromSlider(name, value) {
+            document.getElementById('input-' + name).value = value;
+        }
+
+        function stepControl(name, direction) {
+            const meta = controlMeta[name];
+            const slider = document.getElementById('slider-' + name);
+            let newVal = parseFloat(slider.value) + (direction * meta.step);
+            newVal = Math.max(meta.min, Math.min(meta.max, newVal));
+            newVal = Math.round(newVal / meta.step) * meta.step;
+            slider.value = newVal;
+            document.getElementById('input-' + name).value = newVal;
+            setControl(name, newVal);
+        }
+
+        function applyInput(name) {
+            const meta = controlMeta[name];
+            const input = document.getElementById('input-' + name);
+            let val = parseFloat(input.value);
+            if (isNaN(val)) val = 0;
+            val = Math.max(meta.min, Math.min(meta.max, val));
+            val = Math.round(val / meta.step) * meta.step;
+            input.value = val;
+            document.getElementById('slider-' + name).value = val;
+            setControl(name, val);
+        }
+
         async function setControl(name, value) {
-            document.getElementById('val-' + name).innerText = value;
             try {
                 await fetch('/api/control', {
                     method: 'POST',
@@ -273,12 +366,12 @@ HTML_TEMPLATE = """
 @app.route('/')
 def index():
     image_count = len(list(OUTPUT_FOLDER.glob('*.jpg'))) if OUTPUT_FOLDER.exists() else 0
-    gpio_status = "(active)" if is_gpio_available() else "(not available)"
     return render_template_string(
         HTML_TEMPLATE,
-        gpio_pin=GPIO_PIN,
-        gpio_status=gpio_status,
-        image_count=image_count
+        image_count=image_count,
+        camera_ready=is_camera_ready(),
+        gpio_available=is_gpio_available(),
+        gpio_pin=GPIO_PIN
     )
 
 
@@ -294,12 +387,14 @@ def api_capture():
 
 @app.route('/api/controls')
 def api_controls():
-    """Get controls with their current values and definitions."""
+    """Get controls with their current values and definitions (excludes hidden)."""
     current = get_controls()
     defs = get_control_defs()
 
     controls = []
     for ctrl in defs:
+        if ctrl.hidden:
+            continue
         controls.append({
             'name': ctrl.name,
             'control_name': ctrl.control_name,

@@ -57,6 +57,7 @@ class CameraControl:
     max_val: Optional[float]  # None = no upper limit (discovery mode)
     step: float
     default: Optional[float] = None
+    hidden: bool = False  # Hide from web UI
 
 
 # Picamera2 control definitions
