@@ -217,11 +217,20 @@ HTML_TEMPLATE = """
             z-index: 1000;
         }
         .modal.active { display: flex; }
-        .modal img { max-width: 95%; max-height: 95%; }
+        .modal img { max-width: 85%; max-height: 90%; }
         .modal-close {
             position: absolute; top: 20px; right: 30px;
             color: #fff; font-size: 40px; cursor: pointer;
         }
+        .modal-nav {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(255,255,255,0.2); color: #fff;
+            border: none; width: 50px; height: 80px;
+            font-size: 30px; cursor: pointer; border-radius: 5px;
+        }
+        .modal-nav:hover { background: rgba(255,255,255,0.4); }
+        .modal-nav.prev { left: 15px; }
+        .modal-nav.next { right: 15px; }
     </style>
 </head>
 <body>
@@ -276,7 +285,9 @@ HTML_TEMPLATE = """
 
     <div class="modal" id="modal" onclick="closeModal()">
         <span class="modal-close">&times;</span>
-        <img id="modal-img">
+        <button class="modal-nav prev" onclick="event.stopPropagation(); navImage(-1)">&#10094;</button>
+        <img id="modal-img" onclick="event.stopPropagation()">
+        <button class="modal-nav next" onclick="event.stopPropagation(); navImage(1)">&#10095;</button>
     </div>
 
     <script>
@@ -323,8 +334,8 @@ HTML_TEMPLATE = """
             const div = document.createElement('div');
             div.className = 'gallery-item';
             div.innerHTML = `
-                <img src="/image/${filename}" loading="lazy" onclick="showModal('/image/${filename}')">
-                <button class="delete-btn" onclick="deleteImage('${filename}', this.parentElement)">&times;</button>
+                <img src="/image/${filename}" loading="lazy" onclick="showModal('${filename}')">
+                <button class="delete-btn" onclick="deleteImage('${filename}', this.parentElement)">&#128465;</button>
             `;
             if (prepend) {
                 gallery.insertBefore(div, gallery.firstChild);
@@ -448,16 +459,29 @@ HTML_TEMPLATE = """
             }
         }
 
-        function showModal(src) {
-            document.getElementById('modal-img').src = src;
+        let imageList = [];
+        let currentImageIndex = 0;
+
+        function showModal(filename) {
+            imageList = [...document.querySelectorAll('.gallery-item img')].map(img => img.src.split('/').pop());
+            currentImageIndex = imageList.indexOf(filename);
+            document.getElementById('modal-img').src = '/image/' + filename;
             document.getElementById('modal').classList.add('active');
         }
         function closeModal() {
             document.getElementById('modal').classList.remove('active');
         }
+        function navImage(dir) {
+            currentImageIndex += dir;
+            if (currentImageIndex < 0) currentImageIndex = imageList.length - 1;
+            if (currentImageIndex >= imageList.length) currentImageIndex = 0;
+            document.getElementById('modal-img').src = '/image/' + imageList[currentImageIndex];
+        }
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeModal();
+            if (e.key === 'ArrowLeft') navImage(-1);
+            if (e.key === 'ArrowRight') navImage(1);
             if (e.key === ' ' || e.key === 'c') { e.preventDefault(); capture(); }
         });
 
