@@ -15,6 +15,7 @@ from flask import Flask, render_template_string, jsonify, request, send_from_dir
 from .camera_core import (
     CaptureConfig, init_camera, capture_image, set_control,
     get_controls, get_control_defs, close_camera, is_camera_ready,
+    get_camera, load_config,
     DEFAULT_OUTPUT_FOLDER, DEFAULT_CONFIG_FOLDER
 )
 from .gpio_button import setup_button, cleanup_button, is_gpio_available
@@ -129,6 +130,23 @@ HTML_TEMPLATE = """
         }
         .value-input:focus { outline: 1px solid #00d9ff; }
 
+        .config-selector {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px; background: #0d1117; border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .config-selector select {
+            flex: 1; background: #16213e; color: #00d9ff;
+            border: 1px solid #333; padding: 8px;
+            font-size: 14px; border-radius: 4px;
+        }
+        .save-btn {
+            background: #00d9ff; color: #000;
+            border: none; padding: 8px 15px;
+            font-size: 14px; cursor: pointer; border-radius: 4px;
+        }
+        .save-btn:hover { background: #00b8d4; }
+
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -182,7 +200,16 @@ HTML_TEMPLATE = """
                 <span>Controls</span>
                 <span class="arrow">&#9660;</span>
             </button>
-            <div class="controls-content" id="controls"></div>
+            <div class="controls-content">
+                <div class="config-selector">
+                    <label>Config:</label>
+                    <select id="config-select" onchange="applyConfig()">
+                        <option value="">-- Select --</option>
+                    </select>
+                    <button class="save-btn" onclick="saveConfig()">Save</button>
+                </div>
+                <div id="controls-list"></div>
+            </div>
         </div>
 
         <h2>Images (<span id="image-count">{{ image_count }}</span>)</h2>
@@ -200,7 +227,7 @@ HTML_TEMPLATE = """
 
         function toggleControls() {
             const toggle = document.querySelector('.controls-toggle');
-            const content = document.getElementById('controls');
+            const content = document.querySelector('.controls-content');
             toggle.classList.toggle('open');
             content.classList.toggle('open');
         }
@@ -243,7 +270,7 @@ HTML_TEMPLATE = """
         }
 
         async function loadControls() {
-            const container = document.getElementById('controls');
+            const container = document.getElementById('controls-list');
             if (!container) return;
 
             try {
@@ -355,6 +382,73 @@ HTML_TEMPLATE = """
             if (e.key === ' ' || e.key === 'c') { e.preventDefault(); capture(); }
         });
 
+        async function loadConfigs() {
+            try {
+                const res = await fetch('/api/configs');
+                const data = await res.json();
+                const select = document.getElementById('config-select');
+                data.configs.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    select.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Failed to load configs:', e);
+            }
+        }
+
+        async function applyConfig() {
+            const select = document.getElementById('config-select');
+            const name = select.value;
+            if (!name) return;
+            try {
+                const res = await fetch('/api/config/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadControls();
+                } else {
+                    showStatus(data.message, true);
+                }
+            } catch (e) {
+                showStatus('Error: ' + e, true);
+            }
+        }
+
+        async function saveConfig() {
+            const name = prompt('Enter config name (leave empty for timestamp):');
+            if (name === null) return; // User cancelled
+            try {
+                const res = await fetch('/api/config/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name.trim() })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Add new config to dropdown if not already present
+                    const select = document.getElementById('config-select');
+                    if (![...select.options].some(opt => opt.value === data.filename)) {
+                        const opt = document.createElement('option');
+                        opt.value = data.filename;
+                        opt.textContent = data.filename;
+                        select.appendChild(opt);
+                    }
+                    select.value = data.filename;
+                    showStatus('Saved: ' + data.filename, false);
+                } else {
+                    showStatus(data.message, true);
+                }
+            } catch (e) {
+                showStatus('Error: ' + e, true);
+            }
+        }
+
+        loadConfigs();
         loadControls();
         refreshGallery();
     </script>
@@ -424,6 +518,64 @@ def api_images():
         if f.suffix.lower() in ['.jpg', '.jpeg', '.png']
     ])
     return jsonify({'images': images})
+
+
+@app.route('/api/configs')
+def api_configs():
+    """List available config files."""
+    if not CONFIG_FOLDER.exists():
+        return jsonify({'configs': []})
+    configs = sorted([
+        f.name for f in CONFIG_FOLDER.iterdir()
+        if f.suffix.lower() == '.json'
+    ])
+    return jsonify({'configs': configs})
+
+
+@app.route('/api/config/apply', methods=['POST'])
+def api_apply_config():
+    """Apply a config file."""
+    data = request.json
+    name = data.get('name')
+    if not name:
+        return jsonify({'success': False, 'message': 'No config name provided'})
+
+    config_path = CONFIG_FOLDER / name
+    if not config_path.exists():
+        return jsonify({'success': False, 'message': f'Config not found: {name}'})
+
+    try:
+        config = load_config(str(config_path))
+        camera = get_camera()
+        # Apply control values from config
+        for control_name, ctrl_data in config.controls.items():
+            if isinstance(ctrl_data, dict) and 'value' in ctrl_data:
+                camera.set_control(control_name, ctrl_data['value'])
+        return jsonify({'success': True, 'message': f'Applied: {name}'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/config/save', methods=['POST'])
+def api_save_config():
+    """Save current settings to a new config file."""
+    try:
+        data = request.json or {}
+        name = data.get('name', '').strip()
+
+        camera = get_camera()
+        if name:
+            # Use custom name
+            config_path = str(CONFIG_FOLDER / f"{name}.json")
+            camera.export_config(config_path)
+        else:
+            # Auto-generate timestamped name
+            config_path = camera.export_config()
+
+        filename = Path(config_path).name
+        return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 
 @app.route('/image/<filename>')
