@@ -354,9 +354,12 @@ HTML_TEMPLATE = """
                 container.innerHTML = '';
 
                 for (const ctrl of data.controls) {
-                    const min = ctrl.min !== null ? ctrl.min : -10;
-                    const max = ctrl.max !== null ? ctrl.max : 10;
-                    controlMeta[ctrl.control_name] = { min, max, step: ctrl.step };
+                    const hasLimits = ctrl.min !== null && ctrl.max !== null;
+                    // If no limits defined, use 10x the current value in both directions (min 64)
+                    const range = Math.max(64, ctrl.value !== 0 ? Math.abs(ctrl.value) * 10 : 64);
+                    const min = hasLimits ? ctrl.min : -range;
+                    const max = hasLimits ? ctrl.max : range;
+                    controlMeta[ctrl.control_name] = { min, max, step: ctrl.step, hasLimits };
 
                     const div = document.createElement('div');
                     div.className = 'control-group';
@@ -390,23 +393,31 @@ HTML_TEMPLATE = """
         function stepControl(name, direction) {
             const meta = controlMeta[name];
             const slider = document.getElementById('slider-' + name);
-            let newVal = parseFloat(slider.value) + (direction * meta.step);
-            newVal = Math.max(meta.min, Math.min(meta.max, newVal));
+            const input = document.getElementById('input-' + name);
+            let newVal = parseFloat(input.value) + (direction * meta.step);
+            // Only clamp if limits are defined
+            if (meta.hasLimits) {
+                newVal = Math.max(meta.min, Math.min(meta.max, newVal));
+            }
             newVal = Math.round(newVal / meta.step) * meta.step;
             slider.value = newVal;
-            document.getElementById('input-' + name).value = newVal;
+            input.value = newVal;
             setControl(name, newVal);
         }
 
         function applyInput(name) {
             const meta = controlMeta[name];
+            const slider = document.getElementById('slider-' + name);
             const input = document.getElementById('input-' + name);
             let val = parseFloat(input.value);
             if (isNaN(val)) val = 0;
-            val = Math.max(meta.min, Math.min(meta.max, val));
+            // Only clamp if limits are defined
+            if (meta.hasLimits) {
+                val = Math.max(meta.min, Math.min(meta.max, val));
+            }
             val = Math.round(val / meta.step) * meta.step;
             input.value = val;
-            document.getElementById('slider-' + name).value = val;
+            slider.value = val;
             setControl(name, val);
         }
 

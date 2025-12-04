@@ -77,20 +77,8 @@ CONTROL_DEFS = [
     # Auto controls
     CameraControl("Auto Exp", "AeEnable", 0, 1, 1, 1),
     CameraControl("Auto WB", "AwbEnable", 0, 1, 1, 1),
-    # Auto exposure modes
-    CameraControl("AE Meter", "AeMeteringMode", 0, 3, 1, 0),
-    CameraControl("AE Constr", "AeConstraintMode", 0, 3, 1, 0),
-    CameraControl("AE Mode", "AeExposureMode", 0, 3, 1, 0),
-    # White balance mode
-    CameraControl("AWB Mode", "AwbMode", 0, 7, 1, 0),
-    # Manual color gains (only effective when Auto WB is off)
-    CameraControl("Red Gain", "ColourGains_Red", 0.0, 8.0, 0.1, 1.0),
-    CameraControl("Blue Gain", "ColourGains_Blue", 0.0, 8.0, 0.1, 1.0),
     # Noise reduction
-    CameraControl("Denoise", "NoiseReductionMode", 0, 4, 1, 0),
-    # Focus (may not be available on all cameras)
-    CameraControl("AF Mode", "AfMode", 0, 2, 1, 0),
-    CameraControl("Lens Pos", "LensPosition", None, None, 0.1, 0.0),
+    CameraControl("Denoise", "NoiseReductionMode", 0, 4, 1, 0),  # 0=off, 1=fast, 2=HQ, 3=minimal, 4=ZSL
 ]
 
 
