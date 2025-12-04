@@ -430,9 +430,20 @@ class CameraCore:
         print("=" * 50)
 
         for ctrl in CONTROL_DEFS:
+            # Check if control is disabled in config
+            cfg = self.config.controls.get(ctrl.control_name, {}) if self.config.controls else {}
+            enabled = cfg.get('enabled', True)
+
+            if not enabled:
+                # Skip disabled controls - don't set them, just track current value
+                self.control_values[ctrl.control_name] = ctrl.default if ctrl.default is not None else 0
+                min_str = str(ctrl.min_val) if ctrl.min_val is not None else "?"
+                max_str = str(ctrl.max_val) if ctrl.max_val is not None else "?"
+                print(f"  {ctrl.name:12s}: {min_str} - {max_str} (disabled)")
+                continue
+
             # Priority: config value > default > 0
             if self.config.controls and ctrl.control_name in self.config.controls:
-                cfg = self.config.controls[ctrl.control_name]
                 value = cfg.get('value', ctrl.default if ctrl.default is not None else 0)
                 if ctrl.min_val is not None:
                     value = max(ctrl.min_val, value)
@@ -635,6 +646,7 @@ class CameraCore:
         export_controls = {}
         for ctrl in CONTROL_DEFS:
             export_controls[ctrl.control_name] = {
+                "enabled": True,
                 "value": self.control_values.get(ctrl.control_name, 0),
                 "min_val": ctrl.min_val,
                 "max_val": ctrl.max_val,
