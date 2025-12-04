@@ -181,3 +181,4 @@ cython_debug/
 .cursorindexingignore
 *.jpg
 *.mp4
+/configs

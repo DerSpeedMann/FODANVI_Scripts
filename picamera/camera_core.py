@@ -83,6 +83,9 @@ CONTROL_DEFS = [
     CameraControl("AE Mode", "AeExposureMode", 0, 3, 1, 0),
     # White balance mode
     CameraControl("AWB Mode", "AwbMode", 0, 7, 1, 0),
+    # Manual color gains (only effective when Auto WB is off)
+    CameraControl("Red Gain", "ColourGains_Red", 0.0, 8.0, 0.1, 1.0),
+    CameraControl("Blue Gain", "ColourGains_Blue", 0.0, 8.0, 0.1, 1.0),
     # Noise reduction
     CameraControl("Denoise", "NoiseReductionMode", 0, 4, 1, 0),
     # Focus (may not be available on all cameras)
@@ -545,12 +548,24 @@ class CameraCore:
         actual_val = value
         try:
             with self._capture_lock:
-                self.picam2.set_controls({control_name: value})
+                # Handle ColourGains specially - it's a tuple (red, blue) in picamera2
+                if control_name == "ColourGains_Red":
+                    blue = self.control_values.get("ColourGains_Blue", 1.0)
+                    self.picam2.set_controls({"ColourGains": (value, blue)})
+                elif control_name == "ColourGains_Blue":
+                    red = self.control_values.get("ColourGains_Red", 1.0)
+                    self.picam2.set_controls({"ColourGains": (red, value)})
+                else:
+                    self.picam2.set_controls({control_name: value})
                 # Read back actual value
                 try:
                     metadata = self.picam2.capture_metadata()
                     if control_name in metadata:
                         actual_val = metadata[control_name]
+                    elif control_name.startswith("ColourGains_"):
+                        gains = metadata.get("ColourGains")
+                        if gains:
+                            actual_val = gains[0] if control_name == "ColourGains_Red" else gains[1]
                 except Exception:
                     pass
             self.control_values[control_name] = actual_val
