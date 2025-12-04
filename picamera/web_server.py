@@ -67,6 +67,26 @@ HTML_TEMPLATE = """
             font-family: monospace;
         }
 
+        .controls-section {
+            margin: 20px 0;
+        }
+        .controls-toggle {
+            background: #16213e; color: #00d9ff;
+            border: 1px solid #333; padding: 10px 15px;
+            font-size: 16px; cursor: pointer;
+            border-radius: 5px; width: 100%;
+            text-align: left;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .controls-toggle:hover { background: #1e2a4a; }
+        .controls-toggle .arrow { transition: transform 0.2s; }
+        .controls-toggle.open .arrow { transform: rotate(180deg); }
+        .controls-content {
+            display: none;
+            padding-top: 10px;
+        }
+        .controls-content.open { display: block; }
+
         .control-group {
             background: #16213e; padding: 15px;
             border-radius: 5px; margin: 10px 0;
@@ -114,10 +134,15 @@ HTML_TEMPLATE = """
         <div class="status" id="status">Ready</div>
         <div class="info">GPIO button on pin {{ gpio_pin }} {{ gpio_status }}</div>
 
-        <h2>Controls</h2>
-        <div id="controls"></div>
+        <div class="controls-section">
+            <button class="controls-toggle" onclick="toggleControls()">
+                <span>Controls</span>
+                <span class="arrow">&#9660;</span>
+            </button>
+            <div class="controls-content" id="controls"></div>
+        </div>
 
-        <h2>Images ({{ image_count }})</h2>
+        <h2>Images (<span id="image-count">{{ image_count }}</span>)</h2>
         <div class="gallery" id="gallery"></div>
     </div>
 
@@ -127,16 +152,38 @@ HTML_TEMPLATE = """
     </div>
 
     <script>
+        let imageCount = {{ image_count }};
+
+        function toggleControls() {
+            const toggle = document.querySelector('.controls-toggle');
+            const content = document.getElementById('controls');
+            toggle.classList.toggle('open');
+            content.classList.toggle('open');
+        }
+
         async function capture() {
             document.getElementById('status').innerText = 'Capturing...';
             try {
                 const res = await fetch('/api/capture', { method: 'POST' });
                 const data = await res.json();
                 document.getElementById('status').innerText = data.message;
-                if (data.success) refreshGallery();
+                if (data.success) {
+                    imageCount++;
+                    document.getElementById('image-count').innerText = imageCount;
+                    addImageToGallery(data.filename);
+                }
             } catch (e) {
                 document.getElementById('status').innerText = 'Error: ' + e;
             }
+        }
+
+        function addImageToGallery(filename) {
+            const gallery = document.getElementById('gallery');
+            const el = document.createElement('img');
+            el.src = '/image/' + filename;
+            el.loading = 'lazy';
+            el.onclick = () => showModal('/image/' + filename);
+            gallery.insertBefore(el, gallery.firstChild);
         }
 
         async function loadControls() {
@@ -150,7 +197,6 @@ HTML_TEMPLATE = """
                     const div = document.createElement('div');
                     div.className = 'control-group';
 
-                    // Handle controls with unknown limits
                     const min = ctrl.min !== null ? ctrl.min : -10;
                     const max = ctrl.max !== null ? ctrl.max : 10;
 
@@ -188,6 +234,9 @@ HTML_TEMPLATE = """
                 const gallery = document.getElementById('gallery');
                 gallery.innerHTML = '';
 
+                imageCount = data.images.length;
+                document.getElementById('image-count').innerText = imageCount;
+
                 data.images.reverse().forEach(img => {
                     const el = document.createElement('img');
                     el.src = '/image/' + img;
@@ -215,7 +264,6 @@ HTML_TEMPLATE = """
 
         loadControls();
         refreshGallery();
-        setInterval(refreshGallery, 5000);
     </script>
 </body>
 </html>
