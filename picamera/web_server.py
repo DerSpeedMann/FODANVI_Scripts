@@ -202,10 +202,10 @@ HTML_TEMPLATE = """
         .gallery-item .delete-btn {
             position: absolute; top: 5px; right: 5px;
             background: rgba(255,68,68,0.9); color: #fff;
-            border: none; width: 24px; height: 24px;
+            border: none; width: 28px; height: 28px;
             border-radius: 50%; cursor: pointer;
-            font-size: 14px; line-height: 24px;
-            display: none;
+            font-size: 20px; line-height: 28px;
+            display: none; text-align: center;
         }
         .gallery-item:hover .delete-btn { display: block; }
 
@@ -508,7 +508,7 @@ HTML_TEMPLATE = """
                 div.innerHTML = `
                     <span class="config-item-name" onclick="applyConfig('${name}')">${name}</span>
                     <button class="config-item-btn" onclick="downloadConfig('${name}')" title="Download">&#8595;</button>
-                    <button class="config-item-btn danger" onclick="deleteConfig('${name}')" title="Delete">&#10005;</button>
+                    <button class="config-item-btn danger" onclick="deleteConfig('${name}')" title="Delete">&#128465;</button>
                 `;
                 list.appendChild(div);
             });
