@@ -77,6 +77,11 @@ CONTROL_DEFS = [
     # Auto controls
     CameraControl("Auto Exp", "AeEnable", 0, 1, 1, 1),
     CameraControl("Auto WB", "AwbEnable", 0, 1, 1, 1),
+    # White balance mode (0=Auto, 1=Incandescent, 2=Tungsten, 3=Fluorescent, 4=Indoor, 5=Daylight, 6=Cloudy, 7=Custom)
+    CameraControl("AWB Mode", "AwbMode", 0, 7, 1, 0),
+    # Manual color gains (only effective when Auto WB is off)
+    CameraControl("Red Gain", "ColourGains_Red", 0.0, 8.0, 0.1, 1.0),
+    CameraControl("Blue Gain", "ColourGains_Blue", 0.0, 8.0, 0.1, 1.0),
     # Noise reduction
     CameraControl("Denoise", "NoiseReductionMode", 0, 4, 1, 0),  # 0=off, 1=fast, 2=HQ, 3=minimal, 4=ZSL
 ]
