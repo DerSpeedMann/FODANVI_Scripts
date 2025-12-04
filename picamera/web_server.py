@@ -14,7 +14,8 @@ from flask import Flask, render_template_string, jsonify, request, send_from_dir
 
 from .camera_core import (
     CaptureConfig, init_camera, capture_image, set_control,
-    get_controls, get_control_defs, close_camera
+    get_controls, get_control_defs, close_camera,
+    DEFAULT_OUTPUT_FOLDER, DEFAULT_CONFIG_FOLDER
 )
 from .gpio_button import setup_button, cleanup_button, is_gpio_available
 
@@ -22,7 +23,8 @@ from .gpio_button import setup_button, cleanup_button, is_gpio_available
 # CONFIGURATION
 # ============================================================================
 
-OUTPUT_FOLDER = Path(__file__).parent.parent / "captured_images"
+OUTPUT_FOLDER = Path(__file__).parent.parent / DEFAULT_OUTPUT_FOLDER
+CONFIG_FOLDER = Path(__file__).parent.parent / DEFAULT_CONFIG_FOLDER
 GPIO_PIN = 17
 SERVER_HOST = '0.0.0.0'
 SERVER_PORT = 5000
@@ -308,11 +310,12 @@ def main():
     print("=" * 50)
 
     OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
+    CONFIG_FOLDER.mkdir(parents=True, exist_ok=True)
 
     # Initialize camera
     print("\nInitializing camera...")
-    config = CaptureConfig(output_folder=str(OUTPUT_FOLDER))
-    if init_camera(config):
+    config = CaptureConfig()
+    if init_camera(config, output_folder=str(OUTPUT_FOLDER), config_folder=str(CONFIG_FOLDER)):
         print("Camera ready")
     else:
         print("Camera not available - running in demo mode")

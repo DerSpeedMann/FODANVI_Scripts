@@ -11,6 +11,8 @@ from .camera_core import (
     CaptureConfig,
     CameraControl,
     CONTROL_DEFS,
+    DEFAULT_OUTPUT_FOLDER,
+    DEFAULT_CONFIG_FOLDER,
     init_camera,
     capture_image,
     set_control,

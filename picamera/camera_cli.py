@@ -29,19 +29,20 @@ except ImportError:
 
 from .camera_core import (
     CameraCore, CaptureConfig, CONTROL_DEFS,
+    DEFAULT_OUTPUT_FOLDER, DEFAULT_CONFIG_FOLDER,
     load_config, get_camera, close_camera
 )
 
 
-def capture_interactive(config: CaptureConfig = None, output_folder: str = "captured_images",
-                        auto_detect: bool = False) -> int:
+def capture_interactive(config: CaptureConfig = None, output_folder: str = DEFAULT_OUTPUT_FOLDER,
+                        config_folder: str = DEFAULT_CONFIG_FOLDER, auto_detect: bool = False) -> int:
     """
     Interactive image capture with terminal-based controls.
-    Exact same interface as original CaptureImages.py.
 
     Args:
         config: Camera configuration (uses defaults if None)
         output_folder: Folder to save captured images
+        config_folder: Folder for exported configs
         auto_detect: If True, auto-detect control limits when no config controls provided
 
     Returns:
@@ -56,7 +57,6 @@ def capture_interactive(config: CaptureConfig = None, output_folder: str = "capt
     if config is None:
         config = CaptureConfig()
 
-    config.output_folder = output_folder
     output_path = Path(output_folder)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -71,7 +71,8 @@ def capture_interactive(config: CaptureConfig = None, output_folder: str = "capt
     # Initialize camera
     camera = get_camera()
     should_auto_detect = auto_detect and not config.controls
-    if not camera.init(config, auto_detect_limits=should_auto_detect):
+    if not camera.init(config, output_folder=output_folder, config_folder=config_folder,
+                       auto_detect_limits=should_auto_detect):
         return 0
 
     # Warm up

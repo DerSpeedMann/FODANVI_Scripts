@@ -28,21 +28,24 @@ except ImportError:
 
 @dataclass
 class CaptureConfig:
-    """Configuration for camera settings"""
+    """Configuration for camera settings (per-camera config, no folder paths)"""
     resolution_width: int = 1920
     resolution_height: int = 1080
     camera_init_delay: float = 1.0
     image_prefix: str = "capture"
     image_format: str = "jpg"
     jpeg_quality: int = 95
-    output_folder: str = "captured_images"
-    config_folder: str = "configs"
     # Camera control settings (control_name -> dict with value, min_val, max_val, step)
     controls: Dict[str, dict] = None
 
     def __post_init__(self):
         if self.controls is None:
             self.controls = {}
+
+
+# Default folders (not part of config)
+DEFAULT_OUTPUT_FOLDER = "captured_images"
+DEFAULT_CONFIG_FOLDER = "configs"
 
 
 @dataclass
@@ -319,16 +322,21 @@ class CameraCore:
         self._initialized = True
         self.picam2 = None
         self.config: CaptureConfig = CaptureConfig()
+        self.output_folder: str = DEFAULT_OUTPUT_FOLDER
+        self.config_folder: str = DEFAULT_CONFIG_FOLDER
         self.control_values: Dict[str, float] = {}
         self._capture_lock = threading.Lock()
         self._capture_callbacks = []
 
-    def init(self, config: CaptureConfig = None, auto_detect_limits: bool = False) -> bool:
+    def init(self, config: CaptureConfig = None, output_folder: str = None,
+             config_folder: str = None, auto_detect_limits: bool = False) -> bool:
         """
         Initialize the camera.
 
         Args:
             config: Optional CaptureConfig, uses defaults if not provided
+            output_folder: Folder for captured images
+            config_folder: Folder for exported configs
             auto_detect_limits: If True, auto-detect control limits
 
         Returns:
@@ -340,6 +348,10 @@ class CameraCore:
 
         if config:
             self.config = config
+        if output_folder:
+            self.output_folder = output_folder
+        if config_folder:
+            self.config_folder = config_folder
 
         print("Opening Raspberry Pi camera...")
 
@@ -466,7 +478,7 @@ class CameraCore:
         if not self.is_ready():
             return None, "Camera not initialized"
 
-        output_path = Path(self.config.output_folder)
+        output_path = Path(self.output_folder)
         output_path.mkdir(parents=True, exist_ok=True)
 
         ret, frame = self.read_frame()
@@ -599,10 +611,10 @@ class CameraCore:
             Path to the saved config file.
         """
         if config_path is None:
-            config_folder = Path(self.config.config_folder)
-            config_folder.mkdir(parents=True, exist_ok=True)
+            cfg_folder = Path(self.config_folder)
+            cfg_folder.mkdir(parents=True, exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            config_path = str(config_folder / f"capture_config_{timestamp}.json")
+            config_path = str(cfg_folder / f"capture_config_{timestamp}.json")
 
         export_controls = {}
         for ctrl in CONTROL_DEFS:
@@ -620,8 +632,6 @@ class CameraCore:
             image_prefix=self.config.image_prefix,
             image_format=self.config.image_format,
             jpeg_quality=self.config.jpeg_quality,
-            output_folder=self.config.output_folder,
-            config_folder=self.config.config_folder,
             controls=export_controls
         )
         save_config(export_config, config_path)
@@ -658,9 +668,10 @@ def get_camera() -> CameraCore:
     return _camera
 
 
-def init_camera(config: CaptureConfig = None, auto_detect_limits: bool = False) -> bool:
+def init_camera(config: CaptureConfig = None, output_folder: str = None,
+                config_folder: str = None, auto_detect_limits: bool = False) -> bool:
     """Initialize the global camera instance."""
-    return get_camera().init(config, auto_detect_limits)
+    return get_camera().init(config, output_folder, config_folder, auto_detect_limits)
 
 
 def capture_image() -> Tuple[Optional[str], str]:
