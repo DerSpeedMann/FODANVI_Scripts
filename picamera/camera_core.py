@@ -329,6 +329,7 @@ class CameraCore:
         self.output_folder: str = DEFAULT_OUTPUT_FOLDER
         self.config_folder: str = DEFAULT_CONFIG_FOLDER
         self.control_values: Dict[str, float] = {}
+        self.disabled_controls: set = set()  # Track disabled control names
         self._capture_lock = threading.Lock()
         self._capture_callbacks = []
 
@@ -436,6 +437,7 @@ class CameraCore:
 
             if not enabled:
                 # Skip disabled controls - don't set them, just track current value
+                self.disabled_controls.add(ctrl.control_name)
                 self.control_values[ctrl.control_name] = ctrl.default if ctrl.default is not None else 0
                 min_str = str(ctrl.min_val) if ctrl.min_val is not None else "?"
                 max_str = str(ctrl.max_val) if ctrl.max_val is not None else "?"
@@ -627,6 +629,35 @@ class CameraCore:
         """Get control definitions."""
         return CONTROL_DEFS.copy()
 
+    def is_control_enabled(self, control_name: str) -> bool:
+        """Check if a control is enabled."""
+        return control_name not in self.disabled_controls
+
+    def apply_config(self, config: CaptureConfig) -> None:
+        """
+        Apply a config, updating control values and enabled states.
+        Does not reinitialize camera, just updates controls.
+        """
+        if not config.controls:
+            return
+
+        # Clear and rebuild disabled set
+        self.disabled_controls.clear()
+
+        for ctrl in CONTROL_DEFS:
+            if ctrl.control_name not in config.controls:
+                continue
+
+            cfg = config.controls[ctrl.control_name]
+            enabled = cfg.get('enabled', True)
+
+            if not enabled:
+                self.disabled_controls.add(ctrl.control_name)
+            else:
+                # Apply the value
+                value = cfg.get('value', ctrl.default if ctrl.default is not None else 0)
+                self.set_control(ctrl.control_name, value)
+
     def export_config(self, config_path: str = None) -> str:
         """
         Export current settings to a config file.
@@ -646,7 +677,7 @@ class CameraCore:
         export_controls = {}
         for ctrl in CONTROL_DEFS:
             export_controls[ctrl.control_name] = {
-                "enabled": True,
+                "enabled": ctrl.control_name not in self.disabled_controls,
                 "value": self.control_values.get(ctrl.control_name, 0),
                 "min_val": ctrl.min_val,
                 "max_val": ctrl.max_val,

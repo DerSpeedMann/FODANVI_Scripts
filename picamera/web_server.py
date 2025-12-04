@@ -663,13 +663,17 @@ def api_capture():
 
 @app.route('/api/controls')
 def api_controls():
-    """Get controls with their current values and definitions (excludes hidden)."""
+    """Get controls with their current values and definitions (excludes hidden and disabled)."""
+    camera = get_camera()
     current = get_controls()
     defs = get_control_defs()
 
     controls = []
     for ctrl in defs:
         if ctrl.hidden:
+            continue
+        # Skip disabled controls
+        if not camera.is_control_enabled(ctrl.control_name):
             continue
         controls.append({
             'name': ctrl.name,
@@ -716,7 +720,7 @@ def api_configs():
 
 @app.route('/api/config/apply', methods=['POST'])
 def api_apply_config():
-    """Apply a config file."""
+    """Apply a config file (including enabled/disabled state)."""
     data = request.json
     name = data.get('name')
     if not name:
@@ -729,10 +733,8 @@ def api_apply_config():
     try:
         config = load_config(str(config_path))
         camera = get_camera()
-        # Apply control values from config
-        for control_name, ctrl_data in config.controls.items():
-            if isinstance(ctrl_data, dict) and 'value' in ctrl_data:
-                camera.set_control(control_name, ctrl_data['value'])
+        # Apply full config including enabled states
+        camera.apply_config(config)
         return jsonify({'success': True, 'message': f'Applied: {name}'})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
