@@ -130,34 +130,84 @@ HTML_TEMPLATE = """
         }
         .value-input:focus { outline: 1px solid #00d9ff; }
 
-        .config-selector {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px; background: #0d1117; border-radius: 5px;
-            margin-bottom: 10px;
+        .config-section {
+            background: #0d1117; border-radius: 5px;
+            padding: 10px; margin-bottom: 10px;
         }
-        .config-selector select {
-            flex: 1; background: #16213e; color: #00d9ff;
-            border: 1px solid #333; padding: 8px;
-            font-size: 14px; border-radius: 4px;
+        .config-row {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 8px;
         }
-        .save-btn {
+        .config-row:last-child { margin-bottom: 0; }
+        .config-row label { min-width: 50px; }
+        .config-btn {
             background: #00d9ff; color: #000;
-            border: none; padding: 8px 15px;
+            border: none; padding: 8px 12px;
             font-size: 14px; cursor: pointer; border-radius: 4px;
         }
-        .save-btn:hover { background: #00b8d4; }
+        .config-btn:hover { background: #00b8d4; }
+        .config-upload { display: none; }
+
+        .config-dropdown {
+            position: relative; flex: 1;
+        }
+        .config-dropdown-btn {
+            width: 100%; background: #16213e; color: #00d9ff;
+            border: 1px solid #333; padding: 8px 12px;
+            font-size: 14px; border-radius: 4px;
+            text-align: left; cursor: pointer;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .config-dropdown-btn:hover { background: #1e2a4a; }
+        .config-dropdown-list {
+            display: none; position: absolute; top: 100%; left: 0; right: 0;
+            background: #16213e; border: 1px solid #333; border-radius: 4px;
+            max-height: 200px; overflow-y: auto; z-index: 100;
+            margin-top: 2px;
+        }
+        .config-dropdown.open .config-dropdown-list { display: block; }
+        .config-item {
+            display: flex; align-items: center; padding: 6px 10px;
+            border-bottom: 1px solid #333;
+        }
+        .config-item:last-child { border-bottom: none; }
+        .config-item:hover { background: #1e2a4a; }
+        .config-item-name {
+            flex: 1; cursor: pointer; padding: 4px 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .config-item-btn {
+            background: transparent; color: #00d9ff; border: none;
+            width: 28px; height: 28px; cursor: pointer; border-radius: 4px;
+            font-size: 14px;
+        }
+        .config-item-btn:hover { background: #333; }
+        .config-item-btn.danger { color: #ff4444; }
+        .config-item-btn.danger:hover { background: #3e1616; }
 
         .gallery {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 10px; margin-top: 20px;
         }
-        .gallery img {
+        .gallery-item {
+            position: relative;
+        }
+        .gallery-item img {
             width: 100%; height: 150px;
             object-fit: cover; border-radius: 5px;
             cursor: pointer;
         }
-        .gallery img:hover { opacity: 0.8; }
+        .gallery-item img:hover { opacity: 0.8; }
+        .gallery-item .delete-btn {
+            position: absolute; top: 5px; right: 5px;
+            background: rgba(255,68,68,0.9); color: #fff;
+            border: none; width: 24px; height: 24px;
+            border-radius: 50%; cursor: pointer;
+            font-size: 14px; line-height: 24px;
+            display: none;
+        }
+        .gallery-item:hover .delete-btn { display: block; }
 
         .modal {
             display: none; position: fixed;
@@ -201,12 +251,20 @@ HTML_TEMPLATE = """
                 <span class="arrow">&#9660;</span>
             </button>
             <div class="controls-content">
-                <div class="config-selector">
-                    <label>Config:</label>
-                    <select id="config-select" onchange="applyConfig()">
-                        <option value="">-- Select --</option>
-                    </select>
-                    <button class="save-btn" onclick="saveConfig()">Save</button>
+                <div class="config-section">
+                    <div class="config-row">
+                        <label>Config:</label>
+                        <div class="config-dropdown" id="config-dropdown">
+                            <button class="config-dropdown-btn" onclick="toggleConfigDropdown()">
+                                <span id="config-selected">-- Select --</span>
+                                <span>&#9660;</span>
+                            </button>
+                            <div class="config-dropdown-list" id="config-list"></div>
+                        </div>
+                        <button class="config-btn" onclick="saveConfig()">Save</button>
+                        <button class="config-btn" onclick="document.getElementById('config-upload').click()">Upload</button>
+                        <input type="file" id="config-upload" class="config-upload" accept=".json" onchange="uploadConfig(this)">
+                    </div>
                 </div>
                 <div id="controls-list"></div>
             </div>
@@ -260,13 +318,19 @@ HTML_TEMPLATE = """
             }
         }
 
-        function addImageToGallery(filename) {
+        function addImageToGallery(filename, prepend = true) {
             const gallery = document.getElementById('gallery');
-            const el = document.createElement('img');
-            el.src = '/image/' + filename;
-            el.loading = 'lazy';
-            el.onclick = () => showModal('/image/' + filename);
-            gallery.insertBefore(el, gallery.firstChild);
+            const div = document.createElement('div');
+            div.className = 'gallery-item';
+            div.innerHTML = `
+                <img src="/image/${filename}" loading="lazy" onclick="showModal('/image/${filename}')">
+                <button class="delete-btn" onclick="deleteImage('${filename}', this.parentElement)">&times;</button>
+            `;
+            if (prepend) {
+                gallery.insertBefore(div, gallery.firstChild);
+            } else {
+                gallery.appendChild(div);
+            }
         }
 
         async function loadControls() {
@@ -357,15 +421,30 @@ HTML_TEMPLATE = """
                 imageCount = data.images.length;
                 document.getElementById('image-count').innerText = imageCount;
 
-                data.images.reverse().forEach(img => {
-                    const el = document.createElement('img');
-                    el.src = '/image/' + img;
-                    el.loading = 'lazy';
-                    el.onclick = () => showModal('/image/' + img);
-                    gallery.appendChild(el);
-                });
+                data.images.reverse().forEach(img => addImageToGallery(img, false));
             } catch (e) {
                 console.error('Failed to load gallery:', e);
+            }
+        }
+
+        async function deleteImage(filename, element) {
+            if (!confirm('Delete this image?')) return;
+            try {
+                const res = await fetch('/api/image/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    element.remove();
+                    imageCount--;
+                    document.getElementById('image-count').innerText = imageCount;
+                } else {
+                    showStatus(data.message, true);
+                }
+            } catch (e) {
+                showStatus('Error: ' + e, true);
             }
         }
 
@@ -382,26 +461,49 @@ HTML_TEMPLATE = """
             if (e.key === ' ' || e.key === 'c') { e.preventDefault(); capture(); }
         });
 
+        let configList = [];
+
+        function toggleConfigDropdown() {
+            document.getElementById('config-dropdown').classList.toggle('open');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('config-dropdown');
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        function renderConfigList() {
+            const list = document.getElementById('config-list');
+            list.innerHTML = '';
+            configList.forEach(name => {
+                const div = document.createElement('div');
+                div.className = 'config-item';
+                div.innerHTML = `
+                    <span class="config-item-name" onclick="applyConfig('${name}')">${name}</span>
+                    <button class="config-item-btn" onclick="downloadConfig('${name}')" title="Download">&#8595;</button>
+                    <button class="config-item-btn danger" onclick="deleteConfig('${name}')" title="Delete">&#10005;</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
         async function loadConfigs() {
             try {
                 const res = await fetch('/api/configs');
                 const data = await res.json();
-                const select = document.getElementById('config-select');
-                data.configs.forEach(name => {
-                    const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.textContent = name;
-                    select.appendChild(opt);
-                });
+                configList = data.configs;
+                renderConfigList();
             } catch (e) {
                 console.error('Failed to load configs:', e);
             }
         }
 
-        async function applyConfig() {
-            const select = document.getElementById('config-select');
-            const name = select.value;
-            if (!name) return;
+        async function applyConfig(name) {
+            document.getElementById('config-dropdown').classList.remove('open');
+            document.getElementById('config-selected').textContent = name;
             try {
                 const res = await fetch('/api/config/apply', {
                     method: 'POST',
@@ -421,7 +523,7 @@ HTML_TEMPLATE = """
 
         async function saveConfig() {
             const name = prompt('Enter config name (leave empty for timestamp):');
-            if (name === null) return; // User cancelled
+            if (name === null) return;
             try {
                 const res = await fetch('/api/config/save', {
                     method: 'POST',
@@ -430,16 +532,72 @@ HTML_TEMPLATE = """
                 });
                 const data = await res.json();
                 if (data.success) {
-                    // Add new config to dropdown if not already present
-                    const select = document.getElementById('config-select');
-                    if (![...select.options].some(opt => opt.value === data.filename)) {
-                        const opt = document.createElement('option');
-                        opt.value = data.filename;
-                        opt.textContent = data.filename;
-                        select.appendChild(opt);
+                    if (!configList.includes(data.filename)) {
+                        configList.push(data.filename);
+                        configList.sort();
+                        renderConfigList();
                     }
-                    select.value = data.filename;
+                    document.getElementById('config-selected').textContent = data.filename;
                     showStatus('Saved: ' + data.filename, false);
+                } else {
+                    showStatus(data.message, true);
+                }
+            } catch (e) {
+                showStatus('Error: ' + e, true);
+            }
+        }
+
+        function downloadConfig(name) {
+            event.stopPropagation();
+            window.location.href = '/api/config/download/' + encodeURIComponent(name);
+        }
+
+        async function uploadConfig(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/api/config/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (!configList.includes(data.filename)) {
+                        configList.push(data.filename);
+                        configList.sort();
+                        renderConfigList();
+                    }
+                    document.getElementById('config-selected').textContent = data.filename;
+                    showStatus('Uploaded: ' + data.filename, false);
+                } else {
+                    showStatus(data.message, true);
+                }
+            } catch (e) {
+                showStatus('Error: ' + e, true);
+            }
+            input.value = '';
+        }
+
+        async function deleteConfig(name) {
+            event.stopPropagation();
+            if (!confirm('Delete config: ' + name + '?')) return;
+            try {
+                const res = await fetch('/api/config/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    configList = configList.filter(c => c !== name);
+                    renderConfigList();
+                    const selected = document.getElementById('config-selected');
+                    if (selected.textContent === name) {
+                        selected.textContent = '-- Select --';
+                    }
+                    showStatus('Deleted: ' + name, false);
                 } else {
                     showStatus(data.message, true);
                 }
@@ -574,6 +732,72 @@ def api_save_config():
 
         filename = Path(config_path).name
         return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/config/download/<filename>')
+def api_download_config(filename):
+    """Download a config file."""
+    return send_from_directory(CONFIG_FOLDER, filename, as_attachment=True)
+
+
+@app.route('/api/config/upload', methods=['POST'])
+def api_upload_config():
+    """Upload a config file."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file provided'})
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'})
+
+    if not file.filename.endswith('.json'):
+        return jsonify({'success': False, 'message': 'File must be .json'})
+
+    try:
+        CONFIG_FOLDER.mkdir(parents=True, exist_ok=True)
+        filename = Path(file.filename).name  # Sanitize filename
+        file.save(CONFIG_FOLDER / filename)
+        return jsonify({'success': True, 'filename': filename})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/config/delete', methods=['POST'])
+def api_delete_config():
+    """Delete a config file."""
+    data = request.json
+    name = data.get('name')
+    if not name:
+        return jsonify({'success': False, 'message': 'No config name provided'})
+
+    config_path = CONFIG_FOLDER / name
+    if not config_path.exists():
+        return jsonify({'success': False, 'message': f'Config not found: {name}'})
+
+    try:
+        config_path.unlink()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/image/delete', methods=['POST'])
+def api_delete_image():
+    """Delete an image file."""
+    data = request.json
+    filename = data.get('filename')
+    if not filename:
+        return jsonify({'success': False, 'message': 'No filename provided'})
+
+    image_path = OUTPUT_FOLDER / filename
+    if not image_path.exists():
+        return jsonify({'success': False, 'message': f'Image not found: {filename}'})
+
+    try:
+        image_path.unlink()
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 
