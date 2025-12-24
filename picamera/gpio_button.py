@@ -31,21 +31,15 @@ class GPIOButton:
         debounce_time: Minimum time between presses (seconds)
     """
 
-    def __init__(self, pin: int = 17, callback=None, debounce_time: float = 0.3):
+    def __init__(self, pin: int = 17, callback=None, debounce_time: float = 0.05):
         self.pin = pin
         self.callback = callback
         self.debounce_time = debounce_time
-        self._last_press = 0
         self._running = False
         self._button = None
 
     def _button_callback(self):
-        """Internal callback with debouncing."""
-        current_time = time.time()
-        if current_time - self._last_press < self.debounce_time:
-            return
-        self._last_press = current_time
-
+        """Internal callback."""
         if self.callback:
             try:
                 self.callback()
@@ -97,7 +91,7 @@ class GPIOButton:
 _button = None
 
 
-def setup_button(pin: int = 17, callback=None, debounce_time: float = 0.3) -> bool:
+def setup_button(pin: int = 17, callback=None, debounce_time: float = 0.05) -> bool:
     """
     Setup the global button instance.
 
