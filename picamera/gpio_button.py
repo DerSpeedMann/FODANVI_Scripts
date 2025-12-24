@@ -1,5 +1,5 @@
 """
-GPIO button handler module.
+GPIO button handler module using GPIO Zero.
 Listens for button presses and triggers a callback.
 
 Usage:
@@ -15,7 +15,7 @@ Usage:
 import time
 
 try:
-    import RPi.GPIO as GPIO
+    from gpiozero import Button
     GPIO_AVAILABLE = True
 except ImportError:
     GPIO_AVAILABLE = False
@@ -23,7 +23,7 @@ except ImportError:
 
 class GPIOButton:
     """
-    GPIO button handler with debouncing.
+    GPIO button handler using GPIO Zero.
 
     Args:
         pin: GPIO pin number (BCM numbering)
@@ -37,8 +37,9 @@ class GPIOButton:
         self.debounce_time = debounce_time
         self._last_press = 0
         self._running = False
+        self._button = None
 
-    def _button_callback(self, channel):
+    def _button_callback(self):
         """Internal callback with debouncing."""
         current_time = time.time()
         if current_time - self._last_press < self.debounce_time:
@@ -66,14 +67,8 @@ class GPIOButton:
             return True
 
         try:
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-            GPIO.add_event_detect(
-                self.pin,
-                GPIO.FALLING,
-                callback=self._button_callback,
-                bouncetime=int(self.debounce_time * 1000)
-            )
+            self._button = Button(self.pin, pull_up=True, bounce_time=self.debounce_time)
+            self._button.when_pressed = self._button_callback
             self._running = True
             print(f"GPIO button listening on pin {self.pin}")
             return True
@@ -83,12 +78,12 @@ class GPIOButton:
 
     def stop(self):
         """Stop listening and clean up GPIO."""
-        if self._running and GPIO_AVAILABLE:
+        if self._running and self._button:
             try:
-                GPIO.remove_event_detect(self.pin)
-                GPIO.cleanup(self.pin)
+                self._button.close()
             except Exception:
                 pass
+            self._button = None
             self._running = False
 
     def is_running(self) -> bool:

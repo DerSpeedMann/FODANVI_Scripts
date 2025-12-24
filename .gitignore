@@ -182,3 +182,4 @@ cython_debug/
 *.jpg
 *.mp4
 /configs
+/recorded_videos
