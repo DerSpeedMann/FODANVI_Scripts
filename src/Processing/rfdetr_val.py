@@ -22,10 +22,12 @@ Notes:
 
 import json
 import sys
+import time
 from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
+import torch
 import yaml
 from PIL import Image
 from pycocotools.coco import COCO
@@ -141,11 +143,64 @@ def build_gt(pairs, names):
     return {"images": images, "annotations": annotations, "categories": categories}
 
 
-def run_inference(model, pairs, valid_class_ids):
+def install_forward_timer(model):
+    """Wrap the underlying nn.Module's forward() with a CUDA-synced timer.
+    Returns a list whose [0] element accumulates pure forward-pass seconds.
+    Returns None if we can't find the underlying module (timing won't be available).
+
+    Searches the wrapper's attributes (and one level of nesting) for the first
+    torch.nn.Module. RF-DETR's wrapper class names vary across versions."""
+    visited = set()
+
+    def find_nn_module(obj, depth=0):
+        if depth > 2 or id(obj) in visited:
+            return None, None
+        visited.add(id(obj))
+        for attr in dir(obj):
+            if attr.startswith("_"):
+                continue
+            try:
+                val = getattr(obj, attr)
+            except Exception:
+                continue
+            if isinstance(val, torch.nn.Module):
+                return val, f"{type(obj).__name__}.{attr}"
+            # Recurse one level into plain Python containers/objects.
+            if depth == 0 and hasattr(val, "__dict__") and not callable(val):
+                found, path = find_nn_module(val, depth + 1)
+                if found is not None:
+                    return found, f"{attr}.{path}"
+        return None, None
+
+    nn_module, location = find_nn_module(model)
+    if nn_module is None:
+        return None
+    print(f"Forward-pass timer hooked on: {location} ({type(nn_module).__name__})")
+
+    cuda = torch.cuda.is_available()
+    accumulator = [0.0]
+    orig_forward = nn_module.forward
+
+    def timed_forward(*args, **kwargs):
+        if cuda:
+            torch.cuda.synchronize()
+        t0 = time.perf_counter()
+        out = orig_forward(*args, **kwargs)
+        if cuda:
+            torch.cuda.synchronize()
+        accumulator[0] += time.perf_counter() - t0
+        return out
+
+    nn_module.forward = timed_forward
+    return accumulator
+
+
+def run_inference(model, pairs, valid_class_ids, forward_seconds=None):
     preds = []
     dropped = 0
     dropped_ids = set()
     n = len(pairs)
+    predict_seconds = 0.0  # Sum of model.predict() wall time across all batches.
     with tqdm(total=n, desc="Inferring") as pbar:
         for start in range(0, n, BATCH_SIZE):
             chunk = pairs[start : start + BATCH_SIZE]
@@ -155,7 +210,9 @@ def run_inference(model, pairs, valid_class_ids):
             # and discard the padded results.
             if actual < BATCH_SIZE:
                 paths = paths + [paths[-1]] * (BATCH_SIZE - actual)
+            t0 = time.perf_counter()
             results = model.predict(paths, threshold=CONF_THRESHOLD)
+            predict_seconds += time.perf_counter() - t0
             if not isinstance(results, (list, tuple)):
                 results = [results]
             for offset, det in enumerate(results[:actual]):
@@ -190,7 +247,7 @@ def run_inference(model, pairs, valid_class_ids):
               f"taxonomy. Unique offending IDs: {sorted(dropped_ids)}")
         print("  → Likely the checkpoint uses COCO's 91-class ID space (with gaps); "
               "remap predictions to contiguous 0-79 to recover those detections.")
-    return preds
+    return preds, predict_seconds
 
 
 def iou_xywh(box1, box2):
@@ -295,13 +352,24 @@ def print_ultralytics_table(per_class_pr, per_class_ap, names, total_images):
               f"{pr['P']:>11.4f}{pr['R']:>11.4f}{ap['mAP50']:>11.4f}{ap['mAP']:>11.4f}")
 
 
+def next_run_dir(base_dir, name):
+    """Match Ultralytics: if `name` is taken, append -2, -3, ..."""
+    base_dir = Path(base_dir)
+    if not (base_dir / name).exists():
+        return base_dir / name
+    n = 2
+    while (base_dir / f"{name}-{n}").exists():
+        n += 1
+    return base_dir / f"{name}-{n}"
+
+
 def main():
     model_path = sys.argv[1] if len(sys.argv) > 1 else "/models/rf-detr-seg-2xl-ft.pth"
     data_yaml = sys.argv[2] if len(sys.argv) > 2 else "/datasets/coco_nvg_clean.yaml"
     name = sys.argv[3] if len(sys.argv) > 3 else "val_rfdetr"
 
-    out_dir = Path("/ultralytics/runs/detect") / name
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = next_run_dir("/ultralytics/runs/detect", name)
+    out_dir.mkdir(parents=True)
 
     print("=" * 80)
     print("RF-DETR VALIDATION (YOLO-style mAP via pycocotools)")
@@ -324,12 +392,18 @@ def main():
         except Exception as e:
             print(f"optimize_for_inference() not available or failed: {e}")
 
+    forward_seconds = install_forward_timer(model)
+    if forward_seconds is None:
+        print("Forward-pass timer not installed (no nn.Module attribute found).")
+
     gt_dict = build_gt(pairs, names)
     gt_path = out_dir / "gt.json"
     with open(gt_path, "w") as f:
         json.dump(gt_dict, f)
 
-    preds = run_inference(model, pairs, valid_class_ids=set(names.keys()))
+    preds, predict_seconds = run_inference(
+        model, pairs, valid_class_ids=set(names.keys()), forward_seconds=forward_seconds
+    )
     pred_path = out_dir / "predictions.json"
     with open(pred_path, "w") as f:
         json.dump(preds, f)
@@ -356,6 +430,19 @@ def main():
     print("PER-CLASS RESULTS")
     print("=" * 80)
     print_ultralytics_table(per_class_pr, per_class_ap, names, total_images=len(pairs))
+
+    n = len(pairs)
+    ms_total = (predict_seconds / max(n, 1)) * 1000
+    if forward_seconds is not None:
+        ms_forward = (forward_seconds[0] / max(n, 1)) * 1000
+        ms_other = ms_total - ms_forward
+        print(f"Speed: {ms_other:.1f}ms preprocess+postprocess, {ms_forward:.1f}ms inference, "
+              f"{ms_total:.1f}ms total per image")
+    else:
+        print(f"Speed: {ms_total:.1f}ms total per image "
+              f"(forward-pass timer unavailable)")
+    print(f"Results saved to {out_dir}")
+
     print("=" * 80)
     print(f"Overall mAP50-95: {ev.stats[0]:.4f}")
     print(f"Overall mAP50:    {ev.stats[1]:.4f}")
