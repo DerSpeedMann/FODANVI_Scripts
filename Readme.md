@@ -1,11 +1,11 @@
 Prepare Images:
 
 cd "C:\Users\micha\Desktop\private\FH\MA\Tests"
-python .\scripts\src\Processing\GenerateCrops.py .\images_prepared .\images_cropped
+python .\OD-A-NVI_Scripts\src\Processing\GenerateCrops.py .\captured_images\ .\images_cropped\26_04_29
 Copy-Item -Path .\images_cropped\* -Destination .\images
-python .\scripts\src\Processing\Preprocess.py .\images_cropped\ .\images   
-python .\scripts\src\Processing\GenerateColorShift.py .\images\ .\images
-python .\scripts\src\Processing\GenerateGrayscales.py .\images\ .\images
+python .\OD-A-NVI_Scripts\src\Processing\Preprocess.py .\images_cropped\ .\images   
+python .\OD-A-NVI_Scripts\src\Processing\GenerateColorShift.py .\images\ .\images
+python .\OD-A-NVI_Scripts\src\Processing\GenerateGrayscales.py .\images\ .\images
 
 Check Images:
 
@@ -64,11 +64,11 @@ docker run --gpus all --rm `
 
 Apply NVG styling to images:
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_white/images/val2017 -c white
-python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_white/labels/val2017 _nvg_white
+python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_white/images/val2017 -c white
+python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_white/labels/val2017 _nvg_white
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_green/images/val2017 -c green
-python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_green/labels/val2017 _nvg_green
+python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_green/images/val2017 -c green
+python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_green/labels/val2017 _nvg_green
 
  
 Test Convertet Images:
@@ -86,47 +86,47 @@ docker run --gpus all --rm `
   -v ${PWD}\results:/ultralytics/runs/detect `
   -v ${PWD}\models:/models `
   -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\scripts\src:/workspace `
+  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   python /workspace/rtdetr_val_fixed.py /models/rtdetr-l.pt /datasets/coco_nvg_green.yaml
   
 Create converted training and validation data remove noise, blur, bloom and vignette for better training results:
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/train2017 datasets/coco_nvg/images/train2017 `
+python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/train2017 datasets/coco_nvg/images/train2017 `
   --color white  `
   --noise-intensity 0 `
   --blur-amount 0 `
   --bloom-intensity 0 `
   --vignette-intensity 0
 
-python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/train2017 datasets/coco_nvg/labels/train2017 _nvg_white
+python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/train2017 datasets/coco_nvg/labels/train2017 _nvg_white
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg/images/val2017 `
+python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg/images/val2017 `
   --color white  `
   --noise-intensity 0 `
   --blur-amount 0 `
   --bloom-intensity 0 `
   --vignette-intensity 0
   
-python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg/labels/val2017 _nvg_white
+python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg/labels/val2017 _nvg_white
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/train2017 datasets/coco_nvg/images/train2017 `
+python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/train2017 datasets/coco_nvg/images/train2017 `
   --color green  `
   --noise-intensity 0 `
   --blur-amount 0 `
   --bloom-intensity 0 `
   --vignette-intensity 0
   
-python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/train2017 datasets/coco_nvg/labels/train2017 _nvg_green
+python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/train2017 datasets/coco_nvg/labels/train2017 _nvg_green
 
-python .\scripts\src\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg/images/val2017 `
+python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg/images/val2017 `
   --color green  `
   --noise-intensity 0 `
   --blur-amount 0 `
   --bloom-intensity 0 `
   --vignette-intensity 0
   
-python .\scripts\src\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg/labels/val2017 _nvg_green
+python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg/labels/val2017 _nvg_green
 
 Fine Tune:
 docker run --gpus all --rm `
