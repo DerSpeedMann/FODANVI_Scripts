@@ -34,6 +34,9 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from tqdm import tqdm
 
+from console_logging import capture_console
+from console_table_to_csv import write_tables_from_log
+
 # Pick the class matching your checkpoint variant. For `rf-detr-seg-2xl-ft.pth`
 # this is the segmentation preview. Swap to RFDETRBase / RFDETRLarge / etc.
 # if you're using a detection-only checkpoint.
@@ -370,6 +373,8 @@ def main():
 
     out_dir = next_run_dir("/ultralytics/runs/detect", name)
     out_dir.mkdir(parents=True)
+    global _run_dir
+    _run_dir = out_dir
 
     print("=" * 80)
     print("RF-DETR VALIDATION (YOLO-style mAP via pycocotools)")
@@ -450,5 +455,17 @@ def main():
     print("=" * 80)
 
 
+_run_dir = None
+
 if __name__ == "__main__":
-    main()
+    cap = capture_console()
+    with cap:
+        try:
+            main()
+        finally:
+            if _run_dir is not None:
+                log_path = cap.write_log(_run_dir)
+                print(f"Console log saved to {log_path}")
+                tables = write_tables_from_log(_run_dir)
+                if tables:
+                    print(f"Tables saved to {tables[0].parent}")

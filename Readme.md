@@ -35,13 +35,17 @@ docker run --gpus all --rm `
 
 Validate models:
 
+(All three scripts print the per-class table and write a cleaned logs/console.log
+into their run folder under results/.)
+
 docker run --gpus all --rm `
   --shm-size=18g `
   -v ${PWD}\datasets:/datasets `
   -v ${PWD}\models:/models `
   -v ${PWD}\results:/ultralytics/runs/detect `
+  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
-  yolo detect val model=/models/yolo11x.pt data=coco.yaml
+  python /workspace/yolo_val.py /models/yolo11x.pt coco.yaml val_yolo11x
  
 docker run --gpus all --rm `
   --shm-size=8g `
@@ -78,8 +82,9 @@ docker run --gpus all --rm `
   -v ${PWD}\datasets:/datasets `
   -v ${PWD}\models:/models `
   -v ${PWD}\results:/ultralytics/runs/detect `
+  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
-  yolo detect val model=/models/yolo11x.pt data=/datasets/coco_nvg_green.yaml name=val_yolo_nvg
+  python /workspace/yolo_val.py /models/yolo11x.pt /datasets/coco_nvg_green.yaml val_yolo_nvg
   
 docker run --gpus all --rm `
   --shm-size=8g `
@@ -184,24 +189,18 @@ docker run --gpus all --rm `
   -v ${PWD}\datasets:/datasets `
   -v ${PWD}\models:/models `
   -v ${PWD}\results:/ultralytics/runs/detect `
+  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
-  yolo detect val `
-    model=/models/yolo11s_clean-noisy.pt `
-    data=/datasets/coco_nvg_clean.yaml `
-    project=/ultralytics/runs/detect `
-    name=validate_clean-noisy_on_clean
+  python /workspace/yolo_val.py /models/yolo11s_clean-noisy.pt /datasets/coco_nvg_clean.yaml validate_clean-noisy_on_clean
 	
 docker run --gpus all --rm `
   --shm-size=12g `
   -v ${PWD}\datasets:/datasets `
   -v ${PWD}\models:/models `
   -v ${PWD}\results:/ultralytics/runs/detect `
+  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
-  yolo detect val `
-    model=/models/yolo11s_clean-noisy.pt `
-    data=/datasets/coco_nvg_noisy.yaml `
-    project=/ultralytics/runs/detect `
-    name=validate_clean-noisy_on_noisy
+  python /workspace/yolo_val.py /models/yolo11s_clean-noisy.pt /datasets/coco_nvg_noisy.yaml validate_clean-noisy_on_noisy
 
   
 Models:

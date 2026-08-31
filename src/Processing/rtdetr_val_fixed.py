@@ -22,6 +22,9 @@ import sys
 from ultralytics import RTDETR
 import ultralytics.utils.ops as ops
 
+from console_logging import capture_console
+from console_table_to_csv import write_tables_from_log
+
 # Save original function
 _original_scale_boxes = ops.scale_boxes
 
@@ -53,26 +56,33 @@ data_yaml = sys.argv[2] if len(sys.argv) > 2 else 'coco.yaml'
 name = sys.argv[3] if len(sys.argv) > 3 else 'val'
 
 # Run validation
-print("="*80)
-print("RT-DETR VALIDATION (with ratio_pad fix)")
-print("="*80)
-print(f"Model:   {model_path}")
-print(f"Data:    {data_yaml}")
-print(f"Name:    {name}")
-print("="*80)
-print()
+with capture_console() as cap:
+    print("="*80)
+    print("RT-DETR VALIDATION (with ratio_pad fix)")
+    print("="*80)
+    print(f"Model:   {model_path}")
+    print(f"Data:    {data_yaml}")
+    print(f"Name:    {name}")
+    print("="*80)
+    print()
 
-print(f"Loading model from {model_path}...")
-model = RTDETR(model_path)
+    print(f"Loading model from {model_path}...")
+    model = RTDETR(model_path)
 
-print(f"Running validation on {data_yaml}...")
-results = model.val(data=data_yaml, name=name)
+    print(f"Running validation on {data_yaml}...")
+    results = model.val(data=data_yaml, name=name)
 
-print()
-print("="*80)
-print("VALIDATION RESULTS")
-print("="*80)
-print(f"mAP50-95: {results.box.map:.4f}")
-print(f"mAP50:    {results.box.map50:.4f}")
-print(f"mAP75:    {results.box.map75:.4f}")
-print("="*80)
+    print()
+    print("="*80)
+    print("VALIDATION RESULTS")
+    print("="*80)
+    print(f"mAP50-95: {results.box.map:.4f}")
+    print(f"mAP50:    {results.box.map50:.4f}")
+    print(f"mAP75:    {results.box.map75:.4f}")
+    print("="*80)
+
+log_path = cap.write_log(results.save_dir)
+print(f"Console log saved to {log_path}")
+tables = write_tables_from_log(results.save_dir)
+if tables:
+    print(f"Tables saved to {tables[0].parent}")
