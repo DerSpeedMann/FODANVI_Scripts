@@ -96,6 +96,12 @@ AUTO_DEPENDENCIES = {
 # coarsely quantised controls.
 PROBE_DELTAS = (1, -1, 0.5, -0.5, 10, -10, 100, -100)
 
+# These select the capture format rather than adjusting a scalar control.
+# FOURCC in particular is a packed 4-character code, not a range: sweeping it
+# renegotiates the stream and every later property then reads as unsupported.
+STREAM_PROPERTIES = {"Frame Width", "Frame Height", "FPS", "FOURCC",
+                     "Format", "Buffer Size"}
+
 STATUS_WRITABLE = "writable"        # write test changed the value
 STATUS_READONLY = "readonly"        # readable, but ignores writes
 STATUS_REPORTED = "reported"        # readable, not write-tested (passive mode)
@@ -157,6 +163,26 @@ def check_property_support(cap: cv2.VideoCapture, prop_id: int,
     return STATUS_READONLY, value
 
 
+def detect_limits(cap: cv2.VideoCapture, prop_id: int,
+                  baseline: float) -> Tuple[Optional[float], Optional[float]]:
+    """
+    Binary-search a writable control's range, reusing camera_core's search.
+
+    UVC controls are integers, so probes are snapped to whole numbers and the
+    search stops once the bounds are one step apart.
+    """
+    def probe(value: float) -> Optional[float]:
+        if not cap.set(prop_id, value):
+            return None
+        return read_property(cap, prop_id)
+
+    low, high = camera_core().detect_control_limits(
+        probe, search_min=-10000, search_max=10000,
+        epsilon=1, quantize=lambda v: float(round(v)), baseline=baseline)
+    cap.set(prop_id, baseline)
+    return low, high
+
+
 def disable_auto_modes(cap: cv2.VideoCapture, verbose: bool = True) -> Dict[int, float]:
     """
     Exposure always looks read-only while auto exposure is on, because the
@@ -203,12 +229,25 @@ def get_supported_properties(cap: cv2.VideoCapture, validate: bool = False,
     supported = {}
     for name, prop_id in CAMERA_PROPERTIES.items():
         status, value = check_property_support(cap, prop_id, validate=validate)
-        supported[name] = {
+        auto_dependency = AUTO_DEPENDENCIES.get(name)
+        entry = {
             "id": prop_id,
             "value": value,
             "status": status,
             "supported": status in (STATUS_WRITABLE, STATUS_REPORTED),
+            "min_val": None,
+            "max_val": None,
+            # Manual shutter is just this: Exposure writable with its auto off.
+            "auto_control": auto_dependency[0] if auto_dependency else None,
         }
+        # Only a scalar control that followed a write has a range worth searching.
+        if status == STATUS_WRITABLE and name not in STREAM_PROPERTIES:
+            if verbose:
+                print(f"    {name:20s} searching range...", end=" ", flush=True)
+            entry["min_val"], entry["max_val"] = detect_limits(cap, prop_id, value)
+            if verbose:
+                print(f"{format_value(entry['min_val'])} .. {format_value(entry['max_val'])}")
+        supported[name] = entry
 
     if validate:
         restore_values(cap, originals)
@@ -334,13 +373,14 @@ def save_validation_profile(name: str, camera: Dict[str, Any], backend: str,
         controls[prop_name] = {
             "enabled": info["status"] == STATUS_WRITABLE,
             "value": format_value(info["value"]),
-            # Validation proves a control responds; it does not measure range.
-            "min_val": None,
-            "max_val": None,
+            "min_val": format_value(info.get("min_val")),
+            "max_val": format_value(info.get("max_val")),
+            # Ranges are searched, but step size is not probed.
             "step": None,
             "prop_id": info["id"],
             "prop_constant": prop_constant_name(info["id"]),
             "status": info["status"],
+            "auto_control": info.get("auto_control"),
         }
 
     core = camera_core()
@@ -386,9 +426,10 @@ def confirm_validation_target(index: int, backend: str, assume_yes: bool = False
     print(f"  Resolution: {identity['width']}x{identity['height']}")
     print()
     print("  Validation WRITES test values to this camera, including FPS and")
-    print("  FOURCC. Values are restored afterwards, but a clean reset needs the")
-    print("  device re-enumerated: unplug/replug, or Device Manager disable/enable")
-    print("  for a built-in camera.")
+    print("  FOURCC, then binary-searches the range of every control that")
+    print("  responds - hundreds of writes. Values are restored afterwards, but a")
+    print("  clean reset needs the device re-enumerated: unplug/replug, or Device")
+    print("  Manager disable/enable for a built-in camera.")
     print("=" * 80)
 
     if assume_yes:
@@ -407,31 +448,10 @@ def confirm_validation_target(index: int, backend: str, assume_yes: bool = False
     return False
 
 
-def format_value(value: float) -> Any:
+def format_value(value: Optional[float]) -> Any:
     if isinstance(value, float) and value == int(value):
         return int(value)
     return value
-
-
-def print_shutter_verdict(props: Dict[str, Dict[str, Any]]) -> None:
-    exposure = props.get("Exposure", {})
-    auto_exposure = props.get("Auto Exposure", {})
-    status = exposure.get("status")
-
-    print("\n--- MANUAL SHUTTER SPEED ---")
-    if status == STATUS_WRITABLE:
-        print("  YES - Exposure accepted a new value with auto exposure off")
-        print(f"    cv2.CAP_PROP_AUTO_EXPOSURE -> manual, then cv2.CAP_PROP_EXPOSURE "
-              f"(idle value: {format_value(exposure['value'])})")
-    elif status == STATUS_READONLY:
-        print("  NO - Exposure is readable but ignores writes")
-        if auto_exposure.get("status") != STATUS_WRITABLE:
-            print("    Auto exposure could not be switched off - retry with --backend dshow")
-    elif status == STATUS_UNSUPPORTED:
-        print("  NO - Exposure is not reported by this backend")
-        print("    Try --backend dshow / --backend msmf, they expose different controls")
-    else:
-        print("  UNKNOWN - run with --validate to test it")
 
 
 def print_camera_details(cameras: List[Dict[str, Any]]) -> None:
@@ -480,7 +500,12 @@ def print_camera_details(cameras: List[Dict[str, Any]]) -> None:
             print(f"\n--- {heading} ({len(entries)}) ---")
             if entries:
                 for name, info in entries.items():
-                    print(f"  {name:20s} = {format_value(info['value'])}")
+                    line = f"  {name:20s} = {format_value(info['value'])}"
+                    if info.get("min_val") is not None:
+                        line += f"   [{format_value(info['min_val'])} .. {format_value(info['max_val'])}]"
+                    if info.get("auto_control"):
+                        line += f"   (set {info['auto_control']} to manual first)"
+                    print(line)
             else:
                 print("  None detected")
 
@@ -492,8 +517,6 @@ def print_camera_details(cameras: List[Dict[str, Any]]) -> None:
                 print(f"  {', '.join(names[i:i + 4])}")
         else:
             print("  All properties reported")
-
-        print_shutter_verdict(supported_props)
 
     print(f"\n{'=' * 80}")
     print("To use a camera, note its index number and use it in the Capture script")

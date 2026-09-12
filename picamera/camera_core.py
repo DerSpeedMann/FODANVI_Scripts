@@ -163,32 +163,36 @@ def save_config(config: CaptureConfig, config_path: str) -> None:
 # CONTROL LIMIT DETECTION
 # ============================================================================
 
-def detect_control_limits(picam2, control_name: str,
+def detect_control_limits(probe, label: str = "",
                           search_min: float = -10000, search_max: float = 10000,
-                          max_iterations: int = 30,
+                          max_iterations: int = 30, epsilon: float = 0.01,
+                          baseline: Optional[float] = None,
+                          quantize=None,
                           debug: bool = False) -> Tuple[Optional[float], Optional[float]]:
     """
     Auto-detect min and max limits for a control using binary search.
-    """
-    def get_actual_value(test_val: float) -> Optional[float]:
-        try:
-            picam2.set_controls({control_name: test_val})
-            time.sleep(0.05)
-            metadata = picam2.capture_metadata()
-            if control_name in metadata:
-                return metadata[control_name]
-            return None
-        except Exception:
-            return None
 
-    baseline = get_actual_value(0)
+    probe(value) sets the control and returns what the camera actually reports
+    back, or None. Keeping it a callable lets the same search drive libcamera
+    and OpenCV/UVC controls, which set and read values in different ways.
+
+    quantize snaps each midpoint onto the grid the control accepts. An integer
+    control never reports a fractional midpoint back, so without it every probe
+    reads as rejected and the search collapses onto the baseline.
+    """
+    get_actual_value = probe
+    if quantize is None:
+        quantize = lambda v: round(v, 2)
+
     if baseline is None:
-        baseline = get_actual_value(1)
+        baseline = get_actual_value(0)
+        if baseline is None:
+            baseline = get_actual_value(1)
     if baseline is None:
         return None, None
 
     if debug:
-        print(f"\n    [DEBUG] {control_name}: baseline={baseline}")
+        print(f"\n    [DEBUG] {label}: baseline={baseline}")
 
     def value_accepted(requested: float, actual: float) -> bool:
         if actual is None:
@@ -198,9 +202,11 @@ def detect_control_limits(picam2, control_name: str,
     # Binary search for minimum
     low, high = float(search_min), float(baseline)
     for i in range(max_iterations):
-        if high - low < 0.01:
+        if high - low < epsilon:
             break
-        mid = round((low + high) / 2, 2)
+        mid = quantize((low + high) / 2)
+        if mid <= low or mid >= high:
+            break
         actual = get_actual_value(mid)
         accepted = value_accepted(mid, actual)
         if debug and i < 5:
@@ -214,9 +220,11 @@ def detect_control_limits(picam2, control_name: str,
     # Binary search for maximum
     low, high = float(baseline), float(search_max)
     for i in range(max_iterations):
-        if high - low < 0.01:
+        if high - low < epsilon:
             break
-        mid = round((low + high) / 2, 2)
+        mid = quantize((low + high) / 2)
+        if mid <= low or mid >= high:
+            break
         actual = get_actual_value(mid)
         accepted = value_accepted(mid, actual)
         if debug and i < 5:
@@ -264,8 +272,16 @@ def auto_detect_all_limits(picam2, debug: bool = True) -> None:
             search_min = -10000 if ctrl.min_val is None else ctrl.min_val
             search_max = 10000 if ctrl.max_val is None else ctrl.max_val
 
+        def probe(test_val: float, control_name: str = ctrl.control_name) -> Optional[float]:
+            try:
+                picam2.set_controls({control_name: test_val})
+                time.sleep(0.05)
+                return picam2.capture_metadata().get(control_name)
+            except Exception:
+                return None
+
         detected_min, detected_max = detect_control_limits(
-            picam2, ctrl.control_name,
+            probe, ctrl.control_name,
             search_min=search_min,
             search_max=search_max,
             debug=debug and first_detection
