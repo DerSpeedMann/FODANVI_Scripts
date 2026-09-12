@@ -12,6 +12,7 @@ Usage:
     with capture_console() as cap:
         results = model.val(...)
     cap.write_log(results.save_dir)   # -> <save_dir>/logs/console.log
+    cap.write_log_to("reports/scan.log")   # or an exact path
 """
 
 from __future__ import annotations
@@ -60,7 +61,12 @@ class capture_console:
         return False
 
     def write_log(self, run_dir, name: str = "console.log") -> Path:
-        path = Path(run_dir) / "logs" / name
+        """Save the log under a run directory, as <run_dir>/logs/<name>."""
+        return self.write_log_to(Path(run_dir) / "logs" / name)
+
+    def write_log_to(self, path) -> Path:
+        """Save the log to an exact path, for callers with no run directory."""
+        path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(_clean(self._buffer.getvalue()), encoding="utf-8")
         return path
