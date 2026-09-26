@@ -130,8 +130,12 @@ def read_dng_tags(path: Path) -> Dict[str, Any]:
         return out
 
     tags = directory(start)
+    # The Exif pointer is a LONG, so directory() recorded where its value sits
+    # rather than the value itself; it has to be read before use. Nikon NEFs
+    # keep the exposure tags behind this pointer, DNGs often inline them.
     if 0x8769 in tags:
-        tags.update(directory(tags[0x8769][2]))
+        at = tags[0x8769][2]
+        tags.update(directory(struct.unpack(end + "I", d[at:at + 4])[0]))
 
     def value(tag):
         if tag not in tags:
