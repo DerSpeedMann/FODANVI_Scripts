@@ -255,7 +255,10 @@ def illuminance(y_card: float, t: float, f_number: float, iso: float,
 def write_overlay(path: Path, measured: Dict[str, Any], out: Path) -> None:
     """Mark the region the measurement came from, for both modes."""
     with rawpy.imread(str(path)) as r:
-        rgb = r.postprocess(use_camera_wb=True, no_auto_bright=False, output_bps=8)
+        # rect_px is in sensor coordinates, so the preview must not be rotated
+        # by the EXIF orientation or the boxes land somewhere else entirely.
+        rgb = r.postprocess(use_camera_wb=True, no_auto_bright=False,
+                            output_bps=8, user_flip=0)
     img = Image.fromarray(rgb)
     scale = 1400 / img.width
     img = img.resize((1400, int(img.height * scale)))
