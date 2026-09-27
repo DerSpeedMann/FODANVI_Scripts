@@ -12,6 +12,10 @@ s2_04_lensCOV_30s_040839.NEF,dark_card,s2,04,lensCOV,,04:08:39,30,4,3200,80,manu
 s2_04_lensCOV_30s_040943.NEF,dark_card,s2,04,lensCOV,,04:09:43,30,4,3200,80,manual,matrix,24949922,7d23101341165fc85d6ccd4baee997e29d0722381db810e83a61103a9fb07efe
 s2_04_lensCOV_30s_041047.NEF,dark_card,s2,04,lensCOV,,04:10:47,30,4,3200,80,manual,matrix,24938027,a89ac2b08787ab722fd3a4f6fcc76cce1186f66dfff0a91d985eb13c3eed3d03
 s2_04_lensCOV_30s_041151.NEF,dark_card,s2,04,lensCOV,,04:11:51,30,4,3200,80,manual,matrix,24967245,270fddec310456bfe6f79e4d0f69182e79efa5aaed1c353e121d1178e21f5952
+s7_01_calib_100th_174542.NEF,sunlight_card_against_wall,s7,01,calib,,17:45:42,0.01,4,3200,80,aperture priority,matrix,28608984,a5a20f434283cb282fc0b5740119aeff0164fe5839acd176596e4d61c032699e
+s7_01_calib_100th_174544.NEF,sunlight_card_against_wall,s7,01,calib,,17:45:44,0.01,4,3200,80,aperture priority,matrix,28635229,b1290d93c820423ecaefa33a0497e438390814fb7611c6cf929bed1be3840753
+s7_02_calib_60th_174520.NEF,sunlight_card_against_wall,s7,02,calib,,17:45:20,0.0166667,4,3200,80,aperture priority,matrix,28577773,399b64b31e921e8ee0f164cb38606302c1cd051e0a71747dfc50b29fee9949c3
+s7_02_calib_60th_174524.NEF,sunlight_card_against_wall,s7,02,calib,,17:45:24,0.0166667,4,3200,80,aperture priority,matrix,28669307,791c96c2f8a06c9912a83b62ac8d9a851e40069df60cc1f626c44447271e8c21
 s5_01_g1_1s_224434.NEF,trough_nvg,s5,01,g1,,22:44:34,1,4,3200,80,aperture priority,matrix,25478315,561354befdf89296d0947c69538ce9c55d64330192062a2794950c8e0eacf76d
 s5_01_g1_1s_224436.NEF,trough_nvg,s5,01,g1,,22:44:36,1,4,3200,80,aperture priority,matrix,25476559,3b8646d888cff1943cdb4bc21367a5ba00bca58c92f85266bb2fcb3f9929f3a5
 s5_01_g1_1s_224449.NEF,trough_nvg,s5,01,g1,,22:44:49,1,4,3200,80,aperture priority,matrix,25481465,9fadc60bd392b2c929e8e2950d8569b2a93e968577f41b33648b180b3cb1fcbb

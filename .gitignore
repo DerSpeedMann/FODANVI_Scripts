@@ -184,14 +184,16 @@ cython_debug/
 /configs
 /recorded_videos
 
-# Capture data is not versioned here. It is downloaded separately and placed
-# under data/photometry following the layout in that folder README. What stays
-# in git is the trail: the records SceneLux writes, the result tables, the ROI
+# Capture data is not versioned here, nor is anything rendered from it. The
+# frames are fetched separately and placed under data/photometry; the overlays
+# and plots then appear locally when the pipeline runs. What stays in git is
+# the trail: the records SceneLux writes, the result tables, the region
 # definitions and the instructions to reproduce them.
 data/photometry/**/*.NEF
 data/photometry/**/*.nef
 data/photometry/**/*.dng
 data/photometry/**/*.DNG
+data/photometry/**/*.png
 
 # Dataset images are versioned, through LFS.
 !data/datasets/**/*.jpg

@@ -53,9 +53,9 @@
 # trail. They are small, they diff usefully, and putting them behind LFS
 # would make the history hard to read for no saving.
 # ---------------------------------------------------------------------------
-*.json  -filter -diff -merge text
-*.csv   -filter -diff -merge text
-*.md    -filter -diff -merge text
-*.txt   -filter -diff -merge text
-*.yaml  -filter -diff -merge text
-*.yml   -filter -diff -merge text
+*.json  !filter !diff !merge text
+*.csv   !filter !diff !merge text
+*.md    !filter !diff !merge text
+*.txt   !filter !diff !merge text
+*.yaml  !filter !diff !merge text
+*.yml   !filter !diff !merge text
