@@ -1,13 +1,13 @@
 {
-  "label": "ceiling",
+  "label": "scene",
   "sources": {
-    "dark": "noise_ceiling.json",
-    "measure": "signal_ceiling.json"
+    "dark": "noise_scene.json",
+    "measure": "signal_scene.json"
   },
   "calibration": {
     "K": 12.5,
     "rho_ref": 0.178,
-    "y_mid": 0.039383788213015636,
+    "y_mid": 0.0288089376112247,
     "channel": "green",
     "standard": "ISO 2720:1974"
   },
@@ -21,7 +21,7 @@
   },
   "frames": [
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "dark",
       "file": "s2_01_lensCOV_30s_040215.NEF",
       "t_s": 0.0,
@@ -44,7 +44,7 @@
       "lux_hi": null
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "dark",
       "file": "s2_01_lensCOV_30s_040319.NEF",
       "t_s": 64.0,
@@ -67,7 +67,7 @@
       "lux_hi": null
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "dark",
       "file": "s2_01_lensCOV_30s_040423.NEF",
       "t_s": 128.0,
@@ -90,7 +90,7 @@
       "lux_hi": null
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "measure",
       "file": "s2_03_lensCLEAR_lapON_30s_040631.NEF",
       "t_s": 256.0,
@@ -106,14 +106,14 @@
       "delta_dn": 8.432353098824871,
       "dark_model_se": 1.962077409239412e-05,
       "dark_model_se_dn": 0.3135988323187352,
-      "constant": 28.008664432588354,
-      "lux": 0.0004925628236711555,
-      "lux_se": 1.831838924871634e-05,
-      "lux_lo": 0.0004742444344224391,
-      "lux_hi": 0.0005108812129198718
+      "constant": 38.28976004004717,
+      "lux": 0.0006733670706937631,
+      "lux_se": 2.5042491059924838e-05,
+      "lux_lo": 0.0006483245796338384,
+      "lux_hi": 0.0006984095617536879
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "measure",
       "file": "s2_03_lensCLEAR_lapON_30s_040735.NEF",
       "t_s": 320.0,
@@ -129,14 +129,14 @@
       "delta_dn": 8.774014656922594,
       "dark_model_se": 1.9262918393783324e-05,
       "dark_model_se_dn": 0.30787922468783885,
-      "constant": 28.008664432588354,
-      "lux": 0.0005125204535075951,
-      "lux_se": 1.7984287242793698e-05,
-      "lux_lo": 0.0004945361662648015,
-      "lux_hi": 0.0005305047407503888
+      "constant": 38.28976004004717,
+      "lux": 0.000700650515759292,
+      "lux_se": 2.458575076563248e-05,
+      "lux_lo": 0.0006760647649936594,
+      "lux_hi": 0.0007252362665249245
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "dark",
       "file": "s2_04_lensCOV_30s_040839.NEF",
       "t_s": 384.0,
@@ -159,7 +159,7 @@
       "lux_hi": null
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "dark",
       "file": "s2_04_lensCOV_30s_040943.NEF",
       "t_s": 448.0,
@@ -182,7 +182,7 @@
       "lux_hi": null
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "dark",
       "file": "s2_04_lensCOV_30s_041047.NEF",
       "t_s": 512.0,
@@ -205,7 +205,7 @@
       "lux_hi": null
     },
     {
-      "label": "ceiling",
+      "label": "scene",
       "kind": "dark",
       "file": "s2_04_lensCOV_30s_041151.NEF",
       "t_s": 576.0,
@@ -229,12 +229,12 @@
     }
   ],
   "result": {
-    "lux_mean": 0.0005025416385893753,
-    "lux_spread": 0.03971338552654131,
-    "lux_se_dark_model": 1.7956164806131746e-05,
-    "lux_se_frame_scatter": 9.978814918219824e-06,
-    "lux_se_combined": 2.0542653229732785e-05,
-    "lux_lo": 0.0004819989853596425,
-    "lux_hi": 0.0005230842918191081
+    "lux_mean": 0.0006870087932265276,
+    "lux_spread": 0.03971338552654107,
+    "lux_se_dark_model": 2.4547305471173002e-05,
+    "lux_se_frame_scatter": 1.3641722532764414e-05,
+    "lux_se_combined": 2.808321205909346e-05,
+    "lux_lo": 0.0006589255811674341,
+    "lux_hi": 0.000715092005285621
   }
 }

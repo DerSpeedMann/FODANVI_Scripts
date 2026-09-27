@@ -10,53 +10,77 @@ Nothing was produced by hand.
 
 ## Result
 
-    scene illuminance   4.27e-04 lux, expected within 2.76e-04 to 5.78e-04
+    scene illuminance   6.87e-04 lux +/- 10 %
 
-The same measurement scaled by two calibrations, both shot at the
-measurement's own 80 mm f/4 ISO 3200 in aperture priority, one under the
-ceiling light and one in daylight:
+The statistical error inside the run is 4.1 %: the drift fit is common to both
+signal frames so its 3.6 % does not average away, and the 2.0 % frame-to-frame
+scatter does. The quoted 10 % is wider because the two target calibration
+frames disagree by 8.5 % in `y_card`, the meter having chosen 1 s for one and
+0.769 s for the other. That scales the result directly, and taking the full
+spread rather than its standard error, 8.5 % and 4.1 % in quadrature give
+9.4 %, rounded up.
 
-| calibration | y_mid | illuminance | statistical |
-| --- | --- | --- | --- |
-| ceiling, 21:26 | 0.039384 | 5.025e-04 | +/- 2.05e-05, 4.1 % |
-| daylight, 17:45 | 0.056290 | 3.516e-04 | +/- 1.44e-05, 4.1 % |
+## The calibration illuminant has to match the scene
 
-The two disagree by 1.51e-04, and the quoted range is their midpoint plus and
-minus that difference. Taking only the span between them would assume the
-true value lies between the two calibrations, which nothing establishes: they
-are two samples of a quantity that is not reproducing, so the same amount of
-disagreement is allowed beyond either end.
+`y_mid` is the raw level a metered-correct mid gray reaches. It is not a
+constant of the body. The camera's meter integrates all the light reaching
+it, while these scripts sample the green photosites only, so the two disagree
+by however much the illuminant's spectrum departs from the meter's weighting.
 
-The statistical error within each run is 4.1 %: the drift fit is common to
-both signal frames so its 3.6 % does not average away, and the 2.0 %
-frame-to-frame scatter does. It is an order below the calibration spread and
-does not affect the range.
+Six calibrations, same card, same TV, nothing moved between them but the
+color on the screen:
 
-`y_mid` is meant to be a property of the body at a given ISO, and it is not
-reproducing. What has been ruled out is the card's position: shot against a
-wall and lying on the floor, the two daylight calibrations agree to 4.1 %,
-while daylight against ceiling light differs by 43 % at identical settings.
-The illuminants are far apart, red to blue 3.0 against 0.73, and the camera's
-meter and the sensor disagree across them by 1.42, which is close to the 1.43
-that separates the two values of `y_mid`. Until that is pinned down the honest
-figure is the range rather than either end, and the second digit of any single
-value should not be relied on.
+| color | screen RGB | measured R/G | measured B/G | `y_mid` | scene lux it gives |
+| --- | --- | --- | --- | --- | --- |
+| white | (255, 255, 255) | 0.443 | 0.667 | 0.064895 | 3.050e-04 |
+| red | (255, 0, 0) | 3.400 | 0.194 | 0.010409 | 1.901e-03 |
+| green | (0, 255, 0) | 0.160 | 0.260 | 0.073504 | 2.693e-04 |
+| blue | (0, 0, 255) | 0.095 | 2.743 | 0.016805 | 1.178e-03 |
+| first guess | (173, 112, 255) | 0.511 | 1.461 | 0.036873 | 5.368e-04 |
+| **target** | **(163, 85, 255)** | **0.537** | **1.756** | **0.028809** | **6.870e-04** |
 
-What is not affected is the measurement itself. The dark subtraction returns
-the same 8.432 and 8.774 DN under either calibration, so only the scaling
-differs. Nor is the night vision gain affected: it is a ratio of two
-luminances computed with the same `y_mid`, which cancels exactly.
+`y_mid` spans a factor of 7.06 across them, red to green. Nothing about the
+camera changed; only what it was looking at. Calibrating against the wrong
+color is therefore not a small correction, and the scene's own color is the
+only defensible choice.
+
+The target color is not a guess. The measured scene is a laptop screen in an
+otherwise dark room, and subtracting the noise frames from the signal frames
+per Bayer channel, over the same four ROI boxes everything else is sampled
+with, gives its net response: R 0.000290, G 0.000536, B 0.000934, or 4.6, 8.6
+and 14.9 DN. That green figure is the same 8.6 DN the result table reports as
+`delta`, which is the check that the derivation and the measurement are
+sampling the same thing.
+
+The ratios are R/G 0.541 and B/G 1.743. RGB (163, 85, 255) on the TV measures
+0.537 and 1.756, reproducing both to 0.7 %, which is why it and no other color
+is used to scale the result.
+
+The first guess is kept because it sets the tolerance. It is close to the
+target by eye, and still off by 6 % in R/G and 16 % in B/G, which moves the
+result by 28 %. Matching the scene color approximately is not good enough;
+it has to be derived.
+
+Its screen RGB is reconstructed from the frames rather than read off a log:
+the pure-primary frames give the camera's response to each display primary,
+and that model predicts the target frames to within about 2 %, which is
+enough to separate (173, 112, 255) from the other candidates of that session.
+The other five values are as they were entered.
+
+What none of this touches is the night vision gain. It is a ratio of two
+luminances computed with the same `y_mid`, so the calibration cancels exactly
+and the figures in step 7 are the same under any of the six.
 
 ## Before running anything
 
 The frames are not versioned. Fetch them and place them here:
 
-    ceiling_light_card_against_wall/   4 frames
-    sunlight_card_against_wall/        4 frames
-    dark_card/                         9 frames
-    trough_nvg/                       11 frames
+    bg_noise/                 7 frames, lens covered
+    dark_card/                2 frames, the measurement itself
+    direct_screen_light/     12 frames, the calibrations
+    trough_nvg/              11 frames
 
-Set the two variables every command below uses:
+Set the variable every command below uses:
 
     $S = "..\..\..\src\Processing"
 
@@ -77,7 +101,9 @@ plots are written into this folder when the steps below run, and are there to
 be looked at rather than committed.
 
 PowerShell does not expand wildcards for native commands, so paths containing
-one are resolved with `Get-ChildItem` before being passed.
+one are resolved with `Get-ChildItem` before being passed. The same applies to
+decimal formatting: on a German locale `"{0:E4}" -f $x` produces a comma, which
+Python will not parse, so step 7 formats with `InvariantCulture`.
 
 ## 0. Manifest
 
@@ -91,71 +117,89 @@ frames, so it is safe to regenerate at any time.
 
 ## 1. Calibration
 
-`y_mid` is the raw level a metered-correct mid gray reaches, so it is read off
-the calibration frames themselves. The `--y-mid` passed here only scales the
-reported lux; the `y_card` values are what matter. Both sets are 80 mm f/4
-ISO 3200 in aperture priority, matching the measurement.
+All six colors are calibrated, so the sensitivity in the table above can be
+reproduced. The `--y-mid` passed here only scales the reported lux; the
+`y_card` values are what the step exists to produce. All twelve frames are
+80 mm f/4 ISO 3200 in aperture priority, matching the measurement.
 
-    python $S\SceneLux.py --rois --y-mid 0.04837403318646708 `
-        ceiling_light_card_against_wall\s5_01_calib_30th_212653.NEF `
-        ceiling_light_card_against_wall\s5_01_calib_30th_212712.NEF `
-        --record calibration_ceiling_80mm.json --overlay-dir overlay
+    $colors = [ordered]@{
+        white = "s17_01_calibWHITE"; red   = "s17_02_calibRED"
+        green = "s17_03_calibGREEN"; blue  = "s17_04_calibBLUE"
+        firstguess = "s17_05_calibFIRSTGUESS"
+        scene      = "s18_01_calibSCENE"
+    }
 
-    python $S\SceneLux.py --rois --y-mid 0.04837403318646708 `
-        sunlight_card_against_wall\s7_0*.NEF `
-        --record calibration_daylight_80mm.json --overlay-dir overlay
+    foreach ($c in $colors.Keys) {
+        $files = (Get-ChildItem "direct_screen_light\$($colors[$c])_*.NEF").FullName
+        python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
+            --record "calibration_${c}_80mm.json" --overlay-dir overlay
+    }
 
-    reads    2 ceiling frames, 4 daylight frames
-    writes   calibration_ceiling_80mm.json, calibration_daylight_80mm.json
-    gives    y_mid 0.039384 from the ceiling set
-             y_mid 0.056290 from the daylight set
+    reads    2 frames per color, 12 in total
+    writes   calibration_<color>_80mm.json
+    gives    y_mid 0.064895 white, 0.010409 red, 0.073504 green,
+             0.016805 blue, 0.036873 first guess, 0.028809 scene
+
+Only `calibration_scene_80mm.json` feeds the result. The other five exist to
+show the spread.
 
 ## 2. Verification
 
-The same frames at the derived `y_mid` return 32.8 and 33.4 lux for the lit
-ceiling scene, a plausible indoor level.
+Each color is re-run at its own derived `y_mid`. The frames are
+metered-correct exposures of the lit scene, so the lux that comes back should
+be the illuminance actually falling on the card, and the two frames of a pair
+should agree.
 
-    python $S\SceneLux.py --rois --y-mid $yMid `
-        ceiling_light_card_against_wall\s5_01_calib_30th_212653.NEF `
-        ceiling_light_card_against_wall\s5_01_calib_30th_212712.NEF `
-        --record calibration_ceiling_80mm_verified.json
-
-    reads    the same two calibration frames
-    writes   calibration_ceiling_80mm_verified.json
-
-## 3 to 5. Noise, signal and result, once per calibration
-
-The frames are the same in both passes; only the `y_mid` carried in the record
-differs, which is what scales the result. The drift plot is written once,
-since it is in DN and identical either way.
-
-    foreach ($cal in "ceiling", "daylight") {
-        $c = (Get-Content "calibration_${cal}_80mm.json" | ConvertFrom-Json).captures
-        $yMid = ($c.y_card | Measure-Object -Average).Average
-
-        $cov = (Get-ChildItem dark_card\s2_01_lensCOV_*.NEF,
-                              dark_card\s2_04_lensCOV_*.NEF).FullName
-        python $S\SceneLux.py --rois --y-mid $yMid $cov `
-            --record "noise_$cal.json" --overlay-dir overlay
-
-        $clr = (Get-ChildItem dark_card\s2_03_lensCLEAR_*.NEF).FullName
-        python $S\SceneLux.py --rois --y-mid $yMid $clr `
-            --record "signal_$cal.json" --overlay-dir overlay
-
-        python $S\SceneLuxResult.py --dark "noise_$cal.json" `
-            --measure "signal_$cal.json" --label $cal `
-            --csv "result_table_$cal.csv" --out "result_$cal.json" `
-            --plot "noise_model_$cal.png"
+    foreach ($c in $colors.Keys) {
+        $r = (Get-Content "calibration_${c}_80mm.json" | ConvertFrom-Json).captures
+        $yMid = ($r.y_card | Measure-Object -Average).Average
+        $files = (Get-ChildItem "direct_screen_light\$($colors[$c])_*.NEF").FullName
+        python $S\SceneLux.py --rois --y-mid $yMid $files `
+            --record "calibration_${c}_80mm_verified.json" --overlay-dir overlay
     }
 
-    reads    7 lens-covered and 2 lens-clear frames, both passes
-    writes   noise_<cal>.json, signal_<cal>.json, result_<cal>.json,
-             result_table_<cal>.csv, noise_model_<cal>.png
-    gives    5.025e-04 lux under the ceiling calibration
-             3.516e-04 lux under the daylight one
+    reads    the same twelve frames
+    writes   calibration_<color>_80mm_verified.json
+    gives    1.76 lux white, 1.10 red, 1.25 green, 1.26 blue,
+             1.10 first guess, 1.26 scene
 
-The two drift plots come out byte-identical: the plot is in DN, and `y_mid`
-only scales the lux, so it cannot change the drift.
+All six land between 1.1 and 1.8 lux for the same lit card, which is the
+consistency check: the round trip returns the real illuminance whatever color
+it was calibrated on, because there `y_mid` divides out the same value it was
+derived from.
+
+Pair agreement is worth reading in `y_card` rather than in lux. Where the
+meter gave the two frames a different shutter, the exposure difference partly
+cancels in lux and hides the disagreement: green's pair agrees to 2.9 % in lux
+but 23.2 % in `y_card`. The `y_card` spread is what matters, because the
+result scales as 1/y_mid and `y_mid` is the mean of the pair. It runs 0.7 %
+red, 3.0 % first guess, 3.1 % white, 8.5 % target, 14.7 % blue, 23.2 % green.
+The target's 8.5 % is what sets the 10 % on the result.
+
+## 3 to 5. Noise, signal and result
+
+Run against the target calibration only.
+
+    $c = (Get-Content calibration_scene_80mm.json | ConvertFrom-Json).captures
+    $yMid = ($c.y_card | Measure-Object -Average).Average
+
+    $cov = (Get-ChildItem bg_noise\*.NEF).FullName
+    python $S\SceneLux.py --rois --y-mid $yMid $cov `
+        --record noise_scene.json --overlay-dir overlay
+
+    $clr = (Get-ChildItem dark_card\*.NEF).FullName
+    python $S\SceneLux.py --rois --y-mid $yMid $clr `
+        --record signal_scene.json --overlay-dir overlay
+
+    python $S\SceneLuxResult.py --dark noise_scene.json `
+        --measure signal_scene.json --label scene `
+        --csv result_table_scene.csv --out result_scene.json `
+        --plot noise_model_scene.png
+
+    reads    7 lens-covered and 2 lens-clear frames
+    writes   noise_scene.json, signal_scene.json, result_scene.json,
+             result_table_scene.csv, noise_model_scene.png
+    gives    6.870e-04 lux, +/- 2.81e-05 statistical
 
 Dark current rises while the sensor works, so one averaged dark frame only
 describes the moment it was taken. The covered frames sit either side of the
@@ -163,27 +207,27 @@ measurement and a straight line through them in capture time gives each signal
 frame the offset for its own timestamp, taken from `exif.datetime`.
 
 Over this run the drift is +0.17 DN/min with a residual scatter of 0.81 DN
-against a signal of 8.6 DN. The fit standard error is smallest at the centroid
-of the covered frames and grows away from it, so `dark_model_se_dn` runs
-0.53 DN at the first frame, down to 0.31 DN at the signal frames, and back up
-to 0.50 DN at the last. The measurements sit almost exactly at the centroid,
-which is what bracketing buys.
+against a signal of 8.4 and 8.8 DN. The fit standard error is smallest at the
+centroid of the covered frames and grows away from it, so `dark_model_se_dn`
+runs 0.53 DN at the first frame, down to 0.31 DN at the signal frames, and
+back up to 0.50 DN at the last. The measurements sit almost exactly at the
+centroid, which is what bracketing buys.
+
+The subtraction itself is independent of the calibration. It returns the same
+8.432 and 8.774 DN whichever color was used; only the scaling to lux differs.
 
 ## 6. Through the night vision device
 
 The gain control was stepped from its maximum down to its minimum and back,
 which the naming records as g1 to g4 and then g1 again.
 
-    $c = (Get-Content calibration_ceiling_80mm.json | ConvertFrom-Json).captures
-    $yMidNvg = ($c.y_card | Measure-Object -Average).Average
-
     $files = (Get-ChildItem trough_nvg\s5_0*.NEF).FullName
-    python $S\SceneLux.py --rois rois\rois_nvg.json --y-mid $yMidNvg `
+    python $S\SceneLux.py --rois rois\rois_nvg.json --y-mid $yMid `
         $files --overlay-dir overlay --record nvg_s5_record.json
 
 This `y_mid` and the scene luminance in step 7 have to come from the same
-calibration. They cancel only as a pair, and mismatching them returns a
-wrong gain rather than an error.
+calibration. They cancel only as a pair, and mismatching them returns a wrong
+gain rather than an error.
 
     reads    s5_01_g1 x4, s5_02_g2 x2, s5_03_g3 x2, s5_04_g4 x2, s5_05_g1 x1
     writes   nvg_s5_record.json, eleven overlays
@@ -197,20 +241,23 @@ from it cancels rho, so the assumed reflectance does not affect the gain. The
 script does that per frame and divides by the scene luminance measured without
 the device.
 
+    $lux = (Get-Content result_scene.json | ConvertFrom-Json).result.lux_mean
+    $L = ($lux * 0.178 / [Math]::PI).ToString("E4", [cultureinfo]::InvariantCulture)
+
     python $S\SceneLuxGain.py nvg_s5_record.json `
-        --scene-luminance 2.847e-05 --csv gain_table.csv --plot gain_model.png
+        --scene-luminance $L --csv gain_table.csv --plot gain_model.png
 
     reads    nvg_s5_record.json
     writes   gain_table.csv, one row per frame
              gain_model.png, the same rows plotted in capture order
-    gives    7008, 6382, 6834, 6817 at g1 maximum
+    gives    7008, 6381, 6833, 6817 at g1 maximum
              1396, 1372 at g2
              423, 422 at g3
              199, 196 at g4 minimum
-             6782 at g1 returned
+             6781 at g1 returned
 
-The scene luminance passed here is 2.847e-05 cd/m2, which is 5.025e-04 lux on
-a card of reflectance 0.178, from the ceiling calibration.
+The scene luminance passed here is 3.892e-05 cd/m2, which is 6.870e-04 lux on
+a card of reflectance 0.178.
 
 Steps 6 and 7 do not depend on the calibration and do not need rerunning when
 one changes. Writing the ratio out, everything the calibration contributes
@@ -219,17 +266,17 @@ cancels:
     gain = (N^2 y / t) through the device / (N^2 y / t) of the scene
 
 leaving only the f-numbers, the exposure times and the two measured levels.
-`y_mid`, rho, K, the ISO and pi all drop out. Substituting the numbers by
-hand gives 7007 for the first frame, and running the daylight calibration
-through the scripts instead of the ceiling one returns the same figures and
-the same factor of 35.8.
+`y_mid`, rho, K, the ISO and pi all drop out. Running the red calibration
+through the scripts instead, where `y_mid` is 2.8 times smaller and the scene
+comes out at 1.901e-03 lux, returns the same 7008 down to 196 and the same
+factor of 35.8.
 
 This makes the gain the firmest number here. The illuminance carries the
-calibration spread as a factor of 1.43; the gain carries none of it. The 43 % that separates the
-two calibrations, and which sets the range on the illuminance, has no effect
-here at all.
+calibration spread; the gain carries none of it. The factor of 7.06 that
+separates the six calibrations, and which is why the calibration color has to
+be matched at all, has no effect here.
 
-The control was turned from maximum to minimum and back, a range of about 34x,
+The control was turned from maximum to minimum and back, a range of 35.8x,
 and the returned maximum reproduces the first to within the frame-to-frame
 scatter of the four maximum frames, which is itself about 4 %.
 
@@ -240,12 +287,11 @@ objective concentrates first.
 
 ## Why the calibration is at 80 mm f/4
 
-`y_mid` is the raw level a metered-correct mid gray reaches. The equation
-accounts for aperture and exposure explicitly, so their absolute values do not
-matter, but anything it does not model, such as lens transmission and
-vignetting, only cancels when the calibration is shot in the same optical
-configuration as the measurement. The signal frames are 80 mm f/4 ISO 3200, so
-the calibration is too.
+The equation accounts for aperture and exposure explicitly, so their absolute
+values do not matter, but anything it does not model, such as lens
+transmission and vignetting, only cancels when the calibration is shot in the
+same optical configuration as the measurement. The signal frames are 80 mm f/4
+ISO 3200, so the calibration is too.
 
 The calibration also has to be metered with room to move. In shutter priority
 at 80 mm the lens is already wide open at f/4 and cannot compensate, so
@@ -268,14 +314,13 @@ frames. A different session will need them re-placed.
 | File | Written by |
 | --- | --- |
 | `MANIFEST.csv` | step 0, the frames to place here with sizes and checksums |
-| `calibration_ceiling_80mm.json` | step 1, gives the ceiling `y_mid` |
-| `calibration_daylight_80mm.json` | step 1, gives the daylight `y_mid` |
-| `calibration_ceiling_80mm_verified.json` | step 2, lit-scene check |
-| `noise_ceiling.json`, `noise_daylight.json` | step 3, seven lens-covered frames |
-| `signal_ceiling.json`, `signal_daylight.json` | step 4, two lens-clear frames |
-| `result_ceiling.json`, `result_daylight.json` | step 5, full log including the drift model |
-| `result_table_ceiling.csv`, `result_table_daylight.csv` | step 5, every frame, noise and signal |
-| `noise_model_ceiling.png`, `noise_model_daylight.png` | step 5, drift plot, identical for both, not versioned |
+| `calibration_<color>_80mm.json` | step 1, six records, one per color |
+| `calibration_<color>_80mm_verified.json` | step 2, six lit-scene checks |
+| `noise_scene.json` | step 3, seven lens-covered frames |
+| `signal_scene.json` | step 4, two lens-clear frames |
+| `result_scene.json` | step 5, full log including the drift model |
+| `result_table_scene.csv` | step 5, every frame, noise and signal |
+| `noise_model_scene.png` | step 5, drift plot, not versioned |
 | `nvg_s5_record.json` | step 6, the gain sweep |
 | `gain_table.csv` | step 7, per-frame luminance gain |
 | `gain_model.png` | step 7, the gain sweep plotted for checking, not versioned |
