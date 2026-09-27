@@ -1,0 +1,25 @@
+file,folder,session,series,state,laptop,time,exposure_s,f_number,iso,focal_mm,mode,metering,bytes,sha256
+s3_01_calib_4th_032930.NEF,ceiling_light_card_against_wall,s3,01,calib,,03:29:30,0.25,11,3200,58,shutter priority,matrix,28377453,8e83109c417dac00f10db42d78cf4ddc5d81f3f9350b9f795313de4de6125a46
+s3_01_calib_4th_032941.NEF,ceiling_light_card_against_wall,s3,01,calib,,03:29:41,0.25,11,3200,58,shutter priority,matrix,28397438,f8ba2752a470765dfde68b965c51d9fa093069a445c476db8861283c6d25d1d2
+s5_01_calib_30th_212653.NEF,ceiling_light_card_against_wall,s5,01,calib,,21:26:53,0.0333333,4,3200,80,aperture priority,matrix,27812289,1aaa03b7f83b5a3aefb24b351569e866f2a1738546ad0545e9faed6b725f599c
+s5_01_calib_30th_212712.NEF,ceiling_light_card_against_wall,s5,01,calib,,21:27:12,0.0333333,4,3200,80,aperture priority,matrix,27900852,fff939e8f733559056e839da89a6ed3a03264f67424c7ebf81a03b2e62dd2570
+s2_01_lensCOV_30s_040215.NEF,dark_card,s2,01,lensCOV,,04:02:15,30,4,3200,80,manual,matrix,24654381,8596f4c63194c7351eb9c13aa6b4ccbb2c4426b0d4f1065043867c963f862d49
+s2_01_lensCOV_30s_040319.NEF,dark_card,s2,01,lensCOV,,04:03:19,30,4,3200,80,manual,matrix,24679000,33164c3f19d0a61754ded954eb0597fd2c27a14d0db236156e85395830473bc8
+s2_01_lensCOV_30s_040423.NEF,dark_card,s2,01,lensCOV,,04:04:23,30,4,3200,80,manual,matrix,24766321,bdd0cfa9089ce16bc68b5dd455aab8efe24a0fe0ed66c63b14d55c42b8687a79
+s2_03_lensCLEAR_lapON_30s_040631.NEF,dark_card,s2,03,lensCLEAR,lapON,04:06:31,30,4,3200,80,manual,matrix,25196491,9dd5142c4c9a58856bf0665a3f104f0dad60bdb1932325c35c433df2e471b162
+s2_03_lensCLEAR_lapON_30s_040735.NEF,dark_card,s2,03,lensCLEAR,lapON,04:07:35,30,4,3200,80,manual,matrix,25161404,77717f303c296694c31eec6a31a62f790471f2cf69a7eb95de37a967c69d3a5c
+s2_04_lensCOV_30s_040839.NEF,dark_card,s2,04,lensCOV,,04:08:39,30,4,3200,80,manual,matrix,24897596,2ab92511e90e4ecc4c532ae59aa0c915a61fc5d5de473098067bd5662f217b98
+s2_04_lensCOV_30s_040943.NEF,dark_card,s2,04,lensCOV,,04:09:43,30,4,3200,80,manual,matrix,24949922,7d23101341165fc85d6ccd4baee997e29d0722381db810e83a61103a9fb07efe
+s2_04_lensCOV_30s_041047.NEF,dark_card,s2,04,lensCOV,,04:10:47,30,4,3200,80,manual,matrix,24938027,a89ac2b08787ab722fd3a4f6fcc76cce1186f66dfff0a91d985eb13c3eed3d03
+s2_04_lensCOV_30s_041151.NEF,dark_card,s2,04,lensCOV,,04:11:51,30,4,3200,80,manual,matrix,24967245,270fddec310456bfe6f79e4d0f69182e79efa5aaed1c353e121d1178e21f5952
+s5_01_g1_1s_224434.NEF,trough_nvg,s5,01,g1,,22:44:34,1,4,3200,80,aperture priority,matrix,25478315,561354befdf89296d0947c69538ce9c55d64330192062a2794950c8e0eacf76d
+s5_01_g1_1s_224436.NEF,trough_nvg,s5,01,g1,,22:44:36,1,4,3200,80,aperture priority,matrix,25476559,3b8646d888cff1943cdb4bc21367a5ba00bca58c92f85266bb2fcb3f9929f3a5
+s5_01_g1_1s_224449.NEF,trough_nvg,s5,01,g1,,22:44:49,1,4,3200,80,aperture priority,matrix,25481465,9fadc60bd392b2c929e8e2950d8569b2a93e968577f41b33648b180b3cb1fcbb
+s5_01_g1_1s_224451.NEF,trough_nvg,s5,01,g1,,22:44:51,1,4,3200,80,aperture priority,matrix,25497995,d5d5e29a36c8ac2bbdd4ad8b2d44a69a4bbffca8f73255a7052017f130d71480
+s5_02_g2_1s_224501.NEF,trough_nvg,s5,02,g2,,22:45:01,1,4,3200,80,aperture priority,matrix,24283859,55b240469568d23addc0f8151f8dc1f16d5847351cd9f2882efbc36259385f68
+s5_02_g2_1s_224503.NEF,trough_nvg,s5,02,g2,,22:45:03,1,4,3200,80,aperture priority,matrix,24281515,50eace5d25f7900fbf192290a8e7613768976472b51920afda78f2d7e3cb4516
+s5_03_g3_1s_224510.NEF,trough_nvg,s5,03,g3,,22:45:10,1,4,3200,80,aperture priority,matrix,23569302,bea71aec72d468956ec9f1056e212a3ed559deb69a5217819c00e081265cbbf3
+s5_03_g3_1s_224512.NEF,trough_nvg,s5,03,g3,,22:45:12,1,4,3200,80,aperture priority,matrix,23504773,906d9a871bd2c89fafa5da4d95d86fe44069a307583c3183bf600b8604c8f18d
+s5_04_g4_1s_224520.NEF,trough_nvg,s5,04,g4,,22:45:20,1,4,3200,80,aperture priority,matrix,23173046,fd6b2f6324e2ab81556230e331861c20dfd25d14e5cc01b810fd2c3426242b89
+s5_04_g4_1s_224522.NEF,trough_nvg,s5,04,g4,,22:45:22,1,4,3200,80,aperture priority,matrix,23146702,340b01e98ec2893a032f3e4399886210b2e52cc991ed837a5346559db153e5d4
+s5_05_g1_1s_224537.NEF,trough_nvg,s5,05,g1,,22:45:37,1,4,3200,80,aperture priority,matrix,25538509,5327a8f64d5f80de0ac55bc92f33795c59e37d7d923b00865204df32e79c7526
