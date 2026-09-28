@@ -235,10 +235,9 @@ to show the spread.
 
 ## 3. Verification
 
-Each color is re-run at its own derived `y_mid`. The frames are
-metered-correct exposures of the lit scene, so the lux that comes back should
-be the illuminance actually falling on the card, and the two frames of a pair
-should agree.
+Each color is re-run at its own derived `y_mid`, which turns the calibration
+frames back into an illuminance. Read what this does and does not establish
+before relying on it.
 
     foreach ($c in $colors.Keys) {
         $r = (Get-Content "calibration_${c}_80mm.json" | ConvertFrom-Json).captures
@@ -250,17 +249,32 @@ should agree.
 
     reads    the same ten frames
     writes   calibration_<color>_80mm_verified.json
-    gives    2.76 lux white, 1.10 red, 1.43 green, 1.10 blue,
-             1.43 scene
+    gives    1.10 lux red, 1.10 blue, 1.43 scene, 1.43 green, 2.76 white
 
-All five land between 1.1 and 2.8 lux for the same lit card, which is the
-consistency check: the round trip returns the real illuminance whatever color
-it was calibrated on, because there `y_mid` divides out the same value it was
-derived from.
+Those five numbers carry no information about the calibration. `y_mid` is
+defined as the mean of the same `y_card` values the step then divides by, so
+when a pair shares a shutter the ratios average to exactly one and the
+measurement cancels out of its own check. What is left is
 
-Pair agreement is read in `y_card`, not in lux, because the result scales as
-1/y_mid and `y_mid` is the mean of the pair. It runs 0.1 % red, 2.7 % white,
-2.8 % green, 3.6 % blue, 8.4 % target.
+    pi * K * N^2 / (rho * S * t) = 1.1031 / t
+
+for this aperture and ISO, which the five agree with to four decimals. Red
+and blue have `y_mid` a factor of two apart and return the same 1.103 lux.
+The step cannot fail on a color basis, and the range across colors is the
+shutter speeds restated, not a spread in anything measured.
+
+What it is good for is the constants. The illuminance implied by the
+exposure the meter chose has to be plausible for a card lit by a television
+at this distance, and ones of lux is plausible. A thousand, or a thousandth,
+would mean K, rho or the ISO is wrong, or that the meter chose an exposure
+unrelated to the card. That is a check on the metering and on the constants
+together, and it is the only claim this step supports.
+
+The informative number here is the disagreement inside each pair, read in
+`y_card` rather than in lux because the result scales as 1/y_mid and `y_mid`
+is the mean of the pair. It runs 0.1 % red, 2.7 % white, 2.8 % green, 3.6 %
+blue, 8.4 % target, and the target's 8.4 % is what sets the uncertainty on
+the result.
 
 In this session the meter chose the same shutter for both frames of every
 pair, so lux and `y_card` spreads agree. That is worth checking rather than
