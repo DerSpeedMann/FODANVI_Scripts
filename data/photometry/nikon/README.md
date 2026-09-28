@@ -4,6 +4,7 @@ Every number reported here comes from the scripts below, run in this order.
 Nothing was produced by hand.
 
     SceneLux.py        src/Processing/SceneLux.py
+    SceneLuxColor.py   src/Processing/SceneLuxColor.py
     SceneLuxResult.py  src/Processing/SceneLuxResult.py
     SceneLuxGain.py    src/Processing/SceneLuxGain.py
     BuildManifest.py   src/Processing/BuildManifest.py
@@ -69,7 +70,7 @@ The other five values are as they were entered.
 
 What none of this touches is the night vision gain. It is a ratio of two
 luminances computed with the same `y_mid`, so the calibration cancels exactly
-and the figures in step 7 are the same under any of the six.
+and the figures in step 8 are the same under any of the six.
 
 ## Before running anything
 
@@ -103,7 +104,7 @@ be looked at rather than committed.
 PowerShell does not expand wildcards for native commands, so paths containing
 one are resolved with `Get-ChildItem` before being passed. The same applies to
 decimal formatting: on a German locale `"{0:E4}" -f $x` produces a comma, which
-Python will not parse, so step 7 formats with `InvariantCulture`.
+Python will not parse, so step 8 formats with `InvariantCulture`.
 
 ## 0. Manifest
 
@@ -115,7 +116,63 @@ frames, so it is safe to regenerate at any time.
     reads    */*.NEF
     writes   MANIFEST.csv
 
-## 1. Calibration
+## 1. Scene color
+
+`y_mid` moves with the illuminant, by a factor of 7 across the colors in the
+table above, so the calibration has to be shot under light of the scene's own
+color. This derives that color from the scene rather than choosing it by eye.
+
+    python $S\SceneLuxColor.py estimate `
+        --signal dark_card\*.NEF --noise bg_noise\*.NEF `
+        --red   direct_screen_light\s17_02_calibRED_*.NEF `
+        --green direct_screen_light\s17_03_calibGREEN_*.NEF `
+        --blue  direct_screen_light\s17_04_calibBLUE_*.NEF `
+        --white direct_screen_light\s17_01_calibWHITE_*.NEF `
+        --record color_scene.json
+
+    reads    2 scene frames, 7 dark frames, 8 display reference frames
+    writes   color_scene.json
+    gives    target R/G 0.541, B/G 1.743
+             suggested screen RGB (167, 88, 255)
+
+The three primaries give the camera's response to each, as the columns of a
+3x3 matrix; the scene's net response, signal minus dark, is the target; and
+solving the one against the other gives the drive to display.
+
+The white frames are not a fourth primary. Three primaries already span the
+space, so the matrix is fully determined without white, and white is captured
+because it is the only frame that can show the model to be wrong: an additive
+display driven at full white produces exactly what its primaries produce
+together. This TV falls 8.8 % short of that, but uniformly across all three
+channels, which is a backlight dimming on bright content and cancels, since
+the solve matches the direction of a response and lets exposure carry the
+magnitude. What would not cancel is the part left after that uniform factor
+divides out, and here it is within 1.3 %.
+
+Display the color, shoot the card under it, and check what the camera
+actually sees against the target:
+
+    python $S\SceneLuxColor.py refine --record color_scene.json `
+        --verify direct_screen_light\s18_01_calibSCENE_*.NEF `
+        --shot-at 163 85 255
+
+    reads    2 frames shot under the displayed color
+    writes   color_scene.json, appending the round to its history
+    gives    measured R/G 0.547, B/G 1.719,
+             which is +1.1 % and -1.4 % against the target
+
+`--shot-at` is what the frames were actually displayed under and is not
+optional in practice: the correction is measured relative to that drive, so
+letting the script assume the last suggestion silently corrects from the
+wrong place.
+
+The calibration frames here were shot under RGB (163, 85, 255), derived by
+hand before this script existed, rather than the (167, 88, 255) the script
+now suggests. The verification above puts the value actually used within
+1.4 % of the target, which is inside the 3 % tolerance, so the calibration
+was not reshot.
+
+## 2. Calibration
 
 All six colors are calibrated, so the sensitivity in the table above can be
 reproduced. The `--y-mid` passed here only scales the reported lux; the
@@ -143,7 +200,7 @@ reproduced. The `--y-mid` passed here only scales the reported lux; the
 Only `calibration_scene_80mm.json` feeds the result. The other five exist to
 show the spread.
 
-## 2. Verification
+## 3. Verification
 
 Each color is re-run at its own derived `y_mid`. The frames are
 metered-correct exposures of the lit scene, so the lux that comes back should
@@ -176,7 +233,7 @@ result scales as 1/y_mid and `y_mid` is the mean of the pair. It runs 0.7 %
 red, 3.0 % first guess, 3.1 % white, 8.5 % target, 14.7 % blue, 23.2 % green.
 The target's 8.5 % is what sets the 10 % on the result.
 
-## 3 to 5. Noise, signal and result
+## 4 to 6. Noise, signal and result
 
 Run against the target calibration only.
 
@@ -216,7 +273,7 @@ centroid, which is what bracketing buys.
 The subtraction itself is independent of the calibration. It returns the same
 8.432 and 8.774 DN whichever color was used; only the scaling to lux differs.
 
-## 6. Through the night vision device
+## 7. Through the night vision device
 
 The gain control was stepped from its maximum down to its minimum and back,
 which the naming records as g1 to g4 and then g1 again.
@@ -225,14 +282,14 @@ which the naming records as g1 to g4 and then g1 again.
     python $S\SceneLux.py --rois rois\rois_nvg.json --y-mid $yMid `
         $files --overlay-dir overlay --record nvg_s5_record.json
 
-This `y_mid` and the scene luminance in step 7 have to come from the same
+This `y_mid` and the scene luminance in step 8 have to come from the same
 calibration. They cancel only as a pair, and mismatching them returns a wrong
 gain rather than an error.
 
     reads    s5_01_g1 x4, s5_02_g2 x2, s5_03_g3 x2, s5_04_g4 x2, s5_05_g1 x1
     writes   nvg_s5_record.json, eleven overlays
 
-## 7. Gain
+## 8. Gain
 
 The screen emits rather than reflects, so the quantity to compare is
 luminance. SceneLux reports the illuminance that would fall on a card of
@@ -259,7 +316,7 @@ the device.
 The scene luminance passed here is 3.892e-05 cd/m2, which is 6.870e-04 lux on
 a card of reflectance 0.178.
 
-Steps 6 and 7 do not depend on the calibration and do not need rerunning when
+Steps 7 and 8 do not depend on the calibration and do not need rerunning when
 one changes. Writing the ratio out, everything the calibration contributes
 cancels:
 
@@ -314,17 +371,18 @@ frames. A different session will need them re-placed.
 | File | Written by |
 | --- | --- |
 | `MANIFEST.csv` | step 0, the frames to place here with sizes and checksums |
-| `calibration_<color>_80mm.json` | step 1, six records, one per color |
-| `calibration_<color>_80mm_verified.json` | step 2, six lit-scene checks |
-| `noise_scene.json` | step 3, seven lens-covered frames |
-| `signal_scene.json` | step 4, two lens-clear frames |
-| `result_scene.json` | step 5, full log including the drift model |
-| `result_table_scene.csv` | step 5, every frame, noise and signal |
-| `noise_model_scene.png` | step 5, drift plot, not versioned |
-| `nvg_s5_record.json` | step 6, the gain sweep |
-| `gain_table.csv` | step 7, per-frame luminance gain |
-| `gain_model.png` | step 7, the gain sweep plotted for checking, not versioned |
-| `rois/` | input, the region definition for step 6 |
+| `color_scene.json` | step 1, the derived scene color and the match history |
+| `calibration_<color>_80mm.json` | step 2, six records, one per color |
+| `calibration_<color>_80mm_verified.json` | step 3, six lit-scene checks |
+| `noise_scene.json` | step 4, seven lens-covered frames |
+| `signal_scene.json` | step 5, two lens-clear frames |
+| `result_scene.json` | step 6, full log including the drift model |
+| `result_table_scene.csv` | step 6, every frame, noise and signal |
+| `noise_model_scene.png` | step 6, drift plot, not versioned |
+| `nvg_s5_record.json` | step 7, the gain sweep |
+| `gain_table.csv` | step 8, per-frame luminance gain |
+| `gain_model.png` | step 8, the gain sweep plotted for checking, not versioned |
+| `rois/` | input, the region definition for step 7 |
 | `overlay/` | ROI overlays written alongside each record, not versioned |
 
 Naming is `<session>_<series>_<state>_<exposure>_<HHMMSS>.NEF`.
