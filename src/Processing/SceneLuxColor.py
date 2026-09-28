@@ -77,6 +77,77 @@ Dark current scales with exposure, so a dark frame only describes frames of
 its own exposure time. The script subtracts the darks from the scene frames
 and refuses if the two disagree on exposure. Primary and verification frames
 are bright and short; nothing is subtracted from them.
+
+DOES THE MODEL APPLY TO THIS DISPLAY
+
+The model has two stages and they age differently. The linear stage, the
+3x3 matrix, assumes only that the display has three emitters whose outputs
+add and do not interact. That is a property of the hardware rather than of
+any particular technology, and it holds for CRT and for LCD alike. It is
+known to fail on DLP, where the channels are not independent, and it is
+worth doubting on any panel with a white subpixel, since white then comes
+from a fourth emitter the three primaries never excite.
+
+The nonlinear stage is technology-specific and the CRT literature does not
+transfer. Berns models it as gain-offset-gamma, which describes an electron
+gun; an LCD has no such curve and follows whatever its electronics encode,
+which for a television in a standard picture mode is sRGB or close to it.
+That is why srgb_decode appears here in place of GOG.
+
+The one thing the CRT work understates for this panel is black. A CRT at
+zero drive emits almost nothing. An LCD leaks backlight through a nominally
+black pixel, and the LCD characterization of Day, Taplin and Berns adds a
+term for exactly that. This script takes --black to measure it; without it
+the leak biases the off-diagonal matrix entries, and check_additivity()
+cannot tell a leak from a backlight that dims on bright content.
+
+Omit --black only on a display with no backlight. On OLED a black pixel is
+switched off, there is nothing to leak, and the frame would hold sensor noise
+and nothing else. Anything backlit emits at zero drive however black it
+looks, which is what a finite contrast ratio means, and the capture is worth
+taking. On the television used here the leak measured 0.3 to 0.5 percent of
+white: small, real, and a twelfth of what the white deficit alone implied,
+which is the argument for measuring it rather than inferring it.
+
+REFERENCES
+
+    E. A. Day, L. Taplin and R. S. Berns, Colorimetric characterization of
+    a computer-controlled liquid crystal display, Color Research and
+    Application 29(5), 2004, 365-373. The technology-matched reference:
+    the same two-stage model carried over to LCD, with a black-level flare
+    term the CRT form does not have.
+    https://doi.org/10.1002/col.20046
+
+    R. S. Berns, Methods for characterizing CRT displays, Displays 16(4),
+    1996, 173-182. Where the two-stage model comes from, and the source of
+    the channel-independence and additivity conditions the matrix stage
+    rests on. The gain-offset-gamma curve it proposes is CRT-specific and
+    is not used here.
+    https://doi.org/10.1016/0141-9382(96)01011-6
+
+    CIE 122:1996, The Relationship between Digital and Colorimetric Data
+    for Computer-Controlled CRT Displays. The same model as a standard.
+    CRT in title and scope; cited for the assumptions, not the curve.
+    https://cie.co.at/publications/relationship-between-digital-and-colorimetric-data-computer-controlled-crt-displays
+
+    ICDM, Information Display Measurements Standard, version 1.3, Society
+    for Information Display, 2025. The current authority for measuring
+    displays of any technology, and the place to look for the behaviour
+    that breaks the assumptions above: automatic brightness limiting,
+    local dimming and their effect on a full-white measurement. Free.
+    https://www.sid.org/Standards/ICDM
+
+    IEC 61966-2-1:1999, Multimedia systems and equipment - Colour
+    measurement and management - Part 2-1: Colour management - Default RGB
+    colour space - sRGB. The transfer function in srgb_encode and
+    srgb_decode, including the 0.0031308 and 0.04045 breakpoints.
+    https://webstore.iec.ch/publication/6169
+
+    Matching is done in camera channels rather than CIE tristimulus. Both
+    are linear functionals of the same spectrum, so the model applies
+    unchanged, but the match it produces is a match for this camera. Two
+    spectra alike to the camera may differ to the meter, which is a
+    different observer. That is metamerism, and it is why refine exists.
 """
 
 import argparse
@@ -113,6 +184,13 @@ REFERENCES = ("R", "G", "B", "W")
 # --tolerance, which bounds how far a displayed color may sit from the target
 # before it is worth reshooting. They happen to share a value; nothing ties
 # them together, and either can move without the other.
+#
+# The value is a judgement, not a figure from a standard. It is set where a
+# non-additive display would start to dominate: refine converges to around
+# 1 to 1.5 % on real captures, so a display worse than a few percent would be
+# the largest term in the budget rather than a correction to it. Raise it and
+# the tool stops warning about a display that is limiting the result; lower it
+# and it warns about displays that are not.
 CHROMATIC_TOLERANCE = 3.0
 
 
@@ -252,7 +330,7 @@ def solve(matrix: np.ndarray, target: np.ndarray) -> Dict[str, Any]:
     }
 
 
-def check_additivity(matrix, white):
+def check_additivity(matrix, white, leak_measured):
     """
     Whether the display is the sum of its primaries, split into the part that
     matters and the part that does not.
@@ -276,6 +354,27 @@ def check_additivity(matrix, white):
     model assumes. A white subpixel does it, since white then comes from a
     fourth emitter the primaries never excite. So does any per-channel
     clipping. That error does not cancel, and no amount of refining fixes it.
+
+    A panel that leaks light at zero drive produces the same deficit and is
+    not a failure of additivity at all. Writing the leak as k, each primary
+    is measured as its own output plus k, so the three of them carry 3k while
+    the white frame carries k once:
+
+        measured - predicted = (sum + k) - (sum + 3k) = -2k
+
+    which is negative and roughly uniform, exactly like a dimming backlight.
+    The two cannot be told apart from these four captures. Measuring the
+    screen at RGB (0,0,0) settles it and removes the term, which is what
+    --black is for; when it is absent this reports the leak that would
+    explain the deficit, so the size of the doubt is at least visible.
+
+    Shoot that frame at the longest exposure the set uses rather than at an
+    exposure picked from the leak reported here, which is circular: it is
+    derived from assuming the deficit is entirely leak, the proposition the
+    frame is meant to test. A long exposure presupposes nothing. There is
+    room for it, since even a leak several times the one implied here stays
+    well short of clipping at the exposures these scenes need, and a frame
+    that comes back empty is the answer rather than a failure.
     """
     predicted = matrix @ np.ones(3)
     ratio = white / predicted
@@ -294,6 +393,14 @@ def check_additivity(matrix, white):
         "chromatic_percent": chromatic,
         "worst_chromatic_percent": worst,
         "additive": bool(worst <= CHROMATIC_TOLERANCE),
+        "leak_measured": bool(leak_measured),
+        # Only meaningful when the leak was not measured; it is the k that
+        # would account for the whole deficit if a leak were the only cause.
+        "implied_leak": None if leak_measured else
+                        [float(x) for x in (predicted - white) / 2],
+        "implied_leak_fraction": None if leak_measured else
+                                 {c: float((predicted[i] - white[i]) / 2 / white[i])
+                                  for i, c in enumerate(CHANNELS)},
     }
 
 
@@ -329,6 +436,7 @@ def cmd_estimate(args) -> int:
     noise = collect(args.noise, rois, "noise") if args.noise else None
     prim = {c: collect(getattr(args, PRIMARY_FLAG[c]), rois, c)
             for c in REFERENCES}
+    black = collect(args.black, rois, "black") if args.black else None
 
     target = response(signal, "signal", noise)
     if (target <= 0).any():
@@ -336,7 +444,16 @@ def cmd_estimate(args) -> int:
             "a channel came out at or below its dark level, so the scene has "
             "no measurable signal there. Longer exposure or a brighter scene.")
 
-    matrix = np.column_stack([response(prim[c], c) for c in CHANNELS])
+    resp = {c: response(prim[c], c) for c in REFERENCES}
+    leak = response(black, "black") if black else None
+    if leak is not None:
+        # Every reference frame carries the panel's zero-drive output on top
+        # of what was asked for, so it comes off all of them alike. Left in,
+        # it inflates each matrix column by the same vector, which barely
+        # touches the diagonal and can swamp the off-diagonal terms.
+        resp = {c: v - leak for c, v in resp.items()}
+
+    matrix = np.column_stack([resp[c] for c in CHANNELS])
     result = solve(matrix, target)
 
     print(f"scene, {len(signal)} frames"
@@ -351,7 +468,7 @@ def cmd_estimate(args) -> int:
            for j, c in enumerate(CHANNELS)],
           ["primary", "cam R", "cam G", "cam B"])
 
-    add = check_additivity(matrix, response(prim["W"], "W"))
+    add = check_additivity(matrix, resp["W"], leak is not None)
     print("")
     print("additivity, measured white against the sum of the primaries")
     table([[c, f"{add['measured'][i]:.4e}", f"{add['predicted'][i]:.4e}",
@@ -364,6 +481,18 @@ def cmd_estimate(args) -> int:
     print("  direction of a response, not its magnitude. A television "
           "dimming its backlight")
     print("  on bright content shows up here and is harmless.")
+    if add["leak_measured"]:
+        print(f"  panel leak measured from {len(black)} frames at RGB (0,0,0) "
+              "and removed from every")
+        print("  reference, so what remains is additivity alone.")
+    else:
+        frac = add["implied_leak_fraction"]
+        print("  no --black capture, so a panel leaking light at zero drive "
+              "would produce this")
+        print("  same deficit and cannot be told apart from a dimming "
+              "backlight. A leak of")
+        print("  " + ", ".join(f"{c} {frac[c]:.1%}" for c in CHANNELS)
+              + " of white would account for all of it.")
     if add["additive"]:
         print(f"  chromatic component within {CHROMATIC_TOLERANCE:g} %, so "
               "the primaries mix as the model")
@@ -400,6 +529,7 @@ def cmd_estimate(args) -> int:
         "suggestion": result,
         "history": [],
         "frames": {"signal": signal, "noise": noise or [],
+                   "black": black or [],
                    **{PRIMARY_FLAG[c]: prim[c] for c in REFERENCES}},
     }
     if args.record:
@@ -500,6 +630,15 @@ def main() -> int:
                              if c == "W" else
                              "frames of the card lit by the display's "
                              f"{PRIMARY_FLAG[c]} primary at full drive"))
+    e.add_argument("--black", nargs="+",
+                   help="frames of the card lit by the screen at RGB (0,0,0), "
+                        "at the longest exposure the set uses. Omit only for "
+                        "a display with no backlight, such as OLED, where a "
+                        "black pixel is off and there is nothing to measure. "
+                        "On anything backlit the panel still emits at zero "
+                        "drive, and leaving this out biases the matrix and "
+                        "makes the leak indistinguishable from a dimming "
+                        "backlight")
     e.add_argument("--rois", nargs="?", const="default",
                    help="JSON of {name: [cx, cy, half_w, half_h]}; "
                         "omitted or bare uses the SceneLux defaults")

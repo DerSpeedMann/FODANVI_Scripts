@@ -55,6 +55,53 @@ to warm to get a bracket.
 Writes a JSON record of every input, region and result, and an overlay image
 marking what was measured - the ROI rectangles, or the circle for a radial
 median - both intended as published documentation.
+
+DERIVATION
+
+ISO 2720 fixes what a reflected-light meter means by correct exposure:
+
+    N^2 / t = L * S / K          so    L_meter = K * N^2 / (t * S)
+
+A raw level is proportional to the exposure reaching the sensor and to the
+speed, y = c * L * t * S / N^2, for some constant c carrying the pi/4 of the
+aperture, lens transmission and the raw scaling. Applying that at the
+metering condition, where the meter's own equation holds by definition,
+
+    y_mid = c * L_meter * t_m * S_m / N_m^2 = c * K
+
+so c = y_mid / K, and y_mid is a camera constant times K, independent of
+which exposure was used to measure it. That is why the calibration frame's
+own N, t and S never appear. Substituting back,
+
+    L = K * N^2 * y / (t * S * y_mid)
+
+and for a Lambertian surface of reflectance rho under illuminance E the
+luminance is L = rho * E / pi, which gives the equation at the top.
+
+REFERENCES
+
+    ISO 2720:1974, Photography - General purpose photographic exposure
+    meters (photoelectric type) - Guide to product specification. Source of
+    N^2/t = L*S/K and of the permitted range 10.6 to 13.4 for K; 12.5 is
+    the value Nikon and Canon use and the one assumed here.
+    https://www.iso.org/standard/7690.html
+
+    ISO 12232:2019, Photography - Digital still cameras - Determination of
+    exposure index, ISO speed ratings, standard output sensitivity, and
+    recommended exposure index. Defines the S above. The speed a camera
+    reports is not guaranteed to be the speed that satisfies the meter
+    equation, which is the largest single systematic here.
+    https://www.iso.org/standard/73758.html
+
+    CIE 018:2019, The Basis of Physical Photometry, 3rd ed. Illuminance is
+    defined against V(lambda), so a figure derived from one CFA channel
+    describes the visible component only, and not what an intensified or
+    NoIR sensor responds to.
+    https://cie.co.at/publications/basis-physical-photometry-3rd-edition
+
+    J. M. Palmer and B. G. Grant, The Art of Radiometry, SPIE Press, 2010.
+    The Lambertian relation E = pi * L / rho.
+    https://doi.org/10.1117/3.798237
 """
 
 import argparse

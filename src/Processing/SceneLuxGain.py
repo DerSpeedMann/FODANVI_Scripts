@@ -21,6 +21,16 @@ Frames are reported one by one, in capture order, and nothing is grouped or
 averaged. Which frames share a setting is a fact about how they were shot and
 is not in the record, so the script would only be guessing at it. Grouping
 belongs wherever that fact is known.
+
+REFERENCES
+
+    ISO 2720:1974, Photography - General purpose photographic exposure
+    meters (photoelectric type) - Guide to product specification. Source of
+    N^2/t = L*S/K, from which the luminance above follows; K = 12.5.
+    https://www.iso.org/standard/7690.html
+
+    The derivation of L from a raw level, and why y_mid carries the whole
+    calibration on its own, is set out in the SceneLux docstring.
 """
 
 import argparse
