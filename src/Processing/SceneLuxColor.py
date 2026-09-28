@@ -105,10 +105,15 @@ PRIMARY_FLAG = {"R": "red", "G": "green", "B": "blue", "W": "white"}
 # space; it is the one capture able to falsify the model.
 REFERENCES = ("R", "G", "B", "W")
 
-# Percent by which the *chromatic* part of white may depart from the sum of
-# the primaries before the linear model is called unsafe. The uniform part is
-# not bounded, because the solve is scale-free and a uniform error cancels.
-ADDITIVITY_TOLERANCE = 3.0
+# Percent by which the chromatic part of white may depart from the sum of the
+# primaries before the linear model is called unsafe. The uniform part is not
+# bounded at all, because the solve is scale-free and a uniform error cancels.
+#
+# This is a property of the display and is not the same quantity as refine's
+# --tolerance, which bounds how far a displayed color may sit from the target
+# before it is worth reshooting. They happen to share a value; nothing ties
+# them together, and either can move without the other.
+CHROMATIC_TOLERANCE = 3.0
 
 
 def srgb_encode(x: np.ndarray) -> np.ndarray:
@@ -288,7 +293,7 @@ def check_additivity(matrix, white):
         "uniform_percent": float((uniform - 1) * 100),
         "chromatic_percent": chromatic,
         "worst_chromatic_percent": worst,
-        "additive": bool(worst <= ADDITIVITY_TOLERANCE),
+        "additive": bool(worst <= CHROMATIC_TOLERANCE),
     }
 
 
@@ -360,12 +365,12 @@ def cmd_estimate(args) -> int:
           "dimming its backlight")
     print("  on bright content shows up here and is harmless.")
     if add["additive"]:
-        print(f"  chromatic component within {ADDITIVITY_TOLERANCE:g} %, so "
+        print(f"  chromatic component within {CHROMATIC_TOLERANCE:g} %, so "
               "the primaries mix as the model")
         print("  assumes and the suggestion below stands.")
     else:
         print(f"  WARNING: chromatic component {add['worst_chromatic_percent']:.1f} %, "
-              f"beyond the {ADDITIVITY_TOLERANCE:g} % this model tolerates.")
+              f"beyond the {CHROMATIC_TOLERANCE:g} % this model tolerates.")
         print("           The display does not mix its primaries additively, "
               "which a white")
         print("           subpixel or per-channel clipping would both cause. "
