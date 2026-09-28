@@ -10,11 +10,22 @@ Usage:
     python rfdetr_val.py <model_path> <data_yaml> [name]
 
 Example:
-    python rfdetr_val.py /models/rf-detr-seg-2xl-ft.pth /datasets/coco_nvg_clean.yaml val_rfdetr
+    python rfdetr_val.py /models/rf-detr-large.pth /datasets/coco_nvg_clean.yaml val_rfdetr
 
 Notes:
-    - Requires `rfdetr` and `pycocotools` (rfdetr is NOT in the ultralytics
-      docker image; install at runtime, see docker_run command in the Readme).
+    - Requires `rfdetr==1.2.0` and `pycocotools` (rfdetr is NOT in the
+      ultralytics docker image; install at runtime, see docker_run command in
+      the Readme).
+    - The rfdetr pin is essential. 1.2.0 is the release current when the
+      models were selected, and its RFDETRLarge is the original RF-DETR-L
+      (rf-detr-large.pth, 560 px) that the leaderboard ranked at the time.
+      From rfdetr 1.4.0 on, RFDETRLarge loads a different, newer model and
+      the original is renamed RFDETRLargeDeprecated, so an unpinned install
+      silently evaluates the wrong model under the same name.
+    - transformers must be pinned too (4.53.3, current when rfdetr 1.2.0
+      was released): rfdetr 1.2.0 does not cap it, and transformers 5.x
+      removed find_pruneable_heads_and_indices, so the import fails with
+      an ImportError on an unpinned install.
     - Assumes the RF-DETR model emits the same class IDs as the YAML's `names:`.
       If the model was fine-tuned on a remapped subset, predictions won't align
       with GT and mAP will be wrong.
@@ -37,22 +48,21 @@ from tqdm import tqdm
 from console_logging import capture_console
 from console_table_to_csv import write_tables_from_log
 
-# Pick the class matching your checkpoint variant. For `rf-detr-seg-2xl-ft.pth`
-# this is the segmentation preview. Swap to RFDETRBase / RFDETRLarge / etc.
-# if you're using a detection-only checkpoint.
-from rfdetr import RFDETRSegPreview as RFDETRClass
+# RF-DETR-L, the detection checkpoint `rf-detr-large.pth`. With rfdetr pinned
+# to 1.2.0 this class is the original Large model; see the pin note above.
+from rfdetr import RFDETRLarge as RFDETRClass
 
 CONF_THRESHOLD = 0.001  # Ultralytics uses 0.001 for val to maximize recall
-MODEL_RESOLUTION = 768  # Must match the checkpoint's training resolution.
-                        # Derive from the position-embedding size: resolution =
-                        # sqrt(pos_embed_len - 1) * patch_size (RF-DETR uses 12).
+MODEL_RESOLUTION = 560  # Must match the checkpoint's training resolution;
+                        # 560 is RF-DETR-L's native resolution, the
+                        # RFDETRLarge default in rfdetr 1.2.0.
 BATCH_SIZE = 1          # RF-DETR's predict() doesn't actually GPU-batch a list of
                         # inputs — passing batch=8 ran ~4x slower than batch=1.
-OPTIMIZE_FOR_INFERENCE = False  # On rf-detr-seg-2xl-ft @ 768, this *hurt* throughput
-                                # (1.6 it/s vs ~5 it/s eager). The TorchScript tracer
-                                # can't handle the model's dynamic control flow and the
-                                # resulting graph has slow fallback paths. Try toggling
-                                # to True for other variants if you care to test.
+OPTIMIZE_FOR_INFERENCE = False  # On the segmentation checkpoint used earlier (768 px)
+                                # this *hurt* throughput (1.6 it/s vs ~5 it/s eager):
+                                # the TorchScript tracer can't handle the model's
+                                # dynamic control flow and the resulting graph has slow
+                                # fallback paths. Untested on RF-DETR-L.
 REMAP_COCO_91 = True    # Many RF-DETR checkpoints emit COCO 91-class IDs (1-90
                         # with gaps at 12, 26, 29, 30, 45, 66, 68, 69, 71, 83).
                         # Set False if your YAML's `names:` already uses that
@@ -367,7 +377,7 @@ def next_run_dir(base_dir, name):
 
 
 def main():
-    model_path = sys.argv[1] if len(sys.argv) > 1 else "/models/rf-detr-seg-2xl-ft.pth"
+    model_path = sys.argv[1] if len(sys.argv) > 1 else "/models/rf-detr-large.pth"
     data_yaml = sys.argv[2] if len(sys.argv) > 2 else "/datasets/coco_nvg_clean.yaml"
     name = sys.argv[3] if len(sys.argv) > 3 else "val_rfdetr"
 

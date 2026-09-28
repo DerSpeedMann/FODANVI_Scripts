@@ -63,7 +63,7 @@ docker run --gpus all --rm `
   -v ${PWD}\results:/ultralytics/runs/detect `
   -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
-  bash -c "pip install --quiet rfdetr pycocotools && python /workspace/rfdetr_val.py /models/rf-detr-seg-2xl-ft.pth /datasets/dataset.yaml val_rfdetr"
+  bash -c "pip install --quiet rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_val.py /models/rf-detr-large.pth /datasets/dataset.yaml val_rfdetr"
 
 
 Apply NVG styling to images:
