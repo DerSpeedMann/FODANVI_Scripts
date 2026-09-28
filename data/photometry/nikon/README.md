@@ -63,7 +63,7 @@ the screen:
 | red | (255, 0, 0) | 3.521 | 0.175 | 0.015535 | 1.274e-03 |
 | green | (0, 255, 0) | 0.161 | 0.262 | 0.103644 | 1.910e-04 |
 | blue | (0, 0, 255) | 0.088 | 2.610 | 0.030290 | 6.534e-04 |
-| **target** | **(167, 88, 255)** | **0.533** | **1.680** | **0.043141** | **4.588e-04** |
+| **target** | **(163, 85, 255)** | **0.533** | **1.680** | **0.043141** | **4.588e-04** |
 
 `y_mid` spans a factor of 6.67 across the five that carry light, red to
 green. Nothing about the camera changed; only what it was looking at.
@@ -186,13 +186,13 @@ actually sees against the target:
 
     python $S\SceneLuxColor.py refine --record color_scene.json `
         --verify direct_screen_light\s19_02_calibSCENE_*.NEF `
-        --shot-at 167 88 255
+        --shot-at 163 85 255
 
     reads    2 frames shot under the displayed color
     writes   color_scene.json, appending the round to its history
     gives    measured R/G 0.533, B/G 1.680,
              which is -1.4 % and -3.6 % against the target,
-             correcting to RGB (165, 82, 255)
+             correcting to RGB (161, 79, 255)
 
 `--shot-at` is what the frames were actually displayed under and is not
 optional in practice: the correction is measured relative to that drive, so
@@ -201,7 +201,7 @@ wrong place.
 
 The B/G miss of 3.6 % is outside the 3 % the script treats as close enough,
 so the target frames used for the calibration below are not as well matched
-as the previous session's were. Reshooting under (165, 82, 255) is the way to
+as the previous session's were. Reshooting under (161, 79, 255) is the way to
 close it.
 
 ## 2. Calibration
