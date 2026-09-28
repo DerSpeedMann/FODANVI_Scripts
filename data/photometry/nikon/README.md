@@ -11,15 +11,40 @@ Nothing was produced by hand.
 
 ## Result
 
-    scene illuminance   6.87e-04 lux +/- 10 %
+    scene illuminance   4.59e-04 lux +/- 10 %
 
-The statistical error inside the run is 4.1 %: the drift fit is common to both
-signal frames so its 3.6 % does not average away, and the 2.0 % frame-to-frame
-scatter does. The quoted 10 % is wider because the two target calibration
-frames disagree by 8.5 % in `y_card`, the meter having chosen 1 s for one and
-0.769 s for the other. That scales the result directly, and taking the full
-spread rather than its standard error, 8.5 % and 4.1 % in quadrature give
-9.4 %, rounded up.
+Two things set that 10 %. Inside the run the error is 4.1 %: the drift fit is
+common to both signal frames so its 3.6 % does not average away, and the
+2.0 % frame-to-frame scatter does. On top of it the two calibration frames
+disagree by 8.4 % in `y_card`, which scales the result directly. Taking the
+full spread rather than its standard error, 8.4 % and 4.1 % in quadrature
+give 9.3 %, rounded up.
+
+This supersedes an earlier figure of 6.87e-04 lux from a previous session.
+The two are calibrated against nominally the same screen color and their
+`y_mid` differ by a factor of 1.50, which passes straight into the result.
+The later session is taken as the reference: the scene was under tighter
+control, and its meter chose the same shutter for both frames of every pair
+where the earlier one split them. The earlier figure is not averaged in.
+
+The pattern of the disagreement supports reading it that way rather than as
+a camera that drifted. White reproduces across the two sessions to 1 %:
+
+| color | earlier `y_mid` | later `y_mid` | ratio |
+| --- | --- | --- | --- |
+| white | 0.064895 | 0.065730 | 1.01 |
+| red | 0.010409 | 0.015535 | 1.49 |
+| green | 0.073504 | 0.103644 | 1.41 |
+| blue | 0.016805 | 0.030290 | 1.80 |
+| target | 0.028809 | 0.043141 | 1.50 |
+
+Every saturated color moved by 1.4 to 1.8 while white stayed put. A body that
+had changed would have moved white with the rest, so what moved sits on the
+scene side: the display, or what the meter did in front of it. That is the
+part the second session controlled better, which is the reason for preferring
+it. It remains an attribution rather than a measurement, since no capture
+isolates the cause, and a third session under the same control as the second
+is what would confirm it.
 
 ## The calibration illuminant has to match the scene
 
@@ -28,49 +53,38 @@ constant of the body. The camera's meter integrates all the light reaching
 it, while these scripts sample the green photosites only, so the two disagree
 by however much the illuminant's spectrum departs from the meter's weighting.
 
-Six calibrations, same card, same TV, nothing moved between them but the
-color on the screen:
+Six captures, same card, same TV, nothing moved between them but the color on
+the screen:
 
 | color | screen RGB | measured R/G | measured B/G | `y_mid` | scene lux it gives |
 | --- | --- | --- | --- | --- | --- |
-| white | (255, 255, 255) | 0.443 | 0.667 | 0.064895 | 3.050e-04 |
-| red | (255, 0, 0) | 3.400 | 0.194 | 0.010409 | 1.901e-03 |
-| green | (0, 255, 0) | 0.160 | 0.260 | 0.073504 | 2.693e-04 |
-| blue | (0, 0, 255) | 0.095 | 2.743 | 0.016805 | 1.178e-03 |
-| first guess | (173, 112, 255) | 0.511 | 1.461 | 0.036873 | 5.368e-04 |
-| **target** | **(163, 85, 255)** | **0.537** | **1.756** | **0.028809** | **6.870e-04** |
+| black | (0, 0, 0) | 0.49 | 1.01 | n/a | reference only |
+| white | (255, 255, 255) | 0.438 | 0.667 | 0.065730 | 3.011e-04 |
+| red | (255, 0, 0) | 3.521 | 0.175 | 0.015535 | 1.274e-03 |
+| green | (0, 255, 0) | 0.161 | 0.262 | 0.103644 | 1.910e-04 |
+| blue | (0, 0, 255) | 0.088 | 2.610 | 0.030290 | 6.534e-04 |
+| **target** | **(167, 88, 255)** | **0.533** | **1.680** | **0.043141** | **4.588e-04** |
 
-`y_mid` spans a factor of 7.06 across them, red to green. Nothing about the
-camera changed; only what it was looking at. Calibrating against the wrong
-color is therefore not a small correction, and the scene's own color is the
-only defensible choice.
+`y_mid` spans a factor of 6.67 across the five that carry light, red to
+green. Nothing about the camera changed; only what it was looking at.
+Calibrating against the wrong color is not a small correction, and the
+scene's own color is the only defensible choice.
+
+Black carries no usable signal and is not calibrated against. It is captured
+to measure what the panel emits with all three channels at zero, which every
+other reference frame carries on top of what was asked for. See step 1.
 
 The target color is not a guess. The measured scene is a laptop screen in an
 otherwise dark room, and subtracting the noise frames from the signal frames
 per Bayer channel, over the same four ROI boxes everything else is sampled
 with, gives its net response: R 0.000290, G 0.000536, B 0.000934, or 4.6, 8.6
 and 14.9 DN. That green figure is the same 8.6 DN the result table reports as
-`delta`, which is the check that the derivation and the measurement are
-sampling the same thing.
-
-The ratios are R/G 0.541 and B/G 1.743. RGB (163, 85, 255) on the TV measures
-0.537 and 1.756, reproducing both to 0.7 %, which is why it and no other color
-is used to scale the result.
-
-The first guess is kept because it sets the tolerance. It is close to the
-target by eye, and still off by 6 % in R/G and 16 % in B/G, which moves the
-result by 28 %. Matching the scene color approximately is not good enough;
-it has to be derived.
-
-Its screen RGB is reconstructed from the frames rather than read off a log:
-the pure-primary frames give the camera's response to each display primary,
-and that model predicts the target frames to within about 2 %, which is
-enough to separate (173, 112, 255) from the other candidates of that session.
-The other five values are as they were entered.
+`delta`, which is the check that the derivation and the measurement sample
+the same thing. The ratios are R/G 0.541 and B/G 1.743.
 
 What none of this touches is the night vision gain. It is a ratio of two
 luminances computed with the same `y_mid`, so the calibration cancels exactly
-and the figures in step 8 are the same under any of the six.
+and the figures in step 8 are the same under any of them.
 
 ## Before running anything
 
@@ -78,7 +92,7 @@ The frames are not versioned. Fetch them and place them here:
 
     bg_noise/                 7 frames, lens covered
     dark_card/                2 frames, the measurement itself
-    direct_screen_light/     12 frames, the calibrations
+    direct_screen_light/     12 frames, six color references
     trough_nvg/              11 frames
 
 Set the variable every command below uses:
@@ -118,59 +132,77 @@ frames, so it is safe to regenerate at any time.
 
 ## 1. Scene color
 
-`y_mid` moves with the illuminant, by a factor of 7 across the colors in the
-table above, so the calibration has to be shot under light of the scene's own
-color. This derives that color from the scene rather than choosing it by eye.
+`y_mid` moves with the illuminant, by a factor of 6.67 across the colors in
+the table above, so the calibration has to be shot under light of the scene's
+own color. This derives that color from the scene rather than choosing it by
+eye.
 
     python $S\SceneLuxColor.py estimate `
         --signal dark_card\*.NEF --noise bg_noise\*.NEF `
-        --red   direct_screen_light\s17_02_calibRED_*.NEF `
-        --green direct_screen_light\s17_03_calibGREEN_*.NEF `
-        --blue  direct_screen_light\s17_04_calibBLUE_*.NEF `
-        --white direct_screen_light\s17_01_calibWHITE_*.NEF `
+        --red   direct_screen_light\s19_03_calibRED_*.NEF `
+        --green direct_screen_light\s19_06_calibGREEN_*.NEF `
+        --blue  direct_screen_light\s19_04_calibBLUE_*.NEF `
+        --white direct_screen_light\s19_05_calibWHITE_*.NEF `
+        --black direct_screen_light\s19_01_calibBLACK_*.NEF `
         --record color_scene.json
 
     reads    2 scene frames, 7 dark frames, 8 display reference frames
     writes   color_scene.json
     gives    target R/G 0.541, B/G 1.743
-             suggested screen RGB (167, 88, 255)
+             suggested screen RGB (168, 83, 255)
 
 The three primaries give the camera's response to each, as the columns of a
 3x3 matrix; the scene's net response, signal minus dark, is the target; and
 solving the one against the other gives the drive to display.
 
-The white frames are not a fourth primary. Three primaries already span the
-space, so the matrix is fully determined without white, and white is captured
-because it is the only frame that can show the model to be wrong: an additive
-display driven at full white produces exactly what its primaries produce
-together. This TV falls 8.8 % short of that, but uniformly across all three
-channels, which is a backlight dimming on bright content and cancels, since
-the solve matches the direction of a response and lets exposure carry the
-magnitude. What would not cancel is the part left after that uniform factor
-divides out, and here it is within 1.3 %.
+White and black are not primaries and are not part of that solve. Three
+primaries already span the space, so the matrix is determined without them.
+
+White is captured because it is the only frame that can show the model to be
+wrong: an additive display driven at full white produces exactly what its
+primaries produce together. This TV falls 7.5 % short of that, but uniformly
+across all three channels, which cancels, since the solve matches the
+direction of a response and lets exposure carry the magnitude. What would not
+cancel is the part left after the uniform factor divides out, and that is
+within 2 %.
+
+Black is captured because a backlit panel still emits with every channel at
+zero, and every other reference frame carries that leak on top of what was
+asked for. Left in, it inflates all three matrix columns by the same vector,
+which the diagonal barely notices but which can exceed the off-diagonal terms
+outright. Here it measures 0.3 to 0.5 % of white and moves the suggestion by
+one code value, so on this display it is a small correction; that it is small
+is a measurement, not an assumption. Omit `--black` only on a screen with no
+backlight, OLED for instance, where a black pixel is off and the frame would
+hold nothing but sensor noise.
+
+Without it the white deficit is ambiguous, because a leak of k makes white
+fall short by exactly 2k and a dimming backlight does the same thing. Inferred
+that way the leak came out twelve times its measured size, which is the
+argument for the capture.
 
 Display the color, shoot the card under it, and check what the camera
 actually sees against the target:
 
     python $S\SceneLuxColor.py refine --record color_scene.json `
-        --verify direct_screen_light\s18_01_calibSCENE_*.NEF `
-        --shot-at 163 85 255
+        --verify direct_screen_light\s19_02_calibSCENE_*.NEF `
+        --shot-at 167 88 255
 
     reads    2 frames shot under the displayed color
     writes   color_scene.json, appending the round to its history
-    gives    measured R/G 0.547, B/G 1.719,
-             which is +1.1 % and -1.4 % against the target
+    gives    measured R/G 0.533, B/G 1.680,
+             which is -1.4 % and -3.6 % against the target,
+             correcting to RGB (165, 82, 255)
 
 `--shot-at` is what the frames were actually displayed under and is not
 optional in practice: the correction is measured relative to that drive, so
 letting the script assume the last suggestion silently corrects from the
 wrong place.
 
-The calibration frames here were shot under RGB (163, 85, 255), derived by
-hand before this script existed, rather than the (167, 88, 255) the script
-now suggests. The verification above puts the value actually used within
-1.4 % of the target, which is inside the 3 % tolerance, so the calibration
-was not reshot.
+The B/G miss of 3.6 % is outside the 3 % the script treats as close enough,
+so the target frames used for the calibration below are not as well matched
+as the previous session's were. Reshooting under (165, 82, 255) is the way to
+close it.
 
 ## 2. Calibration
 
@@ -180,11 +212,12 @@ reproduced. The `--y-mid` passed here only scales the reported lux; the
 80 mm f/4 ISO 3200 in aperture priority, matching the measurement.
 
     $colors = [ordered]@{
-        white = "s17_01_calibWHITE"; red   = "s17_02_calibRED"
-        green = "s17_03_calibGREEN"; blue  = "s17_04_calibBLUE"
-        firstguess = "s17_05_calibFIRSTGUESS"
-        scene      = "s18_01_calibSCENE"
+        scene = "s19_02_calibSCENE"; red   = "s19_03_calibRED"
+        blue  = "s19_04_calibBLUE";  white = "s19_05_calibWHITE"
+        green = "s19_06_calibGREEN"
     }
+
+Black is absent on purpose: it carries no signal to calibrate against.
 
     foreach ($c in $colors.Keys) {
         $files = (Get-ChildItem "direct_screen_light\$($colors[$c])_*.NEF").FullName
@@ -192,13 +225,13 @@ reproduced. The `--y-mid` passed here only scales the reported lux; the
             --record "calibration_${c}_80mm.json" --overlay-dir overlay
     }
 
-    reads    2 frames per color, 12 in total
+    reads    2 frames per color, 10 in total
     writes   calibration_<color>_80mm.json
-    gives    y_mid 0.064895 white, 0.010409 red, 0.073504 green,
-             0.016805 blue, 0.036873 first guess, 0.028809 scene
+    gives    y_mid 0.043141 scene, 0.015535 red, 0.030290 blue,
+             0.065730 white, 0.103644 green
 
-Only `calibration_scene_80mm.json` feeds the result. The other five exist to
-show the spread.
+Only `calibration_scene_80mm.json` feeds the result. The other four exist
+to show the spread.
 
 ## 3. Verification
 
@@ -215,23 +248,25 @@ should agree.
             --record "calibration_${c}_80mm_verified.json" --overlay-dir overlay
     }
 
-    reads    the same twelve frames
+    reads    the same ten frames
     writes   calibration_<color>_80mm_verified.json
-    gives    1.76 lux white, 1.10 red, 1.25 green, 1.26 blue,
-             1.10 first guess, 1.26 scene
+    gives    2.76 lux white, 1.10 red, 1.43 green, 1.10 blue,
+             1.43 scene
 
-All six land between 1.1 and 1.8 lux for the same lit card, which is the
+All five land between 1.1 and 2.8 lux for the same lit card, which is the
 consistency check: the round trip returns the real illuminance whatever color
 it was calibrated on, because there `y_mid` divides out the same value it was
 derived from.
 
-Pair agreement is worth reading in `y_card` rather than in lux. Where the
-meter gave the two frames a different shutter, the exposure difference partly
-cancels in lux and hides the disagreement: green's pair agrees to 2.9 % in lux
-but 23.2 % in `y_card`. The `y_card` spread is what matters, because the
-result scales as 1/y_mid and `y_mid` is the mean of the pair. It runs 0.7 %
-red, 3.0 % first guess, 3.1 % white, 8.5 % target, 14.7 % blue, 23.2 % green.
-The target's 8.5 % is what sets the 10 % on the result.
+Pair agreement is read in `y_card`, not in lux, because the result scales as
+1/y_mid and `y_mid` is the mean of the pair. It runs 0.1 % red, 2.7 % white,
+2.8 % green, 3.6 % blue, 8.4 % target.
+
+In this session the meter chose the same shutter for both frames of every
+pair, so lux and `y_card` spreads agree. That is worth checking rather than
+assuming: where the meter splits a pair across two shutters, the exposure
+difference partly cancels in lux and hides a disagreement that is still
+there in `y_card` and still scales the result.
 
 ## 4 to 6. Noise, signal and result
 
@@ -256,7 +291,7 @@ Run against the target calibration only.
     reads    7 lens-covered and 2 lens-clear frames
     writes   noise_scene.json, signal_scene.json, result_scene.json,
              result_table_scene.csv, noise_model_scene.png
-    gives    6.870e-04 lux, +/- 2.81e-05 statistical
+    gives    4.588e-04 lux, +/- 1.88e-05 statistical
 
 Dark current rises while the sensor works, so one averaged dark frame only
 describes the moment it was taken. The covered frames sit either side of the
@@ -313,7 +348,7 @@ the device.
              199, 196 at g4 minimum
              6781 at g1 returned
 
-The scene luminance passed here is 3.892e-05 cd/m2, which is 6.870e-04 lux on
+The scene luminance passed here is 2.599e-05 cd/m2, which is 4.588e-04 lux on
 a card of reflectance 0.178.
 
 Steps 7 and 8 do not depend on the calibration and do not need rerunning when
@@ -325,12 +360,12 @@ cancels:
 leaving only the f-numbers, the exposure times and the two measured levels.
 `y_mid`, rho, K, the ISO and pi all drop out. Running the red calibration
 through the scripts instead, where `y_mid` is 2.8 times smaller and the scene
-comes out at 1.901e-03 lux, returns the same 7008 down to 196 and the same
-factor of 35.8.
+comes out at a different lux entirely, returns the same 7007 down to 196 and
+the same factor of 35.8.
 
 This makes the gain the firmest number here. The illuminance carries the
-calibration spread; the gain carries none of it. The factor of 7.06 that
-separates the six calibrations, and which is why the calibration color has to
+calibration spread; the gain carries none of it. The factor of 6.67 that
+separates the calibrations, and which is why the calibration color has to
 be matched at all, has no effect here.
 
 The control was turned from maximum to minimum and back, a range of 35.8x,
@@ -372,8 +407,8 @@ frames. A different session will need them re-placed.
 | --- | --- |
 | `MANIFEST.csv` | step 0, the frames to place here with sizes and checksums |
 | `color_scene.json` | step 1, the derived scene color and the match history |
-| `calibration_<color>_80mm.json` | step 2, six records, one per color |
-| `calibration_<color>_80mm_verified.json` | step 3, six lit-scene checks |
+| `calibration_<color>_80mm.json` | step 2, five records, one per color |
+| `calibration_<color>_80mm_verified.json` | step 3, five lit-scene checks |
 | `noise_scene.json` | step 4, seven lens-covered frames |
 | `signal_scene.json` | step 5, two lens-clear frames |
 | `result_scene.json` | step 6, full log including the drift model |
