@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-09-28T19:15:37+00:00",
+  "generated_utc": "2026-10-01T23:34:23+00:00",
   "region": {
     "rois_normalised": {
       "q_ul": [
@@ -107,13 +107,13 @@
         "q_lr"
       ],
       "result": {
-        "constant": 10.64305823392391,
-        "lux": 1.454416869397638
+        "constant": 11.44124901640642,
+        "lux": 1.5634928617980162
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.10364382904779,
+        "y_mid": 0.0964131893782478,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
@@ -196,13 +196,191 @@
         "q_lr"
       ],
       "result": {
-        "constant": 10.64305823392391,
-        "lux": 1.4136101317728078
+        "constant": 11.44124901640642,
+        "lux": 1.5196257667909905
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.10364382904779,
+        "y_mid": 0.0964131893782478,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s20_03_calibGREEN_2th_010915.NEF",
+      "exif": {
+        "exposure_time": 0.625,
+        "f_number": 4.0,
+        "iso": 3200,
+        "focal_length": 80.0,
+        "datetime": "2026:10:02 01:09:15"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.09217813161863195,
+          "sd_over_mean": 0.0864987392763435,
+          "lineness": 0.20516304347826084,
+          "clean": true
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.09100813450180878,
+          "sd_over_mean": 0.09013631579409008,
+          "lineness": 0.21556473829201103,
+          "clean": true
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.08965543187495455,
+          "sd_over_mean": 0.0867477225657262,
+          "lineness": 0.21034241788958769,
+          "clean": true
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.0888249213814926,
+          "sd_over_mean": 0.08691464389226551,
+          "lineness": 0.2150317572335926,
+          "clean": true
+        }
+      },
+      "y_card": 0.09041665484422197,
+      "y_card_spread": 0.037086201020338126,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 11.44124901640642,
+        "lux": 1.6551671412851416
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.0964131893782478,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s20_03_calibGREEN_2th_010916.NEF",
+      "exif": {
+        "exposure_time": 0.625,
+        "f_number": 4.0,
+        "iso": 3200,
+        "focal_length": 80.0,
+        "datetime": "2026:10:02 01:09:16"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.08949202219432292,
+          "sd_over_mean": 0.08782973185471464,
+          "lineness": 0.21358543417366946,
+          "clean": true
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.08857878458150055,
+          "sd_over_mean": 0.09099932379833922,
+          "lineness": 0.21287128712871287,
+          "clean": true
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.08743039779382085,
+          "sd_over_mean": 0.0990501204500561,
+          "lineness": 0.2143830703012915,
+          "clean": true
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.0862925737231155,
+          "sd_over_mean": 0.08898858763680081,
+          "lineness": 0.21496005809731297,
+          "clean": true
+        }
+      },
+      "y_card": 0.08794844457318995,
+      "y_card_spread": 0.03637868170078749,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 11.44124901640642,
+        "lux": 1.6099840879479745
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.0964131893782478,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }

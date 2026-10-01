@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-09-28T19:15:17+00:00",
+  "generated_utc": "2026-10-01T23:34:43+00:00",
   "region": {
     "rois_normalised": {
       "q_ul": [
@@ -198,6 +198,184 @@
       "result": {
         "constant": 22.803294153506283,
         "lux": 3.7982900779362425
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s20_05_calibWHITE_2th_011007.NEF",
+      "exif": {
+        "exposure_time": 0.4,
+        "f_number": 4.0,
+        "iso": 3200,
+        "focal_length": 80.0,
+        "datetime": "2026:10:02 01:10:07"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.06944015620463793,
+          "sd_over_mean": 0.10025165751822301,
+          "lineness": 0.24165915238954025,
+          "clean": true
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.06872211640176093,
+          "sd_over_mean": 0.10402815931143634,
+          "lineness": 0.25091240875912424,
+          "clean": true
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.06752830943119954,
+          "sd_over_mean": 0.10017839615708138,
+          "lineness": 0.24397031539888697,
+          "clean": true
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.06709816240317819,
+          "sd_over_mean": 0.10101027702538318,
+          "lineness": 0.24160447761194018,
+          "clean": true
+        }
+      },
+      "y_card": 0.06819718611019414,
+      "y_card_spread": 0.03434150197451716,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 22.803294153506283,
+        "lux": 3.8878012382804243
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s20_05_calibWHITE_2th_011008.NEF",
+      "exif": {
+        "exposure_time": 0.4,
+        "f_number": 4.0,
+        "iso": 3200,
+        "focal_length": 80.0,
+        "datetime": "2026:10:02 01:10:08"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.07371823154143463,
+          "sd_over_mean": 0.09610820474312366,
+          "lineness": 0.22769753610875096,
+          "clean": true
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.07270109638502734,
+          "sd_over_mean": 0.09972648920943149,
+          "lineness": 0.23952586206896576,
+          "clean": true
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.07158041360940248,
+          "sd_over_mean": 0.09763274717879929,
+          "lineness": 0.2335958005249343,
+          "clean": true
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.07111500420299156,
+          "sd_over_mean": 0.09737493015069754,
+          "lineness": 0.24392070484581524,
+          "clean": true
+        }
+      },
+      "y_card": 0.072278686434714,
+      "y_card_spread": 0.03601652806452757,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 22.803294153506283,
+        "lux": 4.120480369499568
       },
       "calibration": {
         "K": 12.5,
