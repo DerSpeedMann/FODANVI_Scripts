@@ -184,16 +184,51 @@ cython_debug/
 /configs
 /recorded_videos
 
-# Capture data is not versioned here, nor is anything rendered from it. The
-# frames are fetched separately and placed under data/photometry; the overlays
-# and plots then appear locally when the pipeline runs. What stays in git is
-# the trail: the records SceneLux writes, the result tables, the region
+# No image under data/ is versioned, in any format, anywhere, with no
+# exceptions. Captures are fetched or copied in and placed under
+# data/; overlays, plots and conversions then appear locally when a
+# pipeline runs. What stays in git is the trail that makes a result
+# traceable: the records the scripts write, the result tables, the region
 # definitions and the instructions to reproduce them.
-data/photometry/**/*.NEF
-data/photometry/**/*.nef
-data/photometry/**/*.dng
-data/photometry/**/*.DNG
-data/photometry/**/*.png
+#
+# One rule over the whole tree rather than one per folder, so a new
+# folder under data/ inherits it instead of silently committing images
+# beside ignored siblings. Extensions mirror .gitattributes, which routes
+# the same set to LFS, and are case sensitive, so both spellings appear
+# where the camera and the tooling disagree.
+data/**/*.NEF
+data/**/*.nef
+data/**/*.DNG
+data/**/*.dng
+data/**/*.CR2
+data/**/*.cr2
+data/**/*.ARW
+data/**/*.arw
+data/**/*.png
+data/**/*.PNG
+data/**/*.jpg
+data/**/*.JPG
+data/**/*.jpeg
+data/**/*.JPEG
+data/**/*.tif
+data/**/*.TIF
+data/**/*.tiff
+data/**/*.TIFF
+data/**/*.bmp
+data/**/*.BMP
+data/**/*.webp
+data/**/*.WEBP
+data/**/*.gif
 
-# Dataset images are versioned, through LFS.
-!data/datasets/**/*.jpg
+# Per-image label files are derived and are not versioned either. A YOLO .txt
+# is a projection of the annotation it was exported from, so it can be
+# regenerated, while the export cannot be recovered from it: the LabelMe json
+# under a dataset's source/ holds polygons and class names, the .txt holds
+# four numbers and a class index. The json is the manual work and stays.
+#
+# Scoped to labels/ rather than the whole dataset so a classes.txt or a split
+# definition at a dataset root is not swept up with them.
+data/datasets/**/labels/**/*.txt
+
+# Framework scratch written beside a dataset when it is first read.
+data/**/*.cache

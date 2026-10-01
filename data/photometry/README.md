@@ -7,12 +7,13 @@ to train or evaluate a model.
 
 ## The frames are not in this repository
 
-They are 578 MB and are fetched separately, then placed under this folder in
+They are 783 MB and are fetched separately, then placed under this folder in
 the layout the records expect:
 
-    data/photometry/nikon/ceiling_light_card_against_wall/   4 frames
-    data/photometry/nikon/dark_card/                         9 frames
-    data/photometry/nikon/trough_nvg/                       11 frames
+    data/photometry/nikon/bg_noise/              7 frames, lens covered
+    data/photometry/nikon/dark_card/             2 frames, the measurement
+    data/photometry/nikon/direct_screen_light/  12 frames, color references
+    data/photometry/nikon/trough_nvg/           11 frames
 
 `nikon/MANIFEST.csv` lists every required frame with its folder, size and
 SHA-256, so a placed set can be checked before anything is run. Frames and
