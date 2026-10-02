@@ -4,9 +4,17 @@ Measurements of real night vision captures and of the synthetic conversions
 meant to imitate them, used to tune `GenerateNVG.py` against numbers rather
 than by eye.
 
-    AnalyzeNVG.py      src/Processing/AnalyzeNVG.py
-    GenerateCrops.py   src/Processing/GenerateCrops.py
-    GenerateNVG.py     src/Processing/GenerateNVG.py
+    AnalyzeNVG.py         src/Processing/AnalyzeNVG.py
+    GenerateCrops.py      src/Processing/GenerateCrops.py
+    GenerateNVG.py        src/Processing/GenerateNVG.py
+    GenerateNVGLegacy.py  src/Processing/GenerateNVGLegacy.py
+
+`GenerateNVGLegacy.py` is frozen and produced every fine-tuning dataset in
+this project. `GenerateNVG.py` is the current one and differs in where it
+puts grain: the legacy curve suppresses grain in the shadows, which the
+measurements here showed to be backwards, so the current one peaks it at
+0.15 instead. Measurements of a legacy-generated set should be read against
+the legacy curve, not the current one.
 
 ## The images are not versioned
 
@@ -69,7 +77,7 @@ The rest map onto the other `NVGConfig` fields:
 | `luma_sd` | `contrast_alpha` |
 | `p01`, `p50`, `p99`, `clip_low`, `clip_high` | whether alpha and beta push the range off either end |
 | `bright_235` | `bloom_threshold`, `bloom_intensity` |
-| `noise_sd` | `noise_intensity` |
+| `noise_sd`, `noise_dark`, `noise_mid`, `noise_bright` | `noise_intensity`, and which curve places it |
 | `grain_px` | `grain_size` |
 | `edge_over_center` | `vignette_intensity` |
 
