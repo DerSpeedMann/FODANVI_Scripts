@@ -1,33 +1,103 @@
-Prepare Images:
+## Before anything: what has to be downloaded
 
-cd "C:\Users\micha\Desktop\private\FH\MA\Tests"
-python .\OD-A-NVI_Scripts\src\Processing\GenerateCrops.py .\captured_images\ .\images_cropped\26_04_29
-Copy-Item -Path .\images_cropped\* -Destination .\images
-python .\OD-A-NVI_Scripts\src\Processing\Preprocess.py .\images_cropped\ .\images   
-python .\OD-A-NVI_Scripts\src\Processing\GenerateColorShift.py .\images\ .\images
-python .\OD-A-NVI_Scripts\src\Processing\GenerateGrayscales.py .\images\ .\images
+Nothing under `data/` is versioned. The repository holds the scripts, the
+configs, the measurement records and the instructions; every image, weight
+and dataset is fetched and placed. A fresh clone therefore runs nothing
+until the list below is satisfied, and the commands further down assume it
+has been.
+
+### COCO
+
+The source dataset every synthetic conversion is built from. Ultralytics
+publishes it in the layout these scripts expect, so the simplest route is to
+let it download once and then move the tree into place:
+
+    yolo settings datasets_dir="$(Resolve-Path .\data\datasets)"
+    python -c "from ultralytics.utils.downloads import download; download('https://ultralytics.com/assets/coco2017labels.zip', dir='data/datasets')"
+
+Or fetch it by hand from https://cocodataset.org/#download, taking
+`train2017`, `val2017` and `annotations_trainval2017`, and arrange it as:
+
+    data/datasets/coco/images/train2017/
+    data/datasets/coco/images/val2017/
+    data/datasets/coco/labels/train2017/
+    data/datasets/coco/labels/val2017/
+    data/datasets/coco/annotations/
+
+About 20 GB. The whole `data/datasets/coco/` tree is gitignored, including
+the annotation json and the split lists, since none of it is ours.
+
+### Everything else
+
+| what | where it goes | how |
+| --- | --- | --- |
+| COCO 2017 | `data/datasets/coco/` | above |
+| Pre-trained weights | `data/models/` | `yolo11x.pt`, `yolo11s.pt`, `rtdetr-l.pt`, `rtdetr-x.pt` from Ultralytics; `rf-detr-large.pth` from the rfdetr package |
+| Fine-tuned weights | `data/models/` | produced by the fine-tuning runs below, not downloaded |
+| Real captures | `data/datasets/real_nvg/` | from the capture archive; `real_nvg.yaml` expects `images/val` |
+| Converted sets | `data/datasets/coco_nvg_*/` | generated, see below |
+| Photometry frames | `data/photometry/nikon/` | from the capture archive; `MANIFEST.csv` lists every frame with its checksum |
+| Day to night references | `data/day2night/` | from the capture archive |
+
+A placed set can be checked before anything is run where a manifest exists.
+`data/photometry/nikon/README.md` carries the command for the photometry
+frames; the others have no manifest yet.
+
+### TODO, downloading
+
+The download story is only half written, and these are the gaps:
+
+- **No single fetch script.** Each of the rows above is a separate manual
+  step with its own source. One script taking a destination and pulling the
+  lot would remove most of the setup, and is the obvious next thing.
+- **No manifest outside photometry.** Only the photometry frames can be
+  checked against recorded checksums. The real captures and the day to
+  night references have none, so a partial or altered copy looks identical
+  to a complete one. `BuildManifest.py` already does this for a folder of
+  raw frames and would want extending to jpg and png.
+- **The capture archive has no published location.** It is referred to here
+  as somewhere the frames come from, which is true for whoever has it and
+  useless to anyone else. It needs a URL, or an explicit statement that the
+  imagery is not distributed and the results are reproducible only from the
+  records.
+- **Weights are named but not pinned.** The table gives file names, not
+  versions or hashes, so a later Ultralytics release would silently change
+  what `yolo11x.pt` means.
+- **`data/models/` is currently empty**, so every docker command below
+  fails on a fresh clone until it is filled.
+
+## Prepare Images
+
+
+cd "C:\Users\micha\Desktop\private\FH\MA\Tests\FODANVI_Scripts"
+$S = ".\src\Processing"
+python $S\GenerateCrops.py .\data\captured_images\ .\data\images_cropped\26_04_29
+Copy-Item -Path .\data\images_cropped\* -Destination .\data\images
+python $S\Preprocess.py .\data\images_cropped\ .\data\images   
+python $S\GenerateColorShift.py .\data\images\ .\data\images
+python $S\GenerateGrayscales.py .\data\images\ .\data\images
 
 Check Images:
 
  docker run --gpus all --rm `
-  -v ${PWD}\images:/data `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\models:/models `
+  -v ${PWD}\data\images:/data `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:latest `
   yolo detect predict model=/models/rtdetr-l.pt source=/data save_txt=True
   
 docker run --gpus all --rm `
-  -v ${PWD}\images:/data `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\models:/models `
+  -v ${PWD}\data\images:/data `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:latest `
   yolo detect predict model=/models/yolo11x.pt source=/data save_txt=True
 
 
 docker run --gpus all --rm `
-  -v ${PWD}\images:/data `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\models:/models `
+  -v ${PWD}\data\images:/data `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:latest `
   yolo detect predict model=/models/yolo11s_clean-noisy.pt source=/data save_txt=True
 
@@ -40,105 +110,113 @@ into their run folder under results/.)
 
 docker run --gpus all --rm `
   --shm-size=18g `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   python /workspace/yolo_val.py /models/yolo11x.pt coco.yaml val_yolo11x
  
 docker run --gpus all --rm `
   --shm-size=8g `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
-  python /workspace/rtdetr_val_fixed.py /models/rtdetr-x.pt /datasets/dataset.yaml
+  python /workspace/rtdetr_val_fixed.py /models/rtdetr-x.pt /datasets/real_nvg.yaml
 
 docker run --gpus all --rm `
   --shm-size=8g `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
-  bash -c "pip install --quiet rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_val.py /models/rf-detr-large.pth /datasets/dataset.yaml val_rfdetr"
+  bash -c "pip install --quiet rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_val.py /models/rf-detr-large.pth /datasets/real_nvg.yaml val_rfdetr"
 
 
 Apply NVG styling to images:
 
-python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_white/images/val2017 -c white
-python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_white/labels/val2017 _nvg_white
+There are two conversion scripts and they are not interchangeable.
+`GenerateNVGLegacy.py` is frozen and produced every dataset currently in
+`data/datasets`; it is kept so those can be reproduced and must not be
+edited. `GenerateNVG.py` is the current one and is what new work should use.
 
-python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg_green/images/val2017 -c green
-python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg_green/labels/val2017 _nvg_green
+They differ in one thing, where grain is placed. The legacy script
+suppresses grain in the shadows and runs it at full strength in the
+midtones. Measured against real captures through the device, with
+`AnalyzeNVG.py`, that is backwards: the device is noisiest around 0.15 and
+quietens as the picture brightens, so the legacy curve is wrong by -99 % at
+the bottom of the range and +144 % at 0.45. The current script peaks the
+grain at 0.15 instead and fits the measurement to within 15 %.
 
- 
-Test Convertet Images:
+Two consequences. `noise_intensity` now sets the grain at the peak, in the
+shadows, rather than in the midtones, so a value carried over from the
+legacy script does not mean the same thing. And the output suffix is
+`_nvg2_*` rather than `_nvg_*`, so new output cannot overwrite or be
+mistaken for the existing datasets. Generate into fresh folders rather than
+on top of them.
 
-docker run --gpus all --rm `
-  --shm-size=8g `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
-  python /workspace/yolo_val.py /models/yolo11x.pt /datasets/coco_nvg_green.yaml val_yolo_nvg
-  
-docker run --gpus all --rm `
-  --shm-size=8g `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
-  python /workspace/rtdetr_val_fixed.py /models/rtdetr-l.pt /datasets/coco_nvg_green.yaml
-  
-Create converted training and validation data remove noise, blur, bloom and vignette for better training results:
+### The four sets
 
-python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/train2017 datasets/coco_nvg/images/train2017 `
-  --color white  `
-  --noise-intensity 0 `
-  --blur-amount 0 `
-  --bloom-intensity 0 `
-  --vignette-intensity 0
+Four conversions are built, clean and noisy for each phosphor color, and
+each goes in its own folder. Nothing is merged on disk; the yaml files do
+the combining, which is why there is no single `coco_nvg` folder.
 
-python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/train2017 datasets/coco_nvg/labels/train2017 _nvg_white
+    foreach ($c in "green", "white") {
+      foreach ($split in "train2017", "val2017") {
 
-python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg/images/val2017 `
-  --color white  `
-  --noise-intensity 0 `
-  --blur-amount 0 `
-  --bloom-intensity 0 `
-  --vignette-intensity 0
-  
-python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg/labels/val2017 _nvg_white
+        # noisy: the conversion as the script ships, grain and all
+        python $S\GenerateNVG.py `
+          data\datasets\coco\images\$split `
+          data\datasets\coco_nvg_${c}_noisy\images\$split --color $c
+        python $S\CopyFilesWithSuffix.py `
+          data\datasets\coco\labels\$split `
+          data\datasets\coco_nvg_${c}_noisy\labels\$split _nvg2_$c
 
-python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/train2017 datasets/coco_nvg/images/train2017 `
-  --color green  `
-  --noise-intensity 0 `
-  --blur-amount 0 `
-  --bloom-intensity 0 `
-  --vignette-intensity 0
-  
-python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/train2017 datasets/coco_nvg/labels/train2017 _nvg_green
+        # clean: the same conversion with every degradation switched off
+        python $S\GenerateNVG.py `
+          data\datasets\coco\images\$split `
+          data\datasets\coco_nvg_${c}_clean\images\$split --color $c `
+          --noise-intensity 0 --blur-amount 0 `
+          --bloom-intensity 0 --vignette-intensity 0
+        python $S\CopyFilesWithSuffix.py `
+          data\datasets\coco\labels\$split `
+          data\datasets\coco_nvg_${c}_clean\labels\$split _nvg2_$c
+      }
+    }
 
-python .\OD-A-NVI_Scripts\src\Processing\GenerateNVG.py datasets/coco/images/val2017 datasets/coco_nvg/images/val2017 `
-  --color green  `
-  --noise-intensity 0 `
-  --blur-amount 0 `
-  --bloom-intensity 0 `
-  --vignette-intensity 0
-  
-python .\OD-A-NVI_Scripts\src\Processing\CopyFilesWithSuffix.py datasets/coco/labels/val2017 datasets/coco_nvg/labels/val2017 _nvg_green
+Swap in `GenerateNVGLegacy.py`, which writes `_nvg_*`, to reproduce the sets
+that are on disk now.
+
+The clean and noisy split is visible in the measurements: `AnalyzeNVG.py`
+reports edge/center near 1.0 for the clean sets, meaning no vignette, and
+around 0.45 for the noisy ones.
+
+### The yaml files combine them
+
+Each config lists several folders under `train:` and `val:`, so a grouping
+is a yaml rather than a copy of the images.
+
+| config | combines |
+| --- | --- |
+| `coco_nvg_clean.yaml` | green clean + white clean |
+| `coco_nvg_noisy.yaml` | green noisy + white noisy |
+| `coco_nvg_green.yaml` | green clean + green noisy |
+| `coco_nvg_white.yaml` | white clean + white noisy |
+| `real_nvg.yaml` | the real captures, val only |
+
+They set `path: /datasets`, which is the mount target inside the container,
+not a host path. `real_nvg.yaml` uses `path: real_nvg` with splits relative
+to it, a different style that resolves the same way.
 
 Fine Tune:
 docker run --gpus all --rm `
   --shm-size=12g `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\results:/ultralytics/runs/detect `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
   ultralytics/ultralytics:latest `
   yolo detect train `
     model=/models/yolo11s.pt `
@@ -160,9 +238,9 @@ Fine Tune with noisy images ontop:
 
 docker run --gpus all --rm `
   --shm-size=12g `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\results:/ultralytics/runs/detect `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
   ultralytics/ultralytics:latest `
   yolo detect train `
     model=/models/yolo11s_clean.pt `
@@ -186,19 +264,19 @@ Performance testing:
 
 docker run --gpus all --rm `
   --shm-size=12g `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   python /workspace/yolo_val.py /models/yolo11s_clean-noisy.pt /datasets/coco_nvg_clean.yaml validate_clean-noisy_on_clean
 	
 docker run --gpus all --rm `
   --shm-size=12g `
-  -v ${PWD}\datasets:/datasets `
-  -v ${PWD}\models:/models `
-  -v ${PWD}\results:/ultralytics/runs/detect `
-  -v ${PWD}\OD-A-NVI_Scripts\src\Processing:/workspace `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   python /workspace/yolo_val.py /models/yolo11s_clean-noisy.pt /datasets/coco_nvg_noisy.yaml validate_clean-noisy_on_noisy
 
