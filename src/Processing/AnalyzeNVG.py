@@ -57,7 +57,9 @@ constant-ratio assumption holds; it is not an error bar on the headline.
 import argparse
 import csv
 import glob
+import json
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Sequence
 
@@ -305,6 +307,115 @@ def plot(path: Path, rows: Sequence[Dict[str, Any]]) -> None:
     plt.close(fig)
 
 
+# Brightness the v2 grain curve peaks at. noise_intensity is the grain there,
+# so that is the band to read it from. Must match GenerateNVG's grain_peak.
+GRAIN_PEAK = 0.15
+
+# An equalised histogram is close to uniform over 0..255, whose mean and
+# standard deviation are these. GenerateNVG equalises before applying
+# contrast, so they are what alpha and beta act on.
+EQUALISED_MEAN = 127.5
+EQUALISED_SD = 255.0 / (12 ** 0.5)
+
+
+def solve_vignette(shape, target, lo=1.0, hi=8.0):
+    """
+    The vignette_intensity whose mask would produce this edge/center ratio.
+
+    GenerateNVG builds the mask as an outer product of two Gaussian kernels
+    with sigma = side / vignette_intensity, normalised to peak at one. There
+    is no tidy inverse, so this bisects on the same statistic falloff()
+    measures, computed on the mask itself. Monotonic in the intensity, so
+    bisection is safe.
+
+    It answers "what setting would darken a flat field this much", which is
+    an upper bound: a real capture's edges are also darker because of what
+    was in front of the lens, and that is counted here as vignette.
+    """
+    h, w = shape
+    yy, xx = np.mgrid[0:h, 0:w]
+    rad = np.hypot(yy - (h - 1) / 2, xx - (w - 1) / 2)
+    rad /= rad.max()
+    inner, outer = rad <= 0.2, rad >= 0.8
+
+    def ratio(v):
+        kx = cv2.getGaussianKernel(w, w / v)
+        ky = cv2.getGaussianKernel(h, h / v)
+        m = ky * kx.T
+        m = m / m.max()
+        return float(m[outer].mean() / m[inner].mean())
+
+    if target >= ratio(lo):
+        return lo
+    if target <= ratio(hi):
+        return hi
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if ratio(mid) > target:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
+
+
+def build_config(s: Dict[str, Any], label: str, n: int,
+                 color: str) -> Dict[str, Any]:
+    """
+    Turn the measurements into something GenerateNVG.py can load.
+
+    Three of these are read almost directly and are the reason the file is
+    worth writing. The channel multipliers are the measured ratios. The
+    grain is the residual spread at the band the curve peaks at, since
+    GenerateNVG draws its noise with a standard deviation of
+    noise_intensity * mask and the mask is one there. Grain size is the lag
+    the residual stays correlated over, rounded to an odd kernel.
+
+    Two are derived through an assumption and should be treated as a
+    starting point. Contrast inverts alpha and beta against an equalised
+    histogram, which is only approximately uniform, and the measured levels
+    also carry the vignette and the grain that are applied after contrast.
+    The vignette is solved against a flat field, so anything dark at the
+    edges of the real scene inflates it.
+
+    Nothing is emitted for bloom. Its threshold and intensity do not follow
+    from a histogram without assuming what in the scene should bloom.
+    """
+    peak_band = "noise_dark" if GRAIN_PEAK < 0.3 else "noise_mid"
+    noise = s[peak_band]
+    grain = int(round(s["grain_px"]))
+    grain += (grain + 1) % 2                      # kernels must be odd
+
+    alpha = s["luma_sd"] / EQUALISED_SD
+    beta = s["luma_mean"] - alpha * EQUALISED_MEAN
+
+    vign = solve_vignette((600, 800), s["edge_over_center"])
+
+    m = color_split(s["rg"], s["bg"])
+    return {
+        "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "source": {"group": label, "images": n,
+                   "written_by": "AnalyzeNVG.py --config"},
+        "color": color,
+        "color_settings": {
+            "color": color,
+            "red_multiplier": m["red_multiplier"],
+            "green_multiplier": m["green_multiplier"],
+            "blue_multiplier": m["blue_multiplier"],
+            "contrast_multiplier": 1.0,
+            "brightness_multiplier": 1.0,
+        },
+        "noise_intensity": round(float(noise), 3),
+        "grain_size": grain,
+        "contrast_alpha": round(float(alpha), 3),
+        "contrast_beta": int(round(beta)),
+        "vignette_intensity": round(float(vign), 2),
+        "measured": {k: round(float(s[k]), 4) for k in
+                     ("rg", "bg", "rg_sd", "bg_sd", "luma_mean", "luma_sd",
+                      "p01", "p50", "p99", "noise_sd", "noise_dark",
+                      "noise_mid", "grain_px", "edge_over_center")},
+    }
+
+
 def table(rows: Sequence[Sequence[Any]], head: Sequence[str]) -> None:
     w = [max(len(str(r[i])) for r in (head, *rows)) for i in range(len(head))]
     print("  ".join(str(h).ljust(n) for h, n in zip(head, w)))
@@ -330,6 +441,11 @@ def main() -> int:
                         "over the same set gives the same images twice")
     p.add_argument("--seed", type=int, default=0,
                    help="seed for --sample")
+    p.add_argument("--config", metavar="FILE",
+                   help="write a json GenerateNVG.py can load with its own "
+                        "--config, derived from these measurements")
+    p.add_argument("--config-color", choices=["green", "white"], default="green",
+                   help="which color mode the written config targets")
     p.add_argument("--no-plot", action="store_true",
                    help="skip the figure written beside --csv")
     p.add_argument("--per-image", action="store_true",
@@ -402,6 +518,23 @@ def main() -> int:
            ["grain px", f"{s['grain_px']:.1f}", f"{s['grain_px_spread']:.1f}", "grain_size"],
            ["edge / center", f"{s['edge_over_center']:.3f}", f"{s['edge_over_center_spread']:.3f}", "vignette_intensity"]],
           ["measure", "mean", "spread", "tunes"])
+
+    if args.config:
+        cfg = build_config(s, label, len(rows), args.config_color)
+        Path(args.config).write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+        print(f"\nwrote {args.config}")
+        print(f"  measured directly: multipliers "
+              f"{cfg['color_settings']['red_multiplier']}, "
+              f"{cfg['color_settings']['green_multiplier']}, "
+              f"{cfg['color_settings']['blue_multiplier']}; "
+              f"noise_intensity {cfg['noise_intensity']}; "
+              f"grain_size {cfg['grain_size']}")
+        print(f"  derived through an assumption, treat as a starting point: "
+              f"contrast_alpha {cfg['contrast_alpha']}, "
+              f"contrast_beta {cfg['contrast_beta']}, "
+              f"vignette_intensity {cfg['vignette_intensity']}")
+        print("  nothing written for bloom; it does not follow from a "
+              "histogram.")
 
     if args.csv:
         exists = os.path.exists(args.csv)

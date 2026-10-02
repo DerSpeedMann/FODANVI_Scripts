@@ -232,3 +232,8 @@ data/datasets/**/labels/**/*.txt
 
 # Framework scratch written beside a dataset when it is first read.
 data/**/*.cache
+
+# The COCO source tree in full. It is downloaded rather than produced here,
+# it is 20 GB, and it carries annotation json and split lists that the image
+# and label rules above would not catch. Nothing in it is ours to version.
+data/datasets/coco/
