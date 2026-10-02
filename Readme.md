@@ -136,63 +136,78 @@ docker run --gpus all --rm `
   bash -c "pip install --quiet rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_val.py /models/rf-detr-large.pth /datasets/real_nvg.yaml val_rfdetr"
 
 
-Apply NVG styling to images:
+## Apply NVG styling to images
 
-There are two conversion scripts and they are not interchangeable.
-`GenerateNVGLegacy.py` is frozen and produced every dataset currently in
-`data/datasets`; it is kept so those can be reproduced and must not be
-edited. `GenerateNVG.py` is the current one and is what new work should use.
-
-They differ in one thing, where grain is placed. The legacy script
-suppresses grain in the shadows and runs it at full strength in the
-midtones. Measured against real captures through the device, with
-`AnalyzeNVG.py`, that is backwards: the device is noisiest around 0.15 and
-quietens as the picture brightens, so the legacy curve is wrong by -99 % at
-the bottom of the range and +144 % at 0.45. The current script peaks the
-grain at 0.15 instead and fits the measurement to within 15 %.
-
-Two consequences. `noise_intensity` now sets the grain at the peak, in the
-shadows, rather than in the midtones, so a value carried over from the
-legacy script does not mean the same thing. And the output suffix is
-`_nvg2_*` rather than `_nvg_*`, so new output cannot overwrite or be
-mistaken for the existing datasets. Generate into fresh folders rather than
-on top of them.
-
-### The four sets
-
-Four conversions are built, clean and noisy for each phosphor color, and
-each goes in its own folder. Nothing is merged on disk; the yaml files do
-the combining, which is why there is no single `coco_nvg` folder.
+The old fine-tuning data was created with `GenerateNVGLegacy.py`, which
+writes the `_nvg_*` suffix:
 
     foreach ($c in "green", "white") {
       foreach ($split in "train2017", "val2017") {
 
-        # noisy: the conversion as the script ships, grain and all
-        python $S\GenerateNVG.py `
+        python $S\GenerateNVGLegacy.py `
           data\datasets\coco\images\$split `
           data\datasets\coco_nvg_${c}_noisy\images\$split --color $c
         python $S\CopyFilesWithSuffix.py `
           data\datasets\coco\labels\$split `
-          data\datasets\coco_nvg_${c}_noisy\labels\$split _nvg2_$c
+          data\datasets\coco_nvg_${c}_noisy\labels\$split _nvg_$c
 
-        # clean: the same conversion with every degradation switched off
-        python $S\GenerateNVG.py `
+        python $S\GenerateNVGLegacy.py `
           data\datasets\coco\images\$split `
           data\datasets\coco_nvg_${c}_clean\images\$split --color $c `
-          --noise-intensity 0 --blur-amount 0 `
-          --bloom-intensity 0 --vignette-intensity 0
+          --noise-intensity 0 `
+          --blur-amount 0 `
+          --bloom-intensity 0 `
+          --vignette-intensity 0
         python $S\CopyFilesWithSuffix.py `
           data\datasets\coco\labels\$split `
-          data\datasets\coco_nvg_${c}_clean\labels\$split _nvg2_$c
+          data\datasets\coco_nvg_${c}_clean\labels\$split _nvg_$c
       }
     }
 
-Swap in `GenerateNVGLegacy.py`, which writes `_nvg_*`, to reproduce the sets
-that are on disk now.
+New ones should be created with `GenerateNVG.py`, which places grain in the
+shadows where the device puts it and writes `_nvg2_*`:
 
-The clean and noisy split is visible in the measurements: `AnalyzeNVG.py`
-reports edge/center near 1.0 for the clean sets, meaning no vignette, and
-around 0.45 for the noisy ones.
+    foreach ($c in "green", "white") {
+      foreach ($split in "train2017", "val2017") {
+
+        python $S\GenerateNVG.py `
+          data\datasets\coco\images\$split `
+          data\datasets\coco_nvg2_${c}_noisy\images\$split `
+          --config data\day2night\nvg_config_$c.json
+        python $S\CopyFilesWithSuffix.py `
+          data\datasets\coco\labels\$split `
+          data\datasets\coco_nvg2_${c}_noisy\labels\$split _nvg2_$c
+
+        python $S\GenerateNVG.py `
+          data\datasets\coco\images\$split `
+          data\datasets\coco_nvg2_${c}_clean\images\$split `
+          --config data\day2night\nvg_config_$c.json `
+          --noise-intensity 0 `
+          --blur-amount 0 `
+          --bloom-intensity 0 `
+          --vignette-intensity 0
+        python $S\CopyFilesWithSuffix.py `
+          data\datasets\coco\labels\$split `
+          data\datasets\coco_nvg2_${c}_clean\labels\$split _nvg2_$c
+      }
+    }
+
+The configs are measured from the real captures:
+
+    python $S\AnalyzeNVG.py data\day2night\real_green\*.jpg data\day2night\real_green\*.png `
+      --label real_green --config-color green `
+      --config data\day2night\nvg_config_green.json
+
+    python $S\AnalyzeNVG.py data\day2night\real_white\*.jpg data\day2night\real_white\*.png `
+      --label real_white --config-color white `
+      --config data\day2night\nvg_config_white.json
+
+`GenerateNVGLegacy.py` is frozen and must not be edited. The flags above are
+as recorded in `MA_Paper/supplementary/code/Readme.md`; the four-folder
+layout is not, since the original calls wrote into a single `coco_nvg`.
+
+New yaml files are needed to point at `coco_nvg2_*`; the existing ones name
+the legacy folders.
 
 ### The yaml files combine them
 
