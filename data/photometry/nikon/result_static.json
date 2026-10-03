@@ -1,13 +1,13 @@
 {
-  "label": "scene",
+  "label": "static",
   "sources": {
-    "dark": "noise_scene.json",
-    "measure": "signal_scene.json"
+    "dark": "noise_static.json",
+    "measure": "signal_static.json"
   },
   "calibration": {
     "K": 12.5,
     "rho_ref": 0.178,
-    "y_mid": 0.0384467126275327,
+    "y_mid": 0.038446712627532686,
     "channel": "green",
     "standard": "ISO 2720:1974"
   },
@@ -21,9 +21,9 @@
   },
   "frames": [
     {
-      "label": "scene",
+      "label": "static",
       "kind": "dark",
-      "file": "s2_01_lensCOV_30s_040215.NEF",
+      "file": "s02_01_lensCOV_30s_040215.NEF",
       "t_s": 0.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -44,9 +44,9 @@
       "lux_hi": null
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "dark",
-      "file": "s2_01_lensCOV_30s_040319.NEF",
+      "file": "s02_01_lensCOV_30s_040319.NEF",
       "t_s": 64.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -67,9 +67,9 @@
       "lux_hi": null
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "dark",
-      "file": "s2_01_lensCOV_30s_040423.NEF",
+      "file": "s02_01_lensCOV_30s_040423.NEF",
       "t_s": 128.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -90,9 +90,9 @@
       "lux_hi": null
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "measure",
-      "file": "s2_03_lensCLEAR_lapON_30s_040631.NEF",
+      "file": "s02_03_lensCLEAR_lapON_30s_040631.NEF",
       "t_s": 256.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -106,16 +106,16 @@
       "delta_dn": 8.432353098824871,
       "dark_model_se": 1.962077409239412e-05,
       "dark_model_se_dn": 0.3135988323187352,
-      "constant": 28.69132970688718,
-      "lux": 0.000504568234923098,
-      "lux_se": 1.876486995297433e-05,
-      "lux_lo": 0.0004858033649701236,
-      "lux_hi": 0.0005233331048760723
+      "constant": 28.691329706887192,
+      "lux": 0.0005045682349230981,
+      "lux_se": 1.8764869952974335e-05,
+      "lux_lo": 0.0004858033649701237,
+      "lux_hi": 0.0005233331048760724
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "measure",
-      "file": "s2_03_lensCLEAR_lapON_30s_040735.NEF",
+      "file": "s02_03_lensCLEAR_lapON_30s_040735.NEF",
       "t_s": 320.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -129,16 +129,16 @@
       "delta_dn": 8.774014656922594,
       "dark_model_se": 1.9262918393783324e-05,
       "dark_model_se_dn": 0.30787922468783885,
-      "constant": 28.69132970688718,
-      "lux": 0.0005250122992655254,
-      "lux_se": 1.8422624758429968e-05,
-      "lux_lo": 0.0005065896745070955,
-      "lux_hi": 0.0005434349240239553
+      "constant": 28.691329706887192,
+      "lux": 0.0005250122992655256,
+      "lux_se": 1.8422624758429975e-05,
+      "lux_lo": 0.0005065896745070956,
+      "lux_hi": 0.0005434349240239556
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "dark",
-      "file": "s2_04_lensCOV_30s_040839.NEF",
+      "file": "s02_04_lensCOV_30s_040839.NEF",
       "t_s": 384.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -159,9 +159,9 @@
       "lux_hi": null
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "dark",
-      "file": "s2_04_lensCOV_30s_040943.NEF",
+      "file": "s02_04_lensCOV_30s_040943.NEF",
       "t_s": 448.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -182,9 +182,9 @@
       "lux_hi": null
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "dark",
-      "file": "s2_04_lensCOV_30s_041047.NEF",
+      "file": "s02_04_lensCOV_30s_041047.NEF",
       "t_s": 512.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -205,9 +205,9 @@
       "lux_hi": null
     },
     {
-      "label": "scene",
+      "label": "static",
       "kind": "dark",
-      "file": "s2_04_lensCOV_30s_041151.NEF",
+      "file": "s02_04_lensCOV_30s_041151.NEF",
       "t_s": 576.0,
       "channel": "green",
       "exposure_s": 30.0,
@@ -229,12 +229,12 @@
     }
   ],
   "result": {
-    "lux_mean": 0.0005147902670943117,
-    "lux_spread": 0.03971338552654104,
-    "lux_se_dark_model": 1.8393816883482158e-05,
-    "lux_se_frame_scatter": 1.0222032171213716e-05,
-    "lux_se_combined": 2.1043346721764613e-05,
+    "lux_mean": 0.0005147902670943118,
+    "lux_spread": 0.03971338552654124,
+    "lux_se_dark_model": 1.8393816883482165e-05,
+    "lux_se_frame_scatter": 1.022203217121377e-05,
+    "lux_se_combined": 2.1043346721764646e-05,
     "lux_lo": 0.0004937469203725471,
-    "lux_hi": 0.0005358336138160763
+    "lux_hi": 0.0005358336138160765
   }
 }

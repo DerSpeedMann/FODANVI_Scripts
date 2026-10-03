@@ -1,7 +1,6 @@
 # Nikon D500 illuminance measurement
 
 Every number reported here comes from the scripts below, run in this order.
-Nothing was produced by hand.
 
     SceneLux.py        src/Processing/SceneLux.py
     SceneLuxColor.py   src/Processing/SceneLuxColor.py
@@ -11,22 +10,37 @@ Nothing was produced by hand.
 
 ## Result
 
-    scene illuminance   5.15e-04 lux +/- 10 %
+Two scenes were measured, and every record here carries the one it belongs to
+in its name.
+
+    static   5.15e-04 lux +/- 10 %     the dark scene, 80 mm f/4 ISO 3200
+    moving   3.79e-02 lux +/- 1.1 %    the vehicle scene, 38 mm f/4 ISO 51200
+
+The steps below are written for the static measurement. The moving one runs
+the same scripts against its own frames; what differs is listed under The
+moving measurement near the end.
+
+Its 1.1 % is a within-session figure and not comparable to the static 10 %,
+which is widened by a disagreement between two reference sessions that the
+moving set has no equivalent measurement of.
+
+### The static measurement
 
 Inside the run the error is 4.1 %: the drift fit is common to both signal
 frames so its 3.6 % does not average away, and the 2.0 % frame-to-frame
 scatter does. The two target calibration frames add 5.8 % of their own,
 which scales the result directly, and those two in quadrature give 7.1 %.
 
-The quoted 10 % is wider than that because the two sessions do not agree
-quite that well with each other, which the next section sets out.
+The quoted 10 % is wider than that because the two reference nights do not
+agree quite that well with each other, which the next section sets out.
 
-### Two sessions
+### Two reference sessions
 
-Both are kept, and the reference colors are calibrated from the two of them
-together. Measured one session against the other, at the same screen color:
+The reference colors were shot twice, s18 on 09-28 and s19 on 10-02, four
+days apart, and both are kept: the references are calibrated from the two of
+them together. Measured one against the other, at the same screen color:
 
-| color | s19 `y_mid` | s20 `y_mid` | s20 / s19 |
+| color | s18 `y_mid` | s19 `y_mid` | s19 / s18 |
 | --- | --- | --- | --- |
 | red | 0.015535 | 0.014822 | 0.95 |
 | green | 0.103644 | 0.089183 | 0.86 |
@@ -34,7 +48,7 @@ together. Measured one session against the other, at the same screen color:
 | white | 0.065730 | 0.070238 | 1.07 |
 
 Five to fourteen percent apart, in both directions, with nothing changed
-between them but the night. That is the reproducibility of this measurement
+between them but the four days. That is the reproducibility of this measurement
 and it is the reason the quoted uncertainty is 10 % rather than the 7.1 %
 a single session would suggest.
 
@@ -44,17 +58,17 @@ rests on it.
 
 ### The target color
 
-The target is calibrated from s20 alone. The color it needs is set by the
-scene, and the value in use was refined against a measurement until it
-matched:
+The target has its own session, s20, two frames shot a minute after the
+s19 references and under the same configuration. The color it needs is
+set by the scene, and the value in use was refined against a measurement
+until it matched:
 
 | | R/G | B/G | against 0.541 / 1.743 |
 | --- | --- | --- | --- |
 | earlier value, (163, 85, 255) | 0.528 | 1.698 | -2.4 %, -2.6 % |
 | **in use, (161, 79, 255)** | **0.534** | **1.755** | **-1.2 %, +0.7 %** |
 
-Both were shot in s20, twenty seconds apart, to compare them under one TV
-state. The refined value halves the error on both ratios and its pair is
+Both were shot twenty seconds apart, to compare them under one TV state. The refined value halves the error on both ratios and its pair is
 three times tighter, 5.8 % against 17.5 %, so it is the one kept and the
 earlier frames were removed.
 
@@ -84,7 +98,7 @@ by however much the illuminant's spectrum departs from the meter's weighting.
 
 Six colors, same card, nothing changed between them but the color on the
 screen. The references are four frames each, two from each session; the
-target is the two from s20.
+target is the pair in s20.
 
 | color | screen RGB | measured R/G | measured B/G | `y_mid` | scene lux it gives |
 | --- | --- | --- | --- | --- | --- |
@@ -113,16 +127,16 @@ the same thing. The ratios are R/G 0.541 and B/G 1.743.
 
 What none of this touches is the night vision gain. It is a ratio of two
 luminances computed with the same `y_mid`, so the calibration cancels exactly
-and the figures in step 8 are the same under any of them.
+and the figures in step 7 are the same under any of them.
 
 ## Before running anything
 
 The frames are not versioned. Fetch them and place them here:
 
-    bg_noise/                 7 frames, lens covered
-    dark_card/                2 frames, the measurement itself
-    direct_screen_light/     22 frames, two sessions of color references
-    trough_nvg/              11 frames
+    bg_noise/                39 frames, lens covered, s02 and s21
+    dark_card/                6 frames, the measurements themselves
+    direct_screen_light/     34 frames, the color references and the targets
+    trough_nvg/              11 frames, the gain sweep
 
 Set the variable every command below uses:
 
@@ -147,7 +161,7 @@ be looked at rather than committed.
 PowerShell does not expand wildcards for native commands, so paths containing
 one are resolved with `Get-ChildItem` before being passed. The same applies to
 decimal formatting: on a German locale `"{0:E4}" -f $x` produces a comma, which
-Python will not parse, so step 8 formats with `InvariantCulture`.
+Python will not parse, so step 7 formats with `InvariantCulture`.
 
 ## 0. Manifest
 
@@ -167,22 +181,17 @@ own color. This derives that color from the scene rather than choosing it by
 eye.
 
     python $S\SceneLuxColor.py estimate `
-        --signal dark_card\*.NEF --noise bg_noise\*.NEF `
-        --red   direct_screen_light\s19_03_calibRED_*.NEF `
-                direct_screen_light\s20_04_calibRED_*.NEF `
-        --green direct_screen_light\s19_06_calibGREEN_*.NEF `
-                direct_screen_light\s20_03_calibGREEN_*.NEF `
-        --blue  direct_screen_light\s19_04_calibBLUE_*.NEF `
-                direct_screen_light\s20_02_calibBLUE_*.NEF `
-        --white direct_screen_light\s19_05_calibWHITE_*.NEF `
-                direct_screen_light\s20_05_calibWHITE_*.NEF `
-        --black direct_screen_light\s19_01_calibBLACK_*.NEF `
-                direct_screen_light\s20_01_calibBLACK_*.NEF `
-        --record color_scene.json
+        --signal dark_card\s02_*.NEF --noise bg_noise\s02_*.NEF `
+        --red   direct_screen_light\s1[89]_*_calibRED_*.NEF `
+        --green direct_screen_light\s1[89]_*_calibGREEN_*.NEF `
+        --blue  direct_screen_light\s1[89]_*_calibBLUE_*.NEF `
+        --white direct_screen_light\s1[89]_*_calibWHITE_*.NEF `
+        --black direct_screen_light\s1[89]_*_calibBLACK_*.NEF `
+        --record color_static.json
 
     reads    2 scene frames, 7 dark frames, 20 display reference frames,
              four per color across the two sessions
-    writes   color_scene.json
+    writes   color_static.json
     gives    target R/G 0.541, B/G 1.743
              suggested screen RGB (171, 83, 255), which is not the
              value used; see The target color above
@@ -220,148 +229,95 @@ argument for the capture.
 Display the color, shoot the card under it, and check what the camera
 actually sees against the target:
 
-    python $S\SceneLuxColor.py refine --record color_scene.json `
-        --verify direct_screen_light\s20_07_calibSCENENEW_*.NEF `
+    python $S\SceneLuxColor.py refine --record color_static.json `
+        --verify direct_screen_light\s20_01_calibSTATIC_*.NEF `
         --shot-at 161 79 255
 
     reads    2 frames shot under the displayed color
-    writes   color_scene.json, appending the round to its history
-    gives    measured R/G 0.533, B/G 1.680,
-             which is -1.4 % and -3.6 % against the target,
-             correcting to RGB (161, 79, 255)
+    writes   color_static.json, appending the round to its history
+    gives    measured R/G 0.534, B/G 1.755,
+             which is -1.2 % and +0.7 % against the target,
+             correcting to RGB (163, 80, 255)
 
 `--shot-at` is what the frames were actually displayed under and is not
 optional in practice: the correction is measured relative to that drive, so
 letting the script assume the last suggestion silently corrects from the
 wrong place.
 
-The B/G miss of 3.6 % is outside the 3 % the script treats as close enough,
-so the target frames used for the calibration below are not as well matched
-as the previous session's were. Reshooting under (161, 79, 255) is the way to
-close it.
+Both misses are inside the 3 % the script treats as close enough, so the
+value in use stands and the correction it offers is not acted on. Shooting
+(163, 80, 255) would chase a difference smaller than the frame-to-frame
+scatter of the pair that measured it.
 
 ## 2. Calibration
 
-The reference colors are calibrated from both sessions together, four frames
-each; the target from its own two. The `--y-mid` passed here only scales the
-reported lux, and the `y_card` values are what the step exists to produce.
-Every frame is 80 mm f/4 ISO 3200 in aperture priority, matching the
+Only the target calibration is kept, because it is the only one the result
+reads. Every frame is 80 mm f/4 ISO 3200 in aperture priority, matching the
 measurement.
 
-    $refs = [ordered]@{
-        red   = @("s19_03_calibRED",   "s20_04_calibRED")
-        green = @("s19_06_calibGREEN", "s20_03_calibGREEN")
-        blue  = @("s19_04_calibBLUE",  "s20_02_calibBLUE")
-        white = @("s19_05_calibWHITE", "s20_05_calibWHITE")
-    }
-
-    foreach ($c in $refs.Keys) {
-        $files = @()
-        foreach ($pre in $refs[$c]) {
-            $files += (Get-ChildItem "direct_screen_light\$($pre)_*.NEF").FullName
-        }
-        python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
-            --record "calibration_${c}_80mm.json" --overlay-dir overlay
-    }
-
-    $files = (Get-ChildItem direct_screen_light\s20_07_calibSCENENEW_*.NEF).FullName
+    $files = (Get-ChildItem direct_screen_light\s20_01_calibSTATIC_*.NEF).FullName
     python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
-        --record calibration_scene_80mm.json --overlay-dir overlay
+        --record calibration_static.json --overlay-dir overlay
+
+The `--y-mid` passed here only scales the reported lux, and the `y_card`
+values are what the step exists to produce.
+
+    reads    2 target frames
+    writes   calibration_static.json
+    gives    y_mid 0.038447
 
 Black is absent on purpose: it carries no signal to calibrate against, and
 its only job is the leak measurement in step 1.
 
-    reads    4 frames per reference color, 2 for the target, 18 in total
-    writes   calibration_<color>_80mm.json
-    gives    y_mid 0.015178 red, 0.027686 blue, 0.038447 scene,
-             0.067984 white, 0.096413 green
+### The reference colors
 
-Only `calibration_scene_80mm.json` feeds the result. The other four exist to
-show the spread.
+The four reference colors in the table above are calibrated the same way, and
+their records are not kept. Nothing downstream reads them; their whole output
+is the `y_mid` column of that table, which is written down there. Anyone who
+wants the records back can run:
 
-Their `y_card` spreads are wider than a single session's, 4.9 % red, 11.0 %
-white, 17.8 % green, 21.8 % blue, because four frames across two nights
-include the session-to-session difference that two frames seconds apart do
-not. That is the honest figure for a reference color and it is why the
-target, which does set the result, is kept to one session.
-
-## 3. Verification
-
-Each color is re-run at its own derived `y_mid`, which turns the calibration
-frames back into an illuminance. Read what this does and does not establish
-before relying on it.
-
-    foreach ($c in $refs.Keys + "scene") {
-        $r = (Get-Content "calibration_${c}_80mm.json" | ConvertFrom-Json).captures
-        $yMid = ($r.y_card | Measure-Object -Average).Average
-        $files = @()
-        if ($c -eq "scene") {
-            $files = (Get-ChildItem direct_screen_light\s20_07_calibSCENENEW_*.NEF).FullName
-        } else {
-            foreach ($pre in $refs[$c]) {
-                $files += (Get-ChildItem "direct_screen_light\$($pre)_*.NEF").FullName
-            }
-        }
-        python $S\SceneLux.py --rois --y-mid $yMid $files `
-            --record "calibration_${c}_80mm_verified.json" --overlay-dir overlay
+    foreach ($c in "RED", "GREEN", "BLUE", "WHITE") {
+        $files = (Get-ChildItem "direct_screen_light\s1?_*_calib$($c)_*.NEF").FullName
+        python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
+            --record "calibration_ref_$($c.ToLower()).json" --overlay-dir overlay
     }
 
-    reads    the same 18 frames
-    writes   calibration_<color>_80mm_verified.json
+    reads    4 frames per color, 16 in total
+    gives    y_mid 0.015178 red, 0.028988 blue, 0.067984 white, 0.096413 green
 
-What comes back carries no information about the calibration. `y_mid` is
-defined as the mean of the same `y_card` values the step then divides by, so
-where a set shares a shutter the ratios average to exactly one and the
-measurement cancels out of its own check. What is left is
+They are named `ref` rather than `static`: the frames are s18 and s19, and
+the measured scene is s02, a different week again, so nothing ties them to
+the static measurement beyond being on the same display.
 
-    pi * K * N^2 / (rho * S * t) = 1.1031 / t
+Their `y_card` spreads are wider than a single session's, 4.9 % red, 11.0 %
+white, 17.8 % green, 21.8 % blue, because four frames across two sessions
+four days apart include a difference that two frames seconds apart do not.
+That is the honest figure for a reference color and it is why the target,
+which does set the result, is kept to one sitting.
 
-for this aperture and ISO. Two colors whose `y_mid` differ by a factor of
-two return the same lux if they were shot at the same shutter. The step
-cannot fail on a color basis, and the range across colors is the shutter
-speeds restated, not a spread in anything measured.
-
-What it is good for is the constants. The illuminance implied by the
-exposure the meter chose has to be plausible for a card lit by a television
-at this distance, and ones of lux is plausible. A thousand, or a thousandth,
-would mean K, rho or the ISO is wrong, or that the meter chose an exposure
-unrelated to the card. That is a check on the metering and on the constants
-together, and it is the only claim this step supports.
-
-The informative number is the disagreement inside each set, read in `y_card`
-rather than in lux because the result scales as 1/y_mid and `y_mid` is the
-mean of the set. The target's 5.8 % is what sets the uncertainty on the
-result.
-
-Read it in `y_card` rather than assuming lux will show it: where the meter
-splits a set across two shutters, the exposure difference partly cancels in
-lux and hides a disagreement that is still there in `y_card` and still
-scales the result. It happened to blue in s20, where the meter gave the two
-frames 1 s and 0.769 s.
-
-## 4 to 6. Noise, signal and result
+## 3 to 5. Noise, signal and result
 
 Run against the target calibration only.
 
-    $c = (Get-Content calibration_scene_80mm.json | ConvertFrom-Json).captures
+    $c = (Get-Content calibration_static.json | ConvertFrom-Json).captures
     $yMid = ($c.y_card | Measure-Object -Average).Average
 
-    $cov = (Get-ChildItem bg_noise\*.NEF).FullName
+    $cov = (Get-ChildItem bg_noise\s02_*.NEF).FullName
     python $S\SceneLux.py --rois --y-mid $yMid $cov `
-        --record noise_scene.json --overlay-dir overlay
+        --record noise_static.json --overlay-dir overlay
 
-    $clr = (Get-ChildItem dark_card\*.NEF).FullName
+    $clr = (Get-ChildItem dark_card\s02_*.NEF).FullName
     python $S\SceneLux.py --rois --y-mid $yMid $clr `
-        --record signal_scene.json --overlay-dir overlay
+        --record signal_static.json --overlay-dir overlay
 
-    python $S\SceneLuxResult.py --dark noise_scene.json `
-        --measure signal_scene.json --label scene `
-        --csv result_table_scene.csv --out result_scene.json `
-        --plot noise_model_scene.png
+    python $S\SceneLuxResult.py --dark noise_static.json `
+        --measure signal_static.json --label static `
+        --csv result_table_static.csv --out result_static.json `
+        --plot noise_model_static.png
 
     reads    7 lens-covered and 2 lens-clear frames
-    writes   noise_scene.json, signal_scene.json, result_scene.json,
-             result_table_scene.csv, noise_model_scene.png
+    writes   noise_static.json, signal_static.json, result_static.json,
+             result_table_static.csv, noise_model_static.png
     gives    5.148e-04 lux, +/- 2.10e-05 statistical
 
 Dark current rises while the sensor works, so one averaged dark frame only
@@ -379,23 +335,23 @@ centroid, which is what bracketing buys.
 The subtraction itself is independent of the calibration. It returns the same
 8.432 and 8.774 DN whichever color was used; only the scaling to lux differs.
 
-## 7. Through the night vision device
+## 6. Through the night vision device
 
 The gain control was stepped from its maximum down to its minimum and back,
 which the naming records as g1 to g4 and then g1 again.
 
-    $files = (Get-ChildItem trough_nvg\s5_0*.NEF).FullName
+    $files = (Get-ChildItem trough_nvg\s05_0*.NEF).FullName
     python $S\SceneLux.py --rois rois\rois_nvg.json --y-mid $yMid `
-        $files --overlay-dir overlay --record nvg_s5_record.json
+        $files --overlay-dir overlay --record nvg_s05_record.json
 
-This `y_mid` and the scene luminance in step 8 have to come from the same
+This `y_mid` and the scene luminance in step 7 have to come from the same
 calibration. They cancel only as a pair, and mismatching them returns a wrong
 gain rather than an error.
 
-    reads    s5_01_g1 x4, s5_02_g2 x2, s5_03_g3 x2, s5_04_g4 x2, s5_05_g1 x1
-    writes   nvg_s5_record.json, eleven overlays
+    reads    s05_01_g1 x4, s05_02_g2 x2, s05_03_g3 x2, s05_04_g4 x2, s05_05_g1 x1
+    writes   nvg_s05_record.json, eleven overlays
 
-## 8. Gain
+## 7. Gain
 
 The screen emits rather than reflects, so the quantity to compare is
 luminance. SceneLux reports the illuminance that would fall on a card of
@@ -404,13 +360,13 @@ from it cancels rho, so the assumed reflectance does not affect the gain. The
 script does that per frame and divides by the scene luminance measured without
 the device.
 
-    $lux = (Get-Content result_scene.json | ConvertFrom-Json).result.lux_mean
+    $lux = (Get-Content result_static.json | ConvertFrom-Json).result.lux_mean
     $L = ($lux * 0.178 / [Math]::PI).ToString("E4", [cultureinfo]::InvariantCulture)
 
-    python $S\SceneLuxGain.py nvg_s5_record.json `
+    python $S\SceneLuxGain.py nvg_s05_record.json `
         --scene-luminance $L --csv gain_table.csv --plot gain_model.png
 
-    reads    nvg_s5_record.json
+    reads    nvg_s05_record.json
     writes   gain_table.csv, one row per frame
              gain_model.png, the same rows plotted in capture order
     gives    7008, 6381, 6833, 6817 at g1 maximum
@@ -422,7 +378,7 @@ the device.
 The scene luminance passed here is 2.917e-05 cd/m2, which is 5.148e-04 lux on
 a card of reflectance 0.178.
 
-Steps 7 and 8 do not depend on the calibration and do not need rerunning when
+Steps 6 and 7 do not depend on the calibration and do not need rerunning when
 one changes. Writing the ratio out, everything the calibration contributes
 cancels:
 
@@ -465,7 +421,7 @@ aperture priority is used and the camera varies the shutter instead.
 Every direct frame, calibration, noise and signal, uses SceneLux's built-in
 default rectangles, which is what a bare `--rois` selects.
 
-`rois_nvg.json` is specific to session s5. Through the tube the card fills only
+`rois_nvg.json` is specific to session s05. Through the tube the card fills only
 the middle of a much wider field and sits off-center, so the frame-centered
 defaults do not apply. The patches sit diagonally at 0.095 of frame width from
 the reticle center (0.4770, 0.4657), clearing the outer ring at 0.055 by 0.020
@@ -477,18 +433,138 @@ frames. A different session will need them re-placed.
 | File | Written by |
 | --- | --- |
 | `MANIFEST.csv` | step 0, the frames to place here with sizes and checksums |
-| `color_scene.json` | step 1, the derived scene color and the match history |
-| `calibration_<color>_80mm.json` | step 2, five records, one per color |
-| `calibration_<color>_80mm_verified.json` | step 3, five lit-scene checks |
-| `noise_scene.json` | step 4, seven lens-covered frames |
-| `signal_scene.json` | step 5, two lens-clear frames |
-| `result_scene.json` | step 6, full log including the drift model |
-| `result_table_scene.csv` | step 6, every frame, noise and signal |
-| `noise_model_scene.png` | step 6, drift plot, not versioned |
-| `nvg_s5_record.json` | step 7, the gain sweep |
-| `gain_table.csv` | step 8, per-frame luminance gain |
-| `gain_model.png` | step 8, the gain sweep plotted for checking, not versioned |
-| `rois/` | input, the region definition for step 7 |
+| `color_static.json` | step 1, the derived scene color and the match history |
+| `calibration_static.json` | step 2, the target color, the only one kept |
+| `noise_static.json` | step 3, seven lens-covered frames |
+| `signal_static.json` | step 4, two lens-clear frames |
+| `result_static.json` | step 5, full log including the drift model |
+| `result_table_static.csv` | step 5, every frame, noise and signal |
+| `noise_model_static.png` | step 5, drift plot, not versioned |
+| `nvg_s05_record.json` | step 6, the gain sweep |
+| `gain_table.csv` | step 7, per-frame luminance gain |
+| `gain_model.png` | step 7, the gain sweep plotted for checking, not versioned |
+| `rois/` | input, the region definition for step 6 |
 | `overlay/` | ROI overlays written alongside each record, not versioned |
+| `*_moving.json`, `*_moving.csv` | the vehicle scene, the same steps against its own frames |
 
-Naming is `<session>_<series>_<state>_<exposure>_<HHMMSS>.NEF`.
+Naming is `<session>_<series>_<state>_<exposure>_<HHMMSS>.NEF`, with the
+session number zero-padded to two digits. Unpadded, `s2` sorts between `s19`
+and `s20` in every directory listing, which puts the earliest session in the
+middle of the set; `s02` sorts where it was shot.
+
+Both `bg_noise/` and `dark_card/` hold two measurements now, so every command
+above globs on the session rather than on the folder.
+
+## The moving measurement
+
+Same scripts, same order, different frames. Every frame in it is 38 mm f/4
+ISO 51200, the scene in manual at 1/3 s and the calibration in aperture
+priority.
+
+RGB (203, 201, 207) was found by shooting the card, measuring how far its
+ratios fell from the scene's, and stepping the drive until they matched; the
+matrix was not solved for it, because this display does not mix additively
+enough for the solve to be worth anything.
+
+    python $S\SceneLuxColor.py estimate `
+        --signal dark_card\s21_*.NEF --noise bg_noise\s21_*.NEF `
+        --red   direct_screen_light\s21_07_calibRED_*.NEF `
+        --green direct_screen_light\s21_06_calibGREEN_*.NEF `
+        --blue  direct_screen_light\s21_04_calibBLUE_*.NEF `
+        --white direct_screen_light\s21_08_calibWHITE_*.NEF `
+        --black direct_screen_light\s21_05_calibBLACK_*.NEF `
+        --record color_moving.json
+
+    reads    4 scene frames, 32 dark frames, 10 display reference frames
+    writes   color_moving.json
+    gives    target R/G 0.397, B/G 0.781
+             chromatic component 3.9 %, past the 3 % the model tolerates,
+             so its suggestion of (239, 238, 255) is unsound and unused
+
+That 3.9 % is the measurement behind the sentence above, and it is the one
+place the two scenes differ in kind rather than in numbers: the static
+display passes the same check under 2 %.
+
+    python $S\SceneLuxColor.py refine --record color_moving.json `
+        --verify direct_screen_light\s23_02_calibMOVING_*.NEF `
+        --shot-at 203 201 207
+
+    reads    2 frames shot under the displayed color
+    writes   color_moving.json, appending the round to its history
+    gives    measured R/G 0.391, B/G 0.797,
+             which is -1.5 % and +2.1 % against the target
+
+Then the calibration, the two scene records and the result:
+
+    python $S\SceneLux.py --rois --y-mid 0.04837403318646708 `
+        (Get-ChildItem direct_screen_light\s23_02_calibMOVING_*.NEF).FullName `
+        --record calibration_moving.json --overlay-dir overlay
+
+    $c = (Get-Content calibration_moving.json | ConvertFrom-Json).captures
+    $yMid = ($c.y_card | Measure-Object -Average).Average
+
+    python $S\SceneLux.py --rois --y-mid $yMid `
+        (Get-ChildItem bg_noise\s21_*.NEF).FullName `
+        --record noise_moving.json --overlay-dir overlay
+
+    python $S\SceneLux.py --rois --y-mid $yMid `
+        (Get-ChildItem dark_card\s21_*.NEF).FullName `
+        --record signal_moving.json --overlay-dir overlay
+
+    python $S\SceneLuxResult.py --dark noise_moving.json `
+        --measure signal_moving.json --label moving `
+        --csv result_table_moving.csv --out result_moving.json `
+        --plot noise_model_moving.png
+
+    reads    2 calibration frames, 32 lens-covered and 4 lens-clear
+    writes   calibration_moving.json, noise_moving.json, signal_moving.json,
+             result_moving.json, result_table_moving.csv,
+             noise_model_moving.png
+    gives    y_mid 0.078478, 3.794e-02 lux +/- 4.20e-04
+
+The calibration took three attempts: a 40 mm pair against a 38 mm scene,
+which put `y_mid` 6.4 % low and the illuminance 6.0 % high at 4.038e-02, then
+a 38 mm pair under poor light control that measured 7 to 11 % off target,
+then the pair in use. Neither of the first two is kept.
+
+## Sessions
+
+Numbers run in capture order, so a higher number was shot later. They are
+assigned here and mean nothing outside this repository, so the gaps are not
+missing data: more was shot than these results need, and what the steps
+below read is listed and placed in this folder. The rest belongs to the same
+capture set and can be fetched the same way if anyone wants to look.
+
+| session | what it is | when | frames kept |
+| --- | --- | --- | --- |
+| s02 | the static scene, lens covered and clear | 09-26 04:02 | yes |
+| s05 | the gain sweep through the device | 09-26 22:44 | yes |
+| s18 | display color references, first pass | 09-28 20:58 | yes |
+| s19 | display color references, second pass | 10-02 01:07 | yes |
+| s20 | the static target color | 10-02 01:11 | yes |
+| s21 | the moving scene and its color references | 10-02 04:49, 05:19 | yes |
+| s23 | the moving target color | 10-03 21:09 | yes |
+
+A target color and a set of color references are different captures doing
+different jobs, so they do not share a number. The references characterize
+the display; the target is the one calibration a result is computed from.
+s20 and s23 are those two targets, and each is read by exactly one record.
+
+s18 and s19 are the same reference set shot twice, four days apart. The
+second pass exists because the first alone could not show how well the set
+repeats, and the answer, 5 to 14 %, is what widens the quoted uncertainty.
+
+s21 is one continuous run, the scene at 04:49 and its references half an
+hour later.
+
+s22 is absent and s23 starts at `_02`: both were earlier attempts at the
+moving target and their frames were discarded. What they measured is in the
+section above; it is not in any record, because regenerating
+`color_moving.json` from the frames that are here dropped their rounds.
+
+The state token says what the camera was pointed at, so `calibSTATIC` and
+`calibMOVING` are the two targets. An earlier `calibSCENENEW` and `calibSCENE`
+meant those and are gone, because with two scenes neither name said which.
+
+Every frame any step reads is in this folder, and every record here was
+written by one of those steps. Nothing is hand-edited.

@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-01T23:35:23+00:00",
+  "generated_utc": "2026-10-03T01:33:02+00:00",
   "region": {
     "rois_normalised": {
       "q_ul": [
@@ -30,7 +30,7 @@
   },
   "captures": [
     {
-      "file": "s2_01_lensCOV_30s_040215.NEF",
+      "file": "s02_01_lensCOV_30s_040215.NEF",
       "exif": {
         "exposure_time": 30.0,
         "f_number": 4.0,
@@ -107,19 +107,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.00031102449487295806
+        "constant": 28.691329706887192,
+        "lux": 0.00031102449487295823
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s2_01_lensCOV_30s_040319.NEF",
+      "file": "s02_01_lensCOV_30s_040319.NEF",
       "exif": {
         "exposure_time": 30.0,
         "f_number": 4.0,
@@ -196,19 +196,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.0002986600087572476
+        "constant": 28.691329706887192,
+        "lux": 0.0002986600087572477
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s2_01_lensCOV_30s_040423.NEF",
+      "file": "s02_01_lensCOV_30s_040423.NEF",
       "exif": {
         "exposure_time": 30.0,
         "f_number": 4.0,
@@ -285,19 +285,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.0003853058334524929
+        "constant": 28.691329706887192,
+        "lux": 0.0003853058334524931
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s2_04_lensCOV_30s_040839.NEF",
+      "file": "s02_04_lensCOV_30s_040839.NEF",
       "exif": {
         "exposure_time": 30.0,
         "f_number": 4.0,
@@ -374,19 +374,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.00041666226585903356
+        "constant": 28.691329706887192,
+        "lux": 0.00041666226585903367
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s2_04_lensCOV_30s_040943.NEF",
+      "file": "s02_04_lensCOV_30s_040943.NEF",
       "exif": {
         "exposure_time": 30.0,
         "f_number": 4.0,
@@ -463,19 +463,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.0004180152478100229
+        "constant": 28.691329706887192,
+        "lux": 0.0004180152478100231
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s2_04_lensCOV_30s_041047.NEF",
+      "file": "s02_04_lensCOV_30s_041047.NEF",
       "exif": {
         "exposure_time": 30.0,
         "f_number": 4.0,
@@ -552,19 +552,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.0004580166611807911
+        "constant": 28.691329706887192,
+        "lux": 0.0004580166611807912
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s2_04_lensCOV_30s_041151.NEF",
+      "file": "s02_04_lensCOV_30s_041151.NEF",
       "exif": {
         "exposure_time": 30.0,
         "f_number": 4.0,
@@ -641,13 +641,13 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.00034786098226650036
+        "constant": 28.691329706887192,
+        "lux": 0.0003478609822665006
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }

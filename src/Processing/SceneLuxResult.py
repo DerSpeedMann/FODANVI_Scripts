@@ -65,7 +65,13 @@ def write_csv(path: Path, rows: List[Dict[str, Any]]) -> None:
 def plot(path: Path, table: List[Dict[str, Any]]) -> None:
     """The same rows the CSV holds, drawn. Every series is read out of the
     table so the figure cannot drift away from the numbers beside it. The
-    drift line is just dark_model_dn, which lies on the fit by construction."""
+    drift line is just dark_model_dn, which lies on the fit by construction.
+
+    The measurement frames can sit two orders of magnitude above the covered
+    ones, which flattens the drift this plot exists to show, so the y axis is
+    broken between the two whenever the gap is the larger part of the range.
+    A log axis would not do the same job: dark-subtracted levels go negative.
+    """
     import matplotlib
     matplotlib.use("Agg")           # never displays, and Qt fails when piped
     from matplotlib import pyplot as plt
@@ -74,31 +80,72 @@ def plot(path: Path, table: List[Dict[str, Any]]) -> None:
         rs = [r for r in table if r["kind"] == kind]
         return [r["t_s"] for r in rs], [r[key] for r in rs]
 
-    fig, ax = plt.subplots(figsize=(7, 4))
+    def pad(lo, hi, frac=0.15):
+        margin = (hi - lo) * frac or 1.0
+        return lo - margin, hi + margin
+
     t = [r["t_s"] for r in table]
     fit = [r["dark_model_dn"] for r in table]
     se = [r["dark_model_se_dn"] for r in table]
-    ax.fill_between(t, [f - e for f, e in zip(fit, se)],
-                    [f + e for f, e in zip(fit, se)],
-                    color="tab:blue", alpha=0.18, lw=0,
-                    label="drift model, +/-1 standard error")
-    ax.plot(t, fit, color="tab:blue", lw=1, label="linear drift model")
-    ax.plot(*series("dark", "y_card_dn"), "o", color="tab:blue",
-            label=f"lens-covered frames (n={sum(r['kind'] == 'dark' for r in table)})")
-    mt, mfit = series("measure", "dark_model_dn")
-    ax.errorbar(mt, mfit,
-                yerr=[r["dark_model_se_dn"] for r in table if r["kind"] == "measure"],
-                fmt="x", ms=9, color="tab:red", capsize=4, lw=1,
-                label="interpolated for measurement")
-    ax.errorbar(*series("measure", "y_card_dn"),
-                yerr=[r["dark_model_se_dn"] for r in table if r["kind"] == "measure"],
-                fmt="s", color="tab:green", capsize=4, lw=1,
-                label="measurement frames")
-    ax.set_xlabel("time since first frame (s)")
-    ax.set_ylabel(f"{table[0]['channel']}-channel level (DN)")
-    ax.legend(fontsize=8)
-    ax.grid(alpha=0.3)
-    fig.tight_layout()
+    band_lo = [f - e for f, e in zip(fit, se)]
+    band_hi = [f + e for f, e in zip(fit, se)]
+    dark_v = [r["y_card_dn"] for r in table if r["kind"] == "dark"]
+    meas_v = [r["y_card_dn"] for r in table if r["kind"] == "measure"]
+    meas_se = [r["dark_model_se_dn"] for r in table if r["kind"] == "measure"]
+
+    noise_lo, noise_hi = min(dark_v + band_lo), max(dark_v + band_hi)
+    sig_lo, sig_hi = min(meas_v), max(meas_v)
+    full = sig_hi - noise_lo
+    # Break only when the empty middle is most of the figure; below that a
+    # single axis reads better than two.
+    split = full > 0 and (sig_lo - noise_hi) > 0.5 * full
+
+    if split:
+        fig, (top, bot) = plt.subplots(
+            2, 1, sharex=True, figsize=(7, 5),
+            gridspec_kw={"height_ratios": [1, 2], "hspace": 0.07})
+        axes = (top, bot)
+    else:
+        fig, bot = plt.subplots(figsize=(7, 4))
+        top, axes = bot, (bot,)
+
+    for ax in axes:
+        ax.fill_between(t, band_lo, band_hi, color="tab:blue", alpha=0.18,
+                        lw=0, label="drift model, +/-1 standard error")
+        ax.plot(t, fit, color="tab:blue", lw=1, label="linear drift model")
+        ax.plot(*series("dark", "y_card_dn"), "o", color="tab:blue",
+                label=f"lens-covered frames (n={len(dark_v)})")
+        ax.errorbar(*series("measure", "dark_model_dn"), yerr=meas_se,
+                    fmt="x", ms=9, color="tab:red", capsize=4, lw=1,
+                    label="interpolated for measurement")
+        ax.errorbar(*series("measure", "y_card_dn"), yerr=meas_se,
+                    fmt="s", color="tab:green", capsize=4, lw=1,
+                    label="measurement frames")
+        ax.grid(alpha=0.3)
+
+    if split:
+        top.set_ylim(*pad(sig_lo, sig_hi))
+        bot.set_ylim(*pad(noise_lo, noise_hi))
+        top.spines["bottom"].set_visible(False)
+        bot.spines["top"].set_visible(False)
+        top.tick_params(bottom=False, labelbottom=False)
+        slash = dict(marker=[(-1, -0.5), (1, 0.5)], markersize=8, color="k",
+                     mec="k", mew=1, linestyle="none", clip_on=False)
+        top.plot([0, 1], [0, 0], transform=top.transAxes, **slash)
+        bot.plot([0, 1], [1, 1], transform=bot.transAxes, **slash)
+        fig.supylabel(f"{table[0]['channel']}-channel level (DN)", fontsize=10)
+    else:
+        bot.set_ylabel(f"{table[0]['channel']}-channel level (DN)")
+
+    bot.set_xlabel("time since first frame (s)")
+    bot.legend(fontsize=8)
+    if split:
+        # tight_layout cannot place a supylabel; these are fixed margins that
+        # leave room for it and for the legend.
+        fig.subplots_adjust(left=0.115, right=0.975, top=0.97, bottom=0.10,
+                            hspace=0.07)
+    else:
+        fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(path, dpi=150)
     plt.close(fig)

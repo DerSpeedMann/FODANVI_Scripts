@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-01T23:35:45+00:00",
+  "generated_utc": "2026-10-03T01:33:36+00:00",
   "region": {
     "rois_normalised": {
       "q_ul": [
@@ -30,7 +30,7 @@
   },
   "captures": [
     {
-      "file": "s5_01_g1_1s_224434.NEF",
+      "file": "s05_01_g1_1s_224434.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -107,19 +107,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 3.6073890590919153
+        "constant": 28.691329706887192,
+        "lux": 3.6073890590919166
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_01_g1_1s_224436.NEF",
+      "file": "s05_01_g1_1s_224436.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -196,19 +196,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 3.2850968898938513
+        "constant": 28.691329706887192,
+        "lux": 3.2850968898938526
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_01_g1_1s_224449.NEF",
+      "file": "s05_01_g1_1s_224449.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -285,19 +285,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 3.5175384121848823
+        "constant": 28.691329706887192,
+        "lux": 3.517538412184883
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_01_g1_1s_224451.NEF",
+      "file": "s05_01_g1_1s_224451.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -374,19 +374,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 3.509078342738002
+        "constant": 28.691329706887192,
+        "lux": 3.5090783427380035
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_02_g2_1s_224501.NEF",
+      "file": "s05_02_g2_1s_224501.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -463,19 +463,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.7185921881682198
+        "constant": 28.691329706887192,
+        "lux": 0.71859218816822
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_02_g2_1s_224503.NEF",
+      "file": "s05_02_g2_1s_224503.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -552,19 +552,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.7060514797390343
+        "constant": 28.691329706887192,
+        "lux": 0.7060514797390345
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_03_g3_1s_224510.NEF",
+      "file": "s05_03_g3_1s_224510.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -641,19 +641,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.2176265492097588
+        "constant": 28.691329706887192,
+        "lux": 0.21762654920975885
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_03_g3_1s_224512.NEF",
+      "file": "s05_03_g3_1s_224512.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -730,19 +730,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.21728128781737163
+        "constant": 28.691329706887192,
+        "lux": 0.21728128781737172
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_04_g4_1s_224520.NEF",
+      "file": "s05_04_g4_1s_224520.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -819,19 +819,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.1025834022795799
+        "constant": 28.691329706887192,
+        "lux": 0.10258340227957993
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_04_g4_1s_224522.NEF",
+      "file": "s05_04_g4_1s_224522.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -908,19 +908,19 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 0.10067107225152039
+        "constant": 28.691329706887192,
+        "lux": 0.10067107225152043
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }
     },
     {
-      "file": "s5_05_g1_1s_224537.NEF",
+      "file": "s05_05_g1_1s_224537.NEF",
       "exif": {
         "exposure_time": 1.0,
         "f_number": 4.0,
@@ -997,13 +997,13 @@
         "q_lr"
       ],
       "result": {
-        "constant": 28.69132970688718,
-        "lux": 3.490993193157769
+        "constant": 28.691329706887192,
+        "lux": 3.4909931931577702
       },
       "calibration": {
         "K": 12.5,
         "rho_ref": 0.178,
-        "y_mid": 0.0384467126275327,
+        "y_mid": 0.038446712627532686,
         "channel": "green",
         "standard": "ISO 2720:1974"
       }

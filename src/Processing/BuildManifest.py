@@ -100,7 +100,7 @@ def main() -> int:
     rows = []
     for path in sorted(args.folder.glob(args.pattern)):
         e = read_exif(path)
-        rows.append({
+        rows.append((str(e.get("time", "")), path.name, {
             "file": path.name,
             "folder": path.parent.name,
             **naming(path.stem),
@@ -113,7 +113,13 @@ def main() -> int:
             "metering": METERING.get(e.get("metering"), ""),
             "bytes": path.stat().st_size,
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-        })
+        }))
+
+    # Capture order, not folder order. One session is split across bg_noise,
+    # dark_card and direct_screen_light, so sorting by path interleaves
+    # sessions shot hours apart. Frames with no readable time go last.
+    rows.sort(key=lambda r: (r[0] == "", r[0], r[1]))
+    rows = [r[2] for r in rows]
 
     if not rows:
         print(f"no frames matched {args.pattern} under {args.folder}")

@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-01T23:45:17+00:00",
+  "generated_utc": "2026-10-03T01:53:27+00:00",
   "rois": {
     "q_ul": [
       0.422,
@@ -119,15 +119,15 @@
         "B/G": 0.6918908213815245
       },
       "frames": [
-        "s20_07_calibSCENENEW_1th_011103.NEF",
-        "s20_07_calibSCENENEW_1th_011105.NEF"
+        "s20_01_calibSTATIC_1th_011103.NEF",
+        "s20_01_calibSTATIC_1th_011105.NEF"
       ]
     }
   ],
   "frames": {
     "signal": [
       {
-        "file": "s2_03_lensCLEAR_lapON_30s_040631.NEF",
+        "file": "s02_03_lensCLEAR_lapON_30s_040631.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -165,7 +165,7 @@
         }
       },
       {
-        "file": "s2_03_lensCLEAR_lapON_30s_040735.NEF",
+        "file": "s02_03_lensCLEAR_lapON_30s_040735.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -205,7 +205,7 @@
     ],
     "noise": [
       {
-        "file": "s2_01_lensCOV_30s_040215.NEF",
+        "file": "s02_01_lensCOV_30s_040215.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -243,7 +243,7 @@
         }
       },
       {
-        "file": "s2_01_lensCOV_30s_040319.NEF",
+        "file": "s02_01_lensCOV_30s_040319.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -281,7 +281,7 @@
         }
       },
       {
-        "file": "s2_01_lensCOV_30s_040423.NEF",
+        "file": "s02_01_lensCOV_30s_040423.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -319,7 +319,7 @@
         }
       },
       {
-        "file": "s2_04_lensCOV_30s_040839.NEF",
+        "file": "s02_04_lensCOV_30s_040839.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -357,7 +357,7 @@
         }
       },
       {
-        "file": "s2_04_lensCOV_30s_040943.NEF",
+        "file": "s02_04_lensCOV_30s_040943.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -395,7 +395,7 @@
         }
       },
       {
-        "file": "s2_04_lensCOV_30s_041047.NEF",
+        "file": "s02_04_lensCOV_30s_041047.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -433,7 +433,7 @@
         }
       },
       {
-        "file": "s2_04_lensCOV_30s_041151.NEF",
+        "file": "s02_04_lensCOV_30s_041151.NEF",
         "exif": {
           "exposure_time": 30.0,
           "f_number": 4.0,
@@ -473,7 +473,7 @@
     ],
     "black": [
       {
-        "file": "s19_01_calibBLACK_1s_205827.NEF",
+        "file": "s18_01_calibBLACK_1s_205827.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -511,7 +511,7 @@
         }
       },
       {
-        "file": "s19_01_calibBLACK_1s_205829.NEF",
+        "file": "s18_01_calibBLACK_1s_205829.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -549,7 +549,7 @@
         }
       },
       {
-        "file": "s20_01_calibBLACK_1s_010719.NEF",
+        "file": "s19_01_calibBLACK_1s_010719.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -587,7 +587,7 @@
         }
       },
       {
-        "file": "s20_01_calibBLACK_1s_010721.NEF",
+        "file": "s19_01_calibBLACK_1s_010721.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -627,7 +627,7 @@
     ],
     "red": [
       {
-        "file": "s19_03_calibRED_1s_205920.NEF",
+        "file": "s18_03_calibRED_1s_205920.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -665,7 +665,7 @@
         }
       },
       {
-        "file": "s19_03_calibRED_1s_205922.NEF",
+        "file": "s18_03_calibRED_1s_205922.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -703,7 +703,7 @@
         }
       },
       {
-        "file": "s20_04_calibRED_1s_010937.NEF",
+        "file": "s19_04_calibRED_1s_010937.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -741,7 +741,7 @@
         }
       },
       {
-        "file": "s20_04_calibRED_1s_010939.NEF",
+        "file": "s19_04_calibRED_1s_010939.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -781,7 +781,7 @@
     ],
     "green": [
       {
-        "file": "s19_06_calibGREEN_1th_210021.NEF",
+        "file": "s18_06_calibGREEN_1th_210021.NEF",
         "exif": {
           "exposure_time": 0.7692307692307693,
           "f_number": 4.0,
@@ -819,7 +819,7 @@
         }
       },
       {
-        "file": "s19_06_calibGREEN_1th_210023.NEF",
+        "file": "s18_06_calibGREEN_1th_210023.NEF",
         "exif": {
           "exposure_time": 0.7692307692307693,
           "f_number": 4.0,
@@ -857,7 +857,7 @@
         }
       },
       {
-        "file": "s20_03_calibGREEN_2th_010915.NEF",
+        "file": "s19_03_calibGREEN_2th_010915.NEF",
         "exif": {
           "exposure_time": 0.625,
           "f_number": 4.0,
@@ -895,7 +895,7 @@
         }
       },
       {
-        "file": "s20_03_calibGREEN_2th_010916.NEF",
+        "file": "s19_03_calibGREEN_2th_010916.NEF",
         "exif": {
           "exposure_time": 0.625,
           "f_number": 4.0,
@@ -935,7 +935,7 @@
     ],
     "blue": [
       {
-        "file": "s19_04_calibBLUE_1s_205942.NEF",
+        "file": "s18_04_calibBLUE_1s_205942.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -973,7 +973,7 @@
         }
       },
       {
-        "file": "s19_04_calibBLUE_1s_205943.NEF",
+        "file": "s18_04_calibBLUE_1s_205943.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -1011,7 +1011,7 @@
         }
       },
       {
-        "file": "s20_02_calibBLUE_1s_010828.NEF",
+        "file": "s19_02_calibBLUE_1s_010828.NEF",
         "exif": {
           "exposure_time": 1.0,
           "f_number": 4.0,
@@ -1049,7 +1049,7 @@
         }
       },
       {
-        "file": "s20_02_calibBLUE_1th_010830.NEF",
+        "file": "s19_02_calibBLUE_1th_010830.NEF",
         "exif": {
           "exposure_time": 0.7692307692307693,
           "f_number": 4.0,
@@ -1089,7 +1089,7 @@
     ],
     "white": [
       {
-        "file": "s19_05_calibWHITE_2th_210004.NEF",
+        "file": "s18_05_calibWHITE_2th_210004.NEF",
         "exif": {
           "exposure_time": 0.4,
           "f_number": 4.0,
@@ -1127,7 +1127,7 @@
         }
       },
       {
-        "file": "s19_05_calibWHITE_2th_210005.NEF",
+        "file": "s18_05_calibWHITE_2th_210005.NEF",
         "exif": {
           "exposure_time": 0.4,
           "f_number": 4.0,
@@ -1165,7 +1165,7 @@
         }
       },
       {
-        "file": "s20_05_calibWHITE_2th_011007.NEF",
+        "file": "s19_05_calibWHITE_2th_011007.NEF",
         "exif": {
           "exposure_time": 0.4,
           "f_number": 4.0,
@@ -1203,7 +1203,7 @@
         }
       },
       {
-        "file": "s20_05_calibWHITE_2th_011008.NEF",
+        "file": "s19_05_calibWHITE_2th_011008.NEF",
         "exif": {
           "exposure_time": 0.4,
           "f_number": 4.0,
