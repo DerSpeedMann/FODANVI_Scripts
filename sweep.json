@@ -59,12 +59,6 @@
       "suffix": "_blue",
       "args": [],
       "describe": "green shifted to blue"
-    },
-    "processed": {
-      "script": "Preprocess.py",
-      "suffix": "_processed",
-      "args": [],
-      "describe": "CLAHE and denoise"
     }
   },
   "variants": [
@@ -76,9 +70,6 @@
         ],
         [
           "blue"
-        ],
-        [
-          "processed"
         ]
       ]
     }
