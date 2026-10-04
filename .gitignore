@@ -247,3 +247,9 @@ data/datasets/coco/
 *.onnx
 *.engine
 *.safetensors
+
+# Validation and training output. Every run here is reproducible from
+# sweep.json plus the weights and datasets, and one sweep writes 77 folders
+# of plots, sample images and predictions.json. What belongs in git is the
+# config that produced them, not the output.
+/runs/
