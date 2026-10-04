@@ -44,10 +44,27 @@ if (-not $pickedModels) { throw "no model matched: $($Models -join ', ')" }
 # Every config in the dataset folder, so dropping one in is enough to put it
 # in the sweep. Only the models need naming, since a weight file and the
 # validator that drives it cannot be worked out by looking.
-$pickedSets = @(Get-ChildItem (Join-Path $cfg.paths.datasets "*.yaml") -File |
-    Sort-Object Name |
-    Where-Object { $n = $_.BaseName; $Datasets | Where-Object { $n -like $_ } })
-if (-not $pickedSets) { throw "no dataset yaml matched: $($Datasets -join ', ')" }
+# Named, not discovered. The folder also holds groupings kept for training,
+# whose val split is the union of two single-conversion configs beside them,
+# and sweeping those would score the same images three times and report it
+# as three results.
+$named = @($cfg.datasets)
+if (-not $named) { throw "$Config lists no datasets" }
+
+$pickedSets = @($named | ForEach-Object {
+    $f = Join-Path $cfg.paths.datasets "$_.yaml"
+    if (-not (Test-Path $f)) { throw "$Config lists '$_', but $f does not exist" }
+    Get-Item $f
+} | Where-Object { $n = $_.BaseName; $Datasets | Where-Object { $n -like $_ } })
+if (-not $pickedSets) { throw "no dataset matched: $($Datasets -join ', ')" }
+
+# A variant built but never added to the list would otherwise be missing
+# from the results with nothing to show for it.
+$unlisted = @(Get-ChildItem (Join-Path $cfg.paths.datasets "*.yaml") -File |
+    Where-Object { $named -notcontains $_.BaseName } | ForEach-Object BaseName)
+if ($unlisted) {
+    Write-Host "not in $Config, not swept: $($unlisted -join ', ')`n"
+}
 
 # Fail before the first container rather than part way through a long sweep.
 if (-not $WhatIf) {

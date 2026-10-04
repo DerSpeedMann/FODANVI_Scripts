@@ -124,8 +124,14 @@ docker run --gpus all --rm `
 
 Validate models:
 
-(All three scripts print the per-class table and write a cleaned logs/console.log
-into their run folder under results/.)
+For the models and datasets in `sweep.json`, use `.\RunSweep.ps1` instead of
+these; see Running every validation below. What follows is the single run
+form, for a pair the sweep does not cover, such as the COCO baseline below,
+which validates against Ultralytics' own `coco.yaml` rather than anything in
+`data/datasets/`.
+
+(All three scripts print the per-class table and write a cleaned
+logs/console.log and tables/*.csv into their run folder.)
 
 docker run --gpus all --rm `
   --shm-size=18g `
@@ -242,17 +248,125 @@ the legacy folders.
 Each config lists several folders under `train:` and `val:`, so a grouping
 is a yaml rather than a copy of the images.
 
-| config | combines |
+| config | covers |
 | --- | --- |
 | `coco_nvg_clean.yaml` | green clean + white clean |
 | `coco_nvg_noisy.yaml` | green noisy + white noisy |
 | `coco_nvg_green.yaml` | green clean + green noisy |
 | `coco_nvg_white.yaml` | white clean + white noisy |
+| `coco_nvg_green_clean.yaml` | that conversion alone |
+| `coco_nvg_green_noisy.yaml` | that conversion alone |
+| `coco_nvg_white_clean.yaml` | that conversion alone |
+| `coco_nvg_white_noisy.yaml` | that conversion alone |
 | `real_nvg.yaml` | the real captures, val only |
+| `real_nvg_grayscale.yaml` | the real captures, grayscaled |
+| `real_nvg_blue.yaml` | the real captures, green shifted to blue |
+
+The four single-conversion configs exist so a model can be scored against
+one conversion on its own; the combined four are what training uses.
 
 They set `path: /datasets`, which is the mount target inside the container,
-not a host path. `real_nvg.yaml` uses `path: real_nvg` with splits relative
-to it, a different style that resolves the same way.
+not a host path. The `real_nvg` configs use `path: real_nvg...` with splits
+relative to it, a different style that resolves the same way.
+
+## Creating the dataset variants
+
+`sweep.json` at the repository root drives this and the sweep below. Its
+`variants` block is a list of source datasets and the generator chains to
+apply to each:
+
+    "variants": [
+      { "source": "real_nvg", "chains": [["grayscale"], ["blue"]] }
+    ]
+
+Every name in a chain comes from the `generators` block beside it, which
+gives the script in `src/Processing`, the suffix that script appends, and
+any extra arguments it takes after the input and output folders.
+
+    .\BuildDatasets.ps1                        build whatever is missing
+    .\BuildDatasets.ps1 -Only real_nvg_blue    one of them
+    .\BuildDatasets.ps1 -Force                 rebuild even if present
+    .\BuildDatasets.ps1 -WhatIf                list without building
+
+A chain runs its generators in order, each over the previous one's output,
+so `["grayscale", "blue"]` gives `real_nvg_grayscale_blue` with files
+suffixed `_grayscale_blue`. The dataset is named for its source and those
+suffixes and is never named in the config, so the folder and the filenames
+cannot disagree. Intermediate steps go to a staging folder that is deleted
+on success, so a chain that dies half way cannot leave something that looks
+like a finished dataset.
+
+Labels are copied by `CopyFilesWithSuffix.py` with the same suffix, because
+Ultralytics pairs an image with its label by stem. The script checks that
+pairing and fails rather than write a dataset that would score zero without
+explaining why.
+
+The yaml it writes lands in `data/datasets/`, and that is what puts the
+variant into the sweep.
+
+## Running every validation
+
+    .\RunSweep.ps1
+
+Every model in `sweep.json` against every dataset in it, one container
+per pair. Seven models and seven datasets is 49 runs.
+
+    .\RunSweep.ps1 -WhatIf                list the runs without making them
+    .\RunSweep.ps1 -Datasets real_nvg*    only the real captures, 21 runs
+    .\RunSweep.ps1 -Models yolo12x        one model
+    .\RunSweep.ps1 -Force                 redo runs that already exist
+
+Both halves of the matrix are named in `sweep.json`, under `models` and
+`datasets`. Nothing is discovered, because `data/datasets/` also holds
+groupings kept for training: `coco_nvg_clean`, `coco_nvg_green`,
+`coco_nvg_noisy` and `coco_nvg_white` each have a val split that is the
+union of two single-conversion configs beside them. Sweeping the folder
+would score every converted image three times, once alone and once in each
+grouping it belongs to, and report the three as separate results, 60000
+images per model where 20000 are distinct.
+
+Naming them has a cost: building a variant is no longer enough to get it
+scored, it has to be added to `datasets` too. So the script lists any config
+in the folder that it was not told about, rather than let a set that was
+built on purpose go quietly unmeasured. A name in the list with no file
+behind it stops the sweep before the first container.
+
+Results land in `runs/val_<model>_<dataset>/`, named for the pair:
+
+| in each run folder | what |
+| --- | --- |
+| `logs/console.log` | the whole run, progress redraws collapsed |
+| `tables/per_class_metrics.csv` | one row per class, plus an `all` row |
+| `tables/supercategory_metrics.csv` | the same averaged per COCO supercategory |
+| `predictions.json` | every detection, so metrics can be recomputed |
+| `confusion_matrix*.png`, `Box*_curve.png` | the usual Ultralytics plots |
+| `val_batch*_{labels,pred}.jpg` | sample predictions against truth |
+
+The two CSVs are the results. Nothing has to be read back out of the
+terminal.
+
+A run whose folder already exists is skipped, so an interrupted sweep
+resumes by being started again. A missing weight or config fails before the
+first container rather than an hour in. `runs/` is not versioned.
+
+Budget hours, not minutes: four of the seven configs are 5000 image COCO
+validation splits, and RF-DETR installs itself into the container on every
+run. `-Datasets real_nvg*` is 21 runs over 66 images each and checks
+the whole chain first.
+
+## Comparing the runs
+
+    python src\Processing\CompareRuns.py
+
+Reads the `all` row of every finished run and writes into `data/results/`:
+
+    comparison.csv          one row per run
+    comparison.tex          the same as a booktabs longtable
+    matrix_map50_95.tex     a model by dataset grid, `--metric` to change it
+
+It prints how many of the expected runs it found and names any that have no
+tables yet, and a cell with no run is a dash rather than a blank, so a
+partial sweep is visible rather than quietly short.
 
 Fine Tune:
 docker run --gpus all --rm `
@@ -305,25 +419,10 @@ docker run --gpus all --rm `
 	
 Performance testing:
 
-docker run --gpus all --rm `
-  --shm-size=12g `
-  -v ${PWD}\data\datasets:/datasets `
-  -v ${PWD}\data\models:/models `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
-  -v ${PWD}\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
-  python /workspace/yolo_val.py /models/yolo11s_clean-noisy.pt /datasets/coco_nvg_clean.yaml validate_clean-noisy_on_clean
-	
-docker run --gpus all --rm `
-  --shm-size=12g `
-  -v ${PWD}\data\datasets:/datasets `
-  -v ${PWD}\data\models:/models `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
-  -v ${PWD}\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
-  python /workspace/yolo_val.py /models/yolo11s_clean-noisy.pt /datasets/coco_nvg_noisy.yaml validate_clean-noisy_on_noisy
+Covered by `.\RunSweep.ps1`, which runs every model in `sweep.json` against
+every config in `data/datasets/` and names each result for the pair. See
+Running every validation.
 
-  
 Models:
 
 yolo11n.pt - Nano (fastest, least accurate)

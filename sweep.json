@@ -5,6 +5,15 @@
     "processing": "src/Processing",
     "runs": "runs"
   },
+  "datasets": [
+    "coco_nvg_green_clean",
+    "coco_nvg_green_noisy",
+    "coco_nvg_white_clean",
+    "coco_nvg_white_noisy",
+    "real_nvg",
+    "real_nvg_grayscale",
+    "real_nvg_blue"
+  ],
   "validators": {
     "yolo": {
       "script": "yolo_val.py"
