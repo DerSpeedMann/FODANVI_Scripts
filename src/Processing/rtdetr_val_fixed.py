@@ -1,4 +1,4 @@
-﻿"""
+"""
 RT-DETR Validation Script with ratio_pad Fix
 
 This script patches the ultralytics scale_boxes function to handle RT-DETR's

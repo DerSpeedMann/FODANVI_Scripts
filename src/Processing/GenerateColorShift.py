@@ -129,11 +129,11 @@ def color_shift_images(input_folder: str, output_folder: str | None = None,
                 save_kwargs['subsampling'] = 0
 
             shifted_img.save(output_file_path, **save_kwargs)
-            print(f"✓ Saved: {output_name}")
+            print(f"ok: Saved: {output_name}")
             processed_count += 1
 
         except Exception as e:
-            print(f"✗ Error processing {image_file.name}: {e}")
+            print(f"fail: Error processing {image_file.name}: {e}")
             failed_count += 1
 
     print(f"\n{'='*60}")

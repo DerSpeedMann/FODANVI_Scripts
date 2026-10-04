@@ -551,7 +551,7 @@ def start_video_stream(camera_index: int = CAMERA_INDEX,
                 filename = f"stream_capture_{timestamp}_{saved_count:03d}.jpg"
                 cv2.imwrite(filename, frame)
                 saved_count += 1
-                print(f"✓ Saved frame: {filename}")
+                print(f"ok: Saved frame: {filename}")
             elif key == ord('f'):  # Toggle FPS
                 show_fps_flag = not show_fps_flag
                 print(f"FPS display: {'ON' if show_fps_flag else 'OFF'}")

@@ -106,7 +106,7 @@ def test_format(camera_index: int, fourcc_name: str, fourcc_code: int) -> List[D
         }
         results.append(result)
 
-        format_match = "✓" if actual_fourcc == fourcc_name else f"→{actual_fourcc}"
+        format_match = "ok" if actual_fourcc == fourcc_name else f"->{actual_fourcc}"
         print(f"  {width}x{height}: {actual_fps:.1f} FPS (reported: {reported_fps:.0f}) [{format_match}]")
 
         cap.release()

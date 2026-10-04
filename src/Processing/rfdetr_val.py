@@ -57,7 +57,7 @@ MODEL_RESOLUTION = 560  # Must match the checkpoint's training resolution;
                         # 560 is RF-DETR-L's native resolution, the
                         # RFDETRLarge default in rfdetr 1.2.0.
 BATCH_SIZE = 1          # RF-DETR's predict() doesn't actually GPU-batch a list of
-                        # inputs — passing batch=8 ran ~4x slower than batch=1.
+                        # inputs - passing batch=8 ran ~4x slower than batch=1.
 OPTIMIZE_FOR_INFERENCE = False  # On the segmentation checkpoint used earlier (768 px)
                                 # this *hurt* throughput (1.6 it/s vs ~5 it/s eager):
                                 # the TorchScript tracer can't handle the model's
@@ -68,7 +68,7 @@ REMAP_COCO_91 = True    # Many RF-DETR checkpoints emit COCO 91-class IDs (1-90
                         # Set False if your YAML's `names:` already uses that
                         # space; True if it uses contiguous 0-79.
 
-# COCO 91-class (1-indexed, with gaps) → COCO 80-class (contiguous 0-indexed)
+# COCO 91-class (1-indexed, with gaps) -> COCO 80-class (contiguous 0-indexed)
 COCO_91_TO_80 = {
     1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9,
     11: 10, 13: 11, 14: 12, 15: 13, 16: 14, 17: 15, 18: 16, 19: 17,
@@ -258,7 +258,7 @@ def run_inference(model, pairs, valid_class_ids, forward_seconds=None):
     if dropped:
         print(f"WARNING: dropped {dropped} predictions with class_ids outside the YAML "
               f"taxonomy. Unique offending IDs: {sorted(dropped_ids)}")
-        print("  → Likely the checkpoint uses COCO's 91-class ID space (with gaps); "
+        print("  -> Likely the checkpoint uses COCO's 91-class ID space (with gaps); "
               "remap predictions to contiguous 0-79 to recover those detections.")
     return preds, predict_seconds
 
@@ -344,7 +344,7 @@ def print_ultralytics_table(per_class_pr, per_class_ap, names, total_images):
     """Print Ultralytics-style table: class | images | instances | P | R | mAP50 | mAP50-95."""
     classes = sorted(per_class_pr.keys())
     if not classes:
-        print("No classes with GT — table empty.")
+        print("No classes with GT - table empty.")
         return
 
     header = f"{'Class':>22}{'Images':>11}{'Instances':>11}{'P':>11}{'R':>11}{'mAP50':>11}{'mAP50-95':>11}"
@@ -424,7 +424,7 @@ def main():
         json.dump(preds, f)
 
     if not preds:
-        print("No predictions produced — aborting eval.")
+        print("No predictions produced - aborting eval.")
         sys.exit(1)
 
     coco_gt = COCO(str(gt_path))

@@ -198,11 +198,11 @@ def crop_nvg_images(input_folder: str, output_folder: str | None = None,
                 current_bounds: Tuple[int, int, int, int] | None = find_circular_nvg_bounds(img_array)
                 
                 if current_bounds:
-                    print(f"✓ Detected crop bounds: {current_bounds}\n")
+                    print(f"ok: Detected crop bounds: {current_bounds}\n")
                     if not per_image_detection:
                         detected_bounds = current_bounds
                 else:
-                    print(f"✗ Could not detect bounds for {image_file.name}\n")
+                    print(f"fail: Could not detect bounds for {image_file.name}\n")
                     failed_count += 1
                     continue
             else:
@@ -216,11 +216,11 @@ def crop_nvg_images(input_folder: str, output_folder: str | None = None,
             # Crop the image
             cropped_img: Image.Image = img.crop(current_bounds)
             cropped_img.save(output_file_path)
-            print(f"✓ Cropped: {image_file.name} -> {output_name}")
+            print(f"ok: Cropped: {image_file.name} -> {output_name}")
             cropped_count += 1
             
         except Exception as e:
-            print(f"✗ Error cropping {image_file.name}: {e}")
+            print(f"fail: Error cropping {image_file.name}: {e}")
             failed_count += 1
     
     print(f"\n{'='*60}")

@@ -238,7 +238,7 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
             img_bgr = cv2.imread(str(image_file))
 
             if img_bgr is None:
-                print(f"✗ Error: Could not read {image_file.name}")
+                print(f"fail: Error: Could not read {image_file.name}")
                 failed_count += 1
                 continue
 
@@ -255,11 +255,11 @@ def convert_to_nvg(input_folder: str, output_folder: str | None = None,
             if success:
                 processed_count += 1
             else:
-                print(f"✗ Failed to save: {output_name}")
+                print(f"fail: Failed to save: {output_name}")
                 failed_count += 1
 
         except Exception as e:
-            print(f"✗ Error processing {image_file.name}: {e}")
+            print(f"fail: Error processing {image_file.name}: {e}")
             failed_count += 1
 
     print(f"\n{'='*60}")

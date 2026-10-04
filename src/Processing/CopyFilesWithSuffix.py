@@ -52,7 +52,7 @@ def copy_files_with_suffix(input_folder: str, output_folder: str, suffix: str) -
             shutil.copy2(file, output_file_path)
             copied_count += 1
         except Exception as e:
-            print(f"✗ Error copying {file.name}: {e}")
+            print(f"fail: Error copying {file.name}: {e}")
             failed_count += 1
 
     print(f"\n{'='*60}")
