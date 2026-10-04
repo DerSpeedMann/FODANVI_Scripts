@@ -27,10 +27,6 @@
     }
   },
   "models": {
-    "yolo11x": {
-      "weight": "yolo11x.pt",
-      "validator": "yolo"
-    },
     "yolo11s": {
       "weight": "yolo11s.pt",
       "validator": "yolo"
