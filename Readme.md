@@ -27,17 +27,30 @@ Or fetch it by hand from https://cocodataset.org/#download, taking
 About 20 GB. The whole `data/datasets/coco/` tree is gitignored, including
 the annotation json and the split lists, since none of it is ours.
 
+### The capture archive
+
+One compressed download holding everything this project produced rather than
+fetched: the real captures, the photometry frames, the day to night
+references, and the two fine-tuned weight files. Unpack it over `data/`, so
+each folder lands where the table below says.
+
+    <url, not yet published>
+
+With it and COCO in place, every reported number can be recomputed here.
+Nothing else is needed; in particular no model has to be trained, because
+the fine-tuned weights are in the archive.
+
 ### Everything else
 
 | what | where it goes | how |
 | --- | --- | --- |
 | COCO 2017 | `data/datasets/coco/` | above |
-| Pre-trained weights | `data/models/` | `yolo11x.pt`, `yolo11s.pt`, `rtdetr-l.pt`, `rtdetr-x.pt` from Ultralytics; `rf-detr-large.pth` from the rfdetr package |
-| Fine-tuned weights | `data/models/` | produced by the fine-tuning runs below, not downloaded |
-| Real captures | `data/datasets/real_nvg/` | from the capture archive; `real_nvg.yaml` expects `images/val` |
+| Pre-trained weights | `data/models/` | five files, about 2 GB. Links, sizes and a download block are in [`data/models/README.md`](data/models/README.md) |
+| Fine-tuned weights | `data/models/` | two files, capture archive. Not published upstream; see the same file |
+| Real captures | `data/datasets/real_nvg/` | capture archive; `real_nvg.yaml` expects `images/val` |
 | Converted sets | `data/datasets/coco_nvg_*/` | generated, see below |
-| Photometry frames | `data/photometry/nikon/` | from the capture archive; `MANIFEST.csv` lists every frame with its checksum |
-| Day to night references | `data/day2night/` | from the capture archive |
+| Photometry frames | `data/photometry/nikon/` | capture archive; `MANIFEST.csv` lists every frame with its checksum |
+| Day to night references | `data/day2night/` | capture archive |
 
 A placed set can be checked before anything is run where a manifest exists.
 `data/photometry/nikon/README.md` carries the command for the photometry
@@ -55,16 +68,22 @@ The download story is only half written, and these are the gaps:
   night references have none, so a partial or altered copy looks identical
   to a complete one. `BuildManifest.py` already does this for a folder of
   raw frames and would want extending to jpg and png.
-- **The capture archive has no published location.** It is referred to here
-  as somewhere the frames come from, which is true for whoever has it and
-  useless to anyone else. It needs a URL, or an explicit statement that the
-  imagery is not distributed and the results are reproducible only from the
-  records.
-- **Weights are named but not pinned.** The table gives file names, not
-  versions or hashes, so a later Ultralytics release would silently change
-  what `yolo11x.pt` means.
-- **`data/models/` is currently empty**, so every docker command below
-  fails on a fresh clone until it is filled.
+- **The capture archive has no published location yet.** Everything else
+  above is a working link; this one is still a placeholder, and until it is
+  filled in the repository is only reproducible for whoever already holds
+  the archive.
+- **Weights are pinned only by release tag and size.** The Ultralytics
+  files come from the `v8.3.0` tag, so the name cannot drift to a later
+  build, and the recorded byte sizes catch a truncated download. Neither is
+  a content hash, which is what would actually pin them.
+- **`data/models/` starts empty**, so every docker command below fails on a
+  fresh clone until the downloads in `data/models/README.md` have run.
+- **`coco_nvg_green_clean/images/train2017` is short**, about 35 000 frames
+  against the roughly 118 000 in each of its three siblings, so training on
+  `coco_nvg_clean.yaml` or `coco_nvg_green.yaml` no longer reads the set the
+  published fine-tuned weights came from. Regenerating it gives a complete
+  set, not the original one. Validation splits are all complete at 5 000, so
+  this does not affect reproducing any reported number.
 
 ## Prepare Images
 
@@ -116,6 +135,15 @@ docker run --gpus all --rm `
   -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   python /workspace/yolo_val.py /models/yolo11x.pt coco.yaml val_yolo11x
+
+docker run --gpus all --rm `
+  --shm-size=18g `
+  -v ${PWD}\data\datasets:/datasets `
+  -v ${PWD}\data\models:/models `
+  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\src\Processing:/workspace `
+  ultralytics/ultralytics:latest `
+  python /workspace/yolo_val.py /models/yolo12x.pt /datasets/coco_nvg_clean.yaml val_yolo12x_clean
  
 docker run --gpus all --rm `
   --shm-size=8g `

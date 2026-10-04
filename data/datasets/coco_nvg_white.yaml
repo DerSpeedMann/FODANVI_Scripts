@@ -1,4 +1,4 @@
-﻿path: /datasets
+path: /datasets
 train:
   - coco_nvg_white_clean/images/train2017
   - coco_nvg_white_noisy/images/train2017

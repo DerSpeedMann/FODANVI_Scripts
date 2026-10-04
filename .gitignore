@@ -237,3 +237,13 @@ data/**/*.cache
 # it is 20 GB, and it carries annotation json and split lists that the image
 # and label rules above would not catch. Nothing in it is ours to version.
 data/datasets/coco/
+
+# Model weights. Every one is either downloaded from a pinned release URL or
+# produced by a fine-tuning run here, so none of them is ours to version, and
+# the five pre-trained files alone are about 2 GB. data/models/README.md lists
+# each with its source and size.
+*.pt
+*.pth
+*.onnx
+*.engine
+*.safetensors
