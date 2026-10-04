@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import io
+import logging
 import sys
 from pathlib import Path
 
@@ -42,21 +43,42 @@ class _Tee:
         return getattr(self._real, name)
 
 
-class capture_console:
-    """Context manager that tees stdout and stderr into a buffer."""
+# Ultralytics prints its per-class table through this logger, not through
+# print. Its handler is bound to whatever sys.stdout was when the package was
+# imported, which is the real stdout, so swapping sys.stdout afterwards does
+# not reach it and the table is missing from the saved log, silently and
+# exactly where it matters most.
+LOGGERS = ("ultralytics",)
 
-    def __init__(self) -> None:
+
+class capture_console:
+    """Context manager that tees stdout, stderr and the library loggers into
+    a buffer."""
+
+    def __init__(self, loggers=LOGGERS) -> None:
         self._buffer = io.StringIO()
         self._stdout = None
         self._stderr = None
+        self._names = tuple(loggers)
+        self._handler = None
 
     def __enter__(self) -> "capture_console":
         self._stdout, self._stderr = sys.stdout, sys.stderr
         sys.stdout = _Tee(self._stdout, self._buffer)
         sys.stderr = _Tee(self._stderr, self._buffer)
+
+        # Into the buffer only. The logger's own handler still writes to the
+        # terminal, so adding a teeing one here would print everything twice.
+        self._handler = logging.StreamHandler(self._buffer)
+        self._handler.setFormatter(logging.Formatter("%(message)s"))
+        for name in self._names:
+            logging.getLogger(name).addHandler(self._handler)
         return self
 
     def __exit__(self, exc_type, exc, tb) -> bool:
+        for name in self._names:
+            logging.getLogger(name).removeHandler(self._handler)
+        self._handler = None
         sys.stdout, sys.stderr = self._stdout, self._stderr
         return False
 

@@ -1,0 +1,86 @@
+{
+  "paths": {
+    "datasets": "data/datasets",
+    "models": "data/models",
+    "processing": "src/Processing",
+    "runs": "runs"
+  },
+  "validators": {
+    "yolo": {
+      "script": "yolo_val.py"
+    },
+    "rtdetr": {
+      "script": "rtdetr_val_fixed.py"
+    },
+    "rfdetr": {
+      "script": "rfdetr_val.py",
+      "pip": "rfdetr==1.2.0 transformers==4.53.3 pycocotools"
+    }
+  },
+  "models": {
+    "yolo11x": {
+      "weight": "yolo11x.pt",
+      "validator": "yolo"
+    },
+    "yolo11s": {
+      "weight": "yolo11s.pt",
+      "validator": "yolo"
+    },
+    "yolo12x": {
+      "weight": "yolo12x.pt",
+      "validator": "yolo"
+    },
+    "yolo11s_clean": {
+      "weight": "yolo11s_clean.pt",
+      "validator": "yolo"
+    },
+    "yolo11s_clean-noisy": {
+      "weight": "yolo11s_clean-noisy.pt",
+      "validator": "yolo"
+    },
+    "rtdetrx": {
+      "weight": "rtdetr-x.pt",
+      "validator": "rtdetr"
+    },
+    "rfdetr": {
+      "weight": "rf-detr-large.pth",
+      "validator": "rfdetr"
+    }
+  },
+  "generators": {
+    "grayscale": {
+      "script": "GenerateGrayscales.py",
+      "suffix": "_grayscale",
+      "args": [],
+      "describe": "grayscale"
+    },
+    "blue": {
+      "script": "GenerateColorShift.py",
+      "suffix": "_blue",
+      "args": [],
+      "describe": "green shifted to blue"
+    },
+    "processed": {
+      "script": "Preprocess.py",
+      "suffix": "_processed",
+      "args": [],
+      "describe": "CLAHE and denoise"
+    }
+  },
+  "variants": [
+    {
+      "source": "real_nvg",
+      "chains": [
+        [
+          "grayscale"
+        ],
+        [
+          "blue"
+        ],
+        [
+          "processed"
+        ]
+      ]
+    }
+  ]
+}
