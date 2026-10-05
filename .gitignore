@@ -252,7 +252,7 @@ data/datasets/coco/
 # sweep.json plus the weights and datasets, and one sweep writes 77 folders
 # of plots, sample images and predictions.json. What belongs in git is the
 # config that produced them, not the output.
-/runs/
+/data/runs/
 
 # Box annotations built from a dataset's own labels by
 # GenerateBoxAnnotations.py, so RF-DETR does not rebuild them across the

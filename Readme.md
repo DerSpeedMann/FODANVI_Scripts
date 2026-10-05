@@ -100,14 +100,14 @@ Check Images:
 
  docker run --gpus all --rm `
   -v ${PWD}\data\images:/data `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:latest `
   yolo detect predict model=/models/rtdetr-l.pt source=/data save_txt=True
   
 docker run --gpus all --rm `
   -v ${PWD}\data\images:/data `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:latest `
   yolo detect predict model=/models/yolo11x.pt source=/data save_txt=True
@@ -115,7 +115,7 @@ docker run --gpus all --rm `
 
 docker run --gpus all --rm `
   -v ${PWD}\data\images:/data `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:latest `
   yolo detect predict model=/models/yolo11s_clean-noisy.pt source=/data save_txt=True
@@ -137,7 +137,7 @@ docker run --gpus all --rm `
   --shm-size=18g `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   python /workspace/yolo_val.py /models/yolo11x.pt coco.yaml val_yolo11x
@@ -146,14 +146,14 @@ docker run --gpus all --rm `
   --shm-size=18g `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   python /workspace/yolo_val.py /models/yolo12x.pt /datasets/coco_nvg_clean.yaml val_yolo12x_clean
  
 docker run --gpus all --rm `
   --shm-size=8g `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\src\Processing:/workspace `
@@ -164,7 +164,7 @@ docker run --gpus all --rm `
   --shm-size=8g `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:latest `
   bash -c "pip install --quiet rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_val.py /models/rf-detr-large.pth /datasets/real_nvg.yaml val_rfdetr"
@@ -331,7 +331,7 @@ in the folder that it was not told about, rather than let a set that was
 built on purpose go quietly unmeasured. A name in the list with no file
 behind it stops the sweep before the first container.
 
-Results land in `runs/val_<model>_<dataset>/`, named for the pair:
+Results land in `data/runs/val_<model>_<dataset>/`, named for the pair:
 
 | in each run folder | what |
 | --- | --- |
@@ -347,7 +347,7 @@ terminal.
 
 A run whose folder already exists is skipped, so an interrupted sweep
 resumes by being started again. A missing weight or config fails before the
-first container rather than an hour in. `runs/` is not versioned.
+first container rather than an hour in. `data/runs/` is not versioned.
 
 Budget hours, not minutes: four of the seven configs are 5000 image COCO
 validation splits, and RF-DETR installs itself into the container on every
@@ -389,7 +389,7 @@ docker run --gpus all --rm `
   --shm-size=12g `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   ultralytics/ultralytics:latest `
   yolo detect train `
     model=/models/yolo11s.pt `
@@ -413,7 +413,7 @@ docker run --gpus all --rm `
   --shm-size=12g `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
-  -v ${PWD}\runs:/ultralytics/runs/detect `
+  -v ${PWD}\data\runs:/ultralytics/runs/detect `
   ultralytics/ultralytics:latest `
   yolo detect train `
     model=/models/yolo11s_clean.pt `

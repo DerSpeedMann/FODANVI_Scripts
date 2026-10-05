@@ -4,7 +4,7 @@
     Score every model in configs/sweep.json against every dataset in it, one
     docker run each, into a result folder named for the pair.
 
-    Run names are val_<model>_<dataset>, so runs/detect/val_yolo12x_green_noisy
+    Run names are val_<model>_<dataset>, so data/runs/val_yolo12x_green_noisy
     is yolo12x on the noisy green conversion. Each validation script writes
     logs/console.log, per_class_metrics.csv and supercategory_metrics.csv into
     its own run folder, so no result has to be read back out of the terminal.
@@ -178,7 +178,7 @@ foreach ($m in $pickedModels) {
         docker run --gpus all --rm --shm-size=$ShmSize `
             -v "${PWD}\$($cfg.paths.datasets -replace '/','\'):/datasets" `
             -v "${PWD}\$($cfg.paths.models   -replace '/','\'):/models" `
-            -v "${PWD}\runs:/ultralytics/runs/detect" `
+            -v "${PWD}\$($cfg.paths.runs -replace '/','\\'):/ultralytics/runs/detect" `
             -v "${PWD}\$($cfg.paths.processing -replace '/','\'):/workspace" `
             $Image @cmd
 

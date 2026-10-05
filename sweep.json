@@ -3,7 +3,7 @@
     "datasets": "data/datasets",
     "models": "data/models",
     "processing": "src/Processing",
-    "runs": "runs"
+    "runs": "data/runs"
   },
   "datasets": [
     "coco",
@@ -49,7 +49,7 @@
       "weight": "rtdetr-x.pt",
       "validator": "rtdetr"
     },
-    "rfdetr": {
+    "rfdetrl": {
       "weight": "rf-detr-large.pth",
       "validator": "rfdetr"
     }
