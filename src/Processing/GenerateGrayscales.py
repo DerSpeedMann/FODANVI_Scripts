@@ -54,7 +54,7 @@ def convert_folder_to_grayscale(input_folder: str, output_folder: str | None = N
         # Convert to grayscale
         try:
             img: Image.Image = Image.open(image_file)
-            grayscale_img: Image.Image = img.convert('L')
+            grayscale_img: Image.Image = img.convert('L').convert('RGB')
             grayscale_img.save(output_file_path)
             print(f"Converted: {image_file.name} -> {output_name}")
             converted_count += 1

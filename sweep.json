@@ -23,7 +23,8 @@
     },
     "rfdetr": {
       "script": "rfdetr_val.py",
-      "pip": "rfdetr==1.2.0 transformers==4.53.3 pycocotools"
+      "pip": "rfdetr==1.2.0 transformers==4.53.3 pycocotools",
+      "needs_box_annotations": true
     }
   },
   "models": {

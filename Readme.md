@@ -354,6 +354,22 @@ validation splits, and RF-DETR installs itself into the container on every
 run. `-Datasets real_nvg*` is 21 runs over 66 images each and checks
 the whole chain first.
 
+### Box annotations for RF-DETR
+
+Nothing to run: `RunSweep.ps1` builds these itself when they are missing.
+This is what it is doing when it prints `build box annotations for ...`.
+
+The converted COCO sets carry segmentation polygons rather than boxes,
+`cls x1 y1 x2 y2 ...`, because COCO ships masks and the conversion kept
+them. Ultralytics derives the enclosing box itself, so YOLO and RT-DETR
+score those sets normally. `rfdetr_val.py` has to be handed one, and it
+refuses to build its own:
+
+    python src\Processing\GenerateBoxAnnotations.py data\datasets\coco_nvg_green_clean.yaml
+
+That writes `<config>_gt.json` beside the config. The reason the sweep runs
+it on the host rather than letting the validator do it in the container per run.
+
 ## Comparing the runs
 
     python src\Processing\CompareRuns.py

@@ -76,6 +76,62 @@ if (-not $WhatIf) {
     }
 }
 
+# Windows sleeps on its idle timer regardless of a container working, and
+# a sweep is hours of no keyboard or mouse. This asks it to stay awake for
+# as long as this process lives, which needs no settings change and cannot
+# be left switched on afterwards. The display is left free to turn off; it
+# does not stop the GPU.
+$keepAwake = $null
+if (-not $WhatIf) {
+    try {
+        $keepAwake = Add-Type -PassThru -Name Power -Namespace Sweep `
+            -MemberDefinition @'
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern uint SetThreadExecutionState(uint esFlags);
+'@
+        # ES_CONTINUOUS | ES_SYSTEM_REQUIRED. Converted rather than written
+        # as a literal: 0x80000001 is a negative Int32 to PowerShell and will
+        # not cast to the UInt32 the call takes.
+        $hold = [Convert]::ToUInt32("80000001", 16)
+        if ($keepAwake::SetThreadExecutionState($hold) -eq 0) {
+            Write-Warning "could not hold off standby; check the sleep timeout"
+            $keepAwake = $null
+        }
+    } catch {
+        Write-Warning "could not hold off standby: $($_.Exception.Message)"
+        $keepAwake = $null
+    }
+}
+
+# A validator that needs prebuilt box annotations gets them built here,
+# on the host. Doing it in the container reads an image header and a label
+# file per image across the bind mount, which is hours per 5000 image split
+# against under a minute here, and it is the same file on every run.
+# rfdetr_val.py itself refuses to build one, so a gap cannot turn into a
+# silent four hour rebuild inside a run.
+if (-not $WhatIf) {
+    $needGt = @()
+    foreach ($m in $pickedModels) {
+        if (-not $cfg.validators.($m.Value.validator).needs_box_annotations) { continue }
+        foreach ($d in $pickedSets) { $needGt += $d }
+    }
+    foreach ($d in @($needGt | Sort-Object -Property BaseName -Unique)) {
+        $gt = Join-Path $cfg.paths.datasets "$($d.BaseName)_gt.json"
+        if (Test-Path $gt) { continue }
+        Write-Host "build box annotations for $($d.BaseName)"
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        python (Join-Path $cfg.paths.processing "GenerateBoxAnnotations.py") `
+            $d.FullName $gt 2>&1 | Where-Object { $_ -notmatch "^Reading GT" }
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = $prevEAP
+        if ($code -ne 0 -or -not (Test-Path $gt)) {
+            throw "could not build box annotations for $($d.BaseName)"
+        }
+    }
+    if ($needGt) { Write-Host "" }
+}
+
 $planned = $pickedModels.Count * $pickedSets.Count
 Write-Host "$planned run(s): $($pickedModels.Count) model(s) x $($pickedSets.Count) dataset(s)`n"
 
@@ -105,13 +161,20 @@ foreach ($m in $pickedModels) {
         # A validator needing packages the image lacks installs them first,
         # inside the same container, so nothing is left behind.
         if ($v.PSObject.Properties.Name -contains "pip") {
+            # Checked above, so it is there.
+            $gtArg = if ($v.needs_box_annotations) { " /datasets/$($d.BaseName)_gt.json" } else { "" }
             $cmd = @("bash", "-c",
-                     "pip install --quiet $($v.pip) && python $script $weight $data $name")
+                     "pip install --quiet --root-user-action=ignore $($v.pip) && python $script $weight $data $name$gtArg")
         } else {
             $cmd = @("python", $script, $weight, $data, $name)
         }
 
         Write-Host "run   $name"
+        # Anything a container writes to stderr becomes an ErrorRecord under
+        # ErrorActionPreference Stop, and a pip notice would end the sweep.
+        # The exit code is what says whether the run worked.
+        $prevEAP = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         docker run --gpus all --rm --shm-size=$ShmSize `
             -v "${PWD}\$($cfg.paths.datasets -replace '/','\'):/datasets" `
             -v "${PWD}\$($cfg.paths.models   -replace '/','\'):/models" `
@@ -119,11 +182,18 @@ foreach ($m in $pickedModels) {
             -v "${PWD}\$($cfg.paths.processing -replace '/','\'):/workspace" `
             $Image @cmd
 
+        $ErrorActionPreference = $prevEAP
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "$name exited $LASTEXITCODE"
             $failed += $name
         } else { $done++ }
     }
+}
+
+# ES_CONTINUOUS alone, which drops the request. It also lapses when the
+# process exits, so an interrupted sweep does not leave the machine awake.
+if ($keepAwake) {
+    [void]$keepAwake::SetThreadExecutionState([Convert]::ToUInt32("80000000", 16))
 }
 
 if (-not $WhatIf) {

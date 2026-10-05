@@ -7,7 +7,7 @@ pycocotools so results are directly comparable to Ultralytics' model.val()
 output (mAP50, mAP50-95, mAP75).
 
 Usage:
-    python rfdetr_val.py <model_path> <data_yaml> [name]
+    python rfdetr_val.py <model_path> <data_yaml> [name] [prebuilt_gt.json]
 
 Example:
     python rfdetr_val.py /models/rf-detr-large.pth /datasets/coco_nvg_clean.yaml val_rfdetr
@@ -50,7 +50,9 @@ from console_table_to_csv import write_tables_from_log
 
 # RF-DETR-L, the detection checkpoint `rf-detr-large.pth`. With rfdetr pinned
 # to 1.2.0 this class is the original Large model; see the pin note above.
-from rfdetr import RFDETRLarge as RFDETRClass
+# Imported where it is used, not here: the package only exists inside the
+# container, and GenerateBoxAnnotations.py reuses this module's label reading on
+# the host, where the mount that makes it slow is not in the way.
 
 CONF_THRESHOLD = 0.001  # Ultralytics uses 0.001 for val to maximize recall
 MODEL_RESOLUTION = 560  # Must match the checkpoint's training resolution;
@@ -126,6 +128,21 @@ def yolo_to_xywh(cx, cy, w, h, iw, ih):
     return [(cx - w / 2) * iw, (cy - h / 2) * ih, w * iw, h * ih]
 
 
+def polygon_to_xywh(coords, iw, ih):
+    """Enclosing box of a YOLO segmentation polygon, cls x1 y1 x2 y2 ...
+
+    The converted COCO sets carry polygons, because COCO ships segmentation
+    masks and the conversion kept them. Ultralytics derives the box itself,
+    so those sets score normally there; read here as cx cy w h the first two
+    points become a box somewhere else entirely, which does not raise and
+    scores near zero.
+    """
+    xs, ys = coords[0::2], coords[1::2]
+    x0, x1 = min(xs) * iw, max(xs) * iw
+    y0, y1 = min(ys) * ih, max(ys) * ih
+    return [x0, y0, x1 - x0, y1 - y0]
+
+
 def build_gt(pairs, names):
     images, annotations = [], []
     ann_id = 1
@@ -141,8 +158,13 @@ def build_gt(pairs, names):
                 if len(parts) < 5:
                     continue
                 cls = int(parts[0])
-                cx, cy, w, h = map(float, parts[1:5])
-                bbox = yolo_to_xywh(cx, cy, w, h, iw, ih)
+                vals = list(map(float, parts[1:]))
+                if len(vals) == 4:
+                    bbox = yolo_to_xywh(*vals, iw, ih)
+                elif len(vals) >= 6 and len(vals) % 2 == 0:
+                    bbox = polygon_to_xywh(vals, iw, ih)
+                else:
+                    continue
                 annotations.append({
                     "id": ann_id,
                     "image_id": img_id,
@@ -380,6 +402,8 @@ def main():
     model_path = sys.argv[1] if len(sys.argv) > 1 else "/models/rf-detr-large.pth"
     data_yaml = sys.argv[2] if len(sys.argv) > 2 else "/datasets/coco_nvg_clean.yaml"
     name = sys.argv[3] if len(sys.argv) > 3 else "val_rfdetr"
+    # Optional fourth argument: a prebuilt gt.json for this dataset.
+    prebuilt_gt = sys.argv[4] if len(sys.argv) > 4 else None
 
     out_dir = next_run_dir("/ultralytics/runs/detect", name)
     out_dir.mkdir(parents=True)
@@ -398,7 +422,45 @@ def main():
     pairs = collect_pairs(val_dirs)
     print(f"Found {len(pairs)} validation images across {len(val_dirs)} dir(s)")
 
+    # Required, not optional. Building this inside the container reads an
+    # image header and a label file per image across the bind mount, which
+    # is hours per 5000 image split against under a minute on the host, and
+    # it is the same file on every run. GenerateBoxAnnotations.py writes it
+    # once; build_gt below is kept for that script to call.
+    gt_path = out_dir / "gt.json"
+    if not prebuilt_gt:
+        raise SystemExit(
+            "no box annotations given. Build them on the host first:\n"
+            "  python src/Processing/GenerateBoxAnnotations.py "
+            f"<host path of {Path(data_yaml).name}>\n"
+            "then pass the resulting _gt.json as the fourth argument.")
+    if not Path(prebuilt_gt).exists():
+        raise SystemExit(
+            f"{prebuilt_gt} does not exist. Build it with "
+            "GenerateBoxAnnotations.py on the host.")
+
+    print(f"Reading GT from {prebuilt_gt}")
+    with open(prebuilt_gt) as f:
+        gt_dict = json.load(f)
+
+    # Image ids are positions in this list and the predictions are keyed by
+    # them, so the order has to match and not merely the count. The file was
+    # written on the host, so its paths use backslashes, which Path does not
+    # treat as separators here; split on both.
+    def _base(v):
+        return str(v).replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
+
+    want = [_base(x[0]) for x in pairs]
+    got = [_base(i["file_name"]) for i in gt_dict.get("images", [])]
+    if got != want:
+        first = next((n for n, (a, b) in enumerate(zip(got, want)) if a != b),
+                     min(len(got), len(want)))
+        raise SystemExit(
+            f"{prebuilt_gt} does not match this dataset: {len(got)} images "
+            f"against {len(want)}, first difference at index {first}")
+
     print(f"Loading RF-DETR from {model_path}...")
+    from rfdetr import RFDETRLarge as RFDETRClass
     model = RFDETRClass(pretrain_weights=model_path, resolution=MODEL_RESOLUTION)
     if OPTIMIZE_FOR_INFERENCE:
         try:
@@ -411,8 +473,6 @@ def main():
     if forward_seconds is None:
         print("Forward-pass timer not installed (no nn.Module attribute found).")
 
-    gt_dict = build_gt(pairs, names)
-    gt_path = out_dir / "gt.json"
     with open(gt_path, "w") as f:
         json.dump(gt_dict, f)
 
