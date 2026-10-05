@@ -230,6 +230,23 @@ def install_forward_timer(model):
     return accumulator
 
 
+def as_rgb(path):
+    """A path, unless the image is not RGB, in which case a converted copy.
+
+    RF-DETR raises on anything that is not three channels, and ten of COCO's
+    5000 validation images are single-channel grayscale. Everything else is
+    handed over as a path exactly as before, so only those ten take a
+    different route into predict().
+    """
+    try:
+        with Image.open(path) as im:
+            if im.mode == "RGB":
+                return str(path)
+            return im.convert("RGB")
+    except Exception:
+        return str(path)
+
+
 def run_inference(model, pairs, valid_class_ids, forward_seconds=None):
     preds = []
     dropped = 0
@@ -239,7 +256,7 @@ def run_inference(model, pairs, valid_class_ids, forward_seconds=None):
     with tqdm(total=n, desc="Inferring") as pbar:
         for start in range(0, n, BATCH_SIZE):
             chunk = pairs[start : start + BATCH_SIZE]
-            paths = [str(p[0]) for p in chunk]
+            paths = [as_rgb(p[0]) for p in chunk]
             actual = len(paths)
             # Optimized model requires fixed batch size; pad the last batch
             # and discard the padded results.
