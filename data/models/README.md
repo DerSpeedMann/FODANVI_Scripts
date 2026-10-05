@@ -55,6 +55,28 @@ The `v8.3.0` tag is what pins the Ultralytics weights: the same four file
 names under a later tag are different files. The byte sizes above are the
 weak second check, and they match the weight table in the thesis appendix.
 
+## What a weight file weighs
+
+`weight_sizes.csv` records two numbers per file: its size on disk, and the
+bytes of model parameters inside it. They are not the same thing. A released
+Ultralytics checkpoint is the model and nothing else, but a training
+checkpoint also carries optimiser state:
+
+| file | on disk | parameters |
+| --- | --- | --- |
+| `rf-detr-large.pth` | 1571 MB | 542 MB |
+| `yolo11s_clean.pt` | 38 MB | 18 MB |
+| `yolo12x.pt` | 119 MB | 118 MB |
+
+Both matter. The first is what a setup costs to move, the second what it
+costs to run, and comparing one model's file size against another's is only
+meaningful when they are the same kind of file.
+
+`CompareRuns.py` writes this file, measuring any weight it finds here whose
+size does not match the record. It is versioned rather than derived on
+demand because no weight file is in the repository: without the record, a
+fresh clone could not report a size until the whole set had been downloaded.
+
 ## Fine-tuned
 
 | File | Trained on | From |
