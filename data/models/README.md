@@ -5,7 +5,7 @@ the release URLs below or produced by a fine-tuning run, so none of them is
 ours to keep in history, and the pre-trained set alone is about 2 GB.
 `.gitignore` excludes `.pt`, `.pth`, `.onnx`, `.engine` and `.safetensors`
 everywhere, which also covers the checkpoints Ultralytics writes under
-`runs/`.
+`data/runs/`.
 
 Every docker command in the main Readme mounts this folder at `/models`, so
 a file placed here as `yolo12x.pt` is `/models/yolo12x.pt` inside the
@@ -78,7 +78,7 @@ That affects training only. The validation splits are complete at 5 000
 each, so every reported number recomputes from the five downloads above
 plus these two files.
 
-Ultralytics writes checkpoints to `runs/detect/<name>/weights/best.pt`. A
+Ultralytics writes checkpoints to `data/runs/<name>/weights/best.pt`. A
 model trained here has to be copied into this folder under one of the names
 above, because the validation commands read `/models` rather than the run
 folder.
