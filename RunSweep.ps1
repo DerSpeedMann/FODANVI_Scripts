@@ -122,7 +122,7 @@ if (-not $WhatIf) {
         $prevEAP = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
         python (Join-Path $cfg.paths.processing "GenerateBoxAnnotations.py") `
-            $d.FullName $gt 2>&1 | Where-Object { $_ -notmatch "^Reading GT" }
+            $d.FullName $gt
         $code = $LASTEXITCODE
         $ErrorActionPreference = $prevEAP
         if ($code -ne 0 -or -not (Test-Path $gt)) {

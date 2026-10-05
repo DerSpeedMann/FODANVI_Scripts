@@ -6,6 +6,7 @@
     "runs": "runs"
   },
   "datasets": [
+    "coco",
     "coco_nvg_green_clean",
     "coco_nvg_green_noisy",
     "coco_nvg_white_clean",
