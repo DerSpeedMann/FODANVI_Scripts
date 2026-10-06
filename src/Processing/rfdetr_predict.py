@@ -34,6 +34,10 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from console_logging import capture_console
+# RF-DETR emits COCO's 91-class ids, 1-90 with gaps, while the yaml names
+# are the contiguous 0-79. rfdetr_val.py maps between them; the same table
+# is used here so a prediction is labelled the same way a validation is.
+from rfdetr_val import COCO_91_TO_80, REMAP_COCO_91
 
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 MODEL_RESOLUTION = 560   # RF-DETR-L's native resolution, as in rfdetr_val.py
@@ -101,7 +105,10 @@ def main() -> int:
             order = np.argsort(-confs)
             draw = ImageDraw.Draw(im)
             for i in order:
-                label = names.get(int(cls[i]), str(int(cls[i])))
+                cid = int(cls[i])
+                if REMAP_COCO_91:
+                    cid = COCO_91_TO_80.get(cid, cid)
+                label = names.get(cid, f"class {cid}")
                 found.append((label, float(confs[i]), xyxy[i].tolist()))
                 x0, y0, x1, y1 = xyxy[i]
                 draw.rectangle([x0, y0, x1, y1], outline=(255, 0, 0), width=3)
