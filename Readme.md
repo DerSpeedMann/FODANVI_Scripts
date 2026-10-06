@@ -370,19 +370,115 @@ refuses to build its own:
 That writes `<config>_gt.json` beside the config. The reason the sweep runs
 it on the host rather than letting the validator do it in the container per run.
 
+## Predicting on images with no labels
+
+The sweep scores against ground truth. This is the other question: point a
+model at a capture nothing has labelled and see whether the subject is
+detected at all.
+
+One script per model family, named for the validator beside it:
+
+| family | script | notes |
+| --- | --- | --- |
+| YOLO | `yolo_predict.py` | |
+| RT-DETR | `rtdetr_predict.py` | carries the same `scale_boxes` patch as its validator |
+| RF-DETR | `rfdetr_predict.py` | needs the pip install, takes an output directory rather than a run name |
+
+Put the images in `data\images\`, which the commands below mount at
+`/data`. Each writes annotated images, a per-image `.txt` of the detections,
+and `logs/console.log`, into `data\runs\<name>\`.
+
+    docker run --gpus all --rm `
+      --shm-size=8g `
+      -v ${PWD}\data\images:/data `
+      -v ${PWD}\data\models:/models `
+      -v ${PWD}\data\datasets:/datasets `
+      -v ${PWD}\data\runs:/ultralytics/runs/detect `
+      -v ${PWD}\src\Processing:/workspace `
+      ultralytics/ultralytics:latest `
+      python /workspace/yolo_predict.py /models/yolo12x.pt /data predict_yolo12x 0.25
+
+    docker run --gpus all --rm `
+      --shm-size=8g `
+      -v ${PWD}\data\images:/data `
+      -v ${PWD}\data\models:/models `
+      -v ${PWD}\data\datasets:/datasets `
+      -v ${PWD}\data\runs:/ultralytics/runs/detect `
+      -v ${PWD}\src\Processing:/workspace `
+      ultralytics/ultralytics:latest `
+      python /workspace/rtdetr_predict.py /models/rtdetr-x.pt /data predict_rtdetrx 0.25
+
+    docker run --gpus all --rm `
+      --shm-size=8g `
+      -v ${PWD}\data\images:/data `
+      -v ${PWD}\data\models:/models `
+      -v ${PWD}\data\datasets:/datasets `
+      -v ${PWD}\data\runs:/ultralytics/runs/detect `
+      -v ${PWD}\src\Processing:/workspace `
+      ultralytics/ultralytics:latest `
+      bash -c "pip install --quiet --root-user-action=ignore rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_predict.py /models/rf-detr-large.pth /data /ultralytics/runs/detect/predict_rfdetrl 0.25"
+
+The last argument is the confidence threshold. 0.25 is a reasonable
+threshold for looking at a picture, but the sweep validates at 0.001 to
+maximise recall, so a subject can be found there and invisible here. Before
+concluding a model sees nothing, try 0.05.
+
+Nothing is scored, because there is nothing to score against. The output is
+what was detected and where.
+
+Two things to keep in mind when reading the result. The classes are COCO's,
+so a subject that is not one of the 80 can only be reported as whatever it
+most resembles, and an RC car has to come back as `car` or `truck` or not at
+all. And `yolo detect predict` further up does the YOLO detection too, but
+keeps no log in the run folder, which is why `yolo_predict.py` exists.
+
 ## Comparing the runs
 
     python src\Processing\CompareRuns.py
 
-Reads the `all` row of every finished run and writes into `data/results/`:
+Reads the `all` row of every run under `data\runs\` and writes into
+`data\results\`:
 
     comparison.csv          one row per run
-    comparison.tex          the same as a booktabs longtable
-    matrix_map50_95.tex     a model by dataset grid, `--metric` to change it
+    matrix_map50_95.csv     dataset rows, model columns
+    bars_map50_95.png       grouped bars, one group per dataset
+    models_map50_95.png     one point per model, ordered by parameter size
 
-It prints how many of the expected runs it found and names any that have no
-tables yet, and a cell with no run is a dash rather than a blank, so a
-partial sweep is visible rather than quietly short.
+`--metric` switches all of them between `map50_95`, `map50`, `precision`
+and `recall`. `--no-plots` writes the tables only.
+
+What a run was is read from the run itself, from the `Model` and `Data`
+lines the validators print into `logs/console.log`, so nothing has to be
+told which folders to look at and a run stays readable after the config
+that produced it has moved on. It prints how many runs it found, names any
+with no tables yet, and warns when a weight's size is neither measurable
+nor recorded.
+
+Two size columns, not one. `file_mb` is what the checkpoint costs to fetch,
+`weights_mb` the model parameters inside it. They differ where a file is a
+training checkpoint: `rf-detr-large.pth` is 1571 MB of which 542 MB is
+parameters, and the fine-tuned `yolo11s` weights are 38 MB against 18 MB,
+the same architecture as the 19 MB they came from. See
+`data\models\README.md`.
+
+### Drawing a subset
+
+`CompareRuns.py` draws everything it found, which is the record rather than
+the picture worth looking at. `PlotRuns.py` reads the same csv and draws any
+subset, so a figure can answer one question at a time:
+
+    python src\Processing\PlotRuns.py --models "yolo11s*" --prefix finetune
+    python src\Processing\PlotRuns.py --models "yolo12x,rtdetr-x,rf-detr-large" --prefix raw
+
+The first is one architecture trained three ways, so the spread is the
+effect of fine-tuning. The second is the pre-trained models on their own, so
+the spread is the effect of the model. Mixed together they are hard to read
+apart, because the three `yolo11s` weights are the same architecture and sit
+at the same parameter size.
+
+`--models` and `--datasets` take comma separated globs matched against the
+csv, `--prefix` keeps a selection from overwriting the default figures, and
+`--metric` is the same four as above.
 
 Fine Tune:
 docker run --gpus all --rm `

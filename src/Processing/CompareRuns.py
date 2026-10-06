@@ -21,8 +21,10 @@ by PlotRuns.py. That script takes the same csv and will draw any subset of
 it, which is what to reach for when a figure should answer one question
 rather than show every run at once.
 
-A run with no tables is named rather than skipped quietly: an absent row in
-a thesis table should be visible here first.
+A validation run with no tables is named rather than skipped quietly: an
+absent row in a thesis table should be visible here first. Prediction runs
+live in the same folder and are counted separately, since they have no
+ground truth and so nothing to compare.
 
 Usage:
     python CompareRuns.py [--runs data/runs] [--out data/results]
@@ -189,6 +191,21 @@ def weight_sizes(weight: str, models_dir: Path,
             "--" if wb is None else str(int(wb / 1_000_000)))
 
 
+def is_prediction(run: Path) -> bool:
+    """True for a prediction run, which has nothing to compare.
+
+    data/runs/ holds both. A prediction has no ground truth and so no
+    metrics, and reporting it as a validation with no tables would read as
+    a run that failed. The predict scripts head their log with the word, so
+    the run says which it is.
+    """
+    log = run / "logs" / "console.log"
+    if not log.exists():
+        return False
+    head = log.read_text(encoding="utf-8", errors="replace")[:400]
+    return "PREDICTION" in head
+
+
 def read_overall(run: Path) -> Optional[Dict[str, str]]:
     """The 'all' row of a run's per-class table."""
     table = run / "tables" / "per_class_metrics.csv"
@@ -233,7 +250,14 @@ def main() -> int:
     sizes = load_sizes(args.models)
     unknown: set = set()
     rows, missing = [], []
+    predictions = []
     for run in sorted(p for p in args.runs.iterdir() if p.is_dir()):
+        # Asked first, not as a fallback when no tables are found. A
+        # prediction has no ground truth, so whatever a prediction folder
+        # happens to contain it is not a result and must not become a row.
+        if is_prediction(run):
+            predictions.append(run.name)
+            continue
         overall = read_overall(run)
         if overall is None:
             missing.append(run.name)
@@ -281,6 +305,9 @@ def main() -> int:
           f"{'' if len(rows) == full else f', {full - len(rows)} pair(s) not run'}")
     for name in missing:
         print(f"  no tables: {name}")
+    if predictions:
+        print(f"  {len(predictions)} prediction run(s), nothing to score: "
+              + ", ".join(predictions))
     for w in sorted(unknown):
         print(f"  size unknown, reported as --: {w} is not in "
               f"{args.models} and has no row in {SIZES}")
