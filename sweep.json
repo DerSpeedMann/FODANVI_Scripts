@@ -11,6 +11,10 @@
     "coco_nvg_green_noisy",
     "coco_nvg_white_clean",
     "coco_nvg_white_noisy",
+    "coco_nvg2_green",
+    "coco_nvg2_green_clean",
+    "coco_nvg2_white",
+    "coco_nvg2_white_clean",
     "real_nvg",
     "real_nvg_grayscale",
     "real_nvg_blue"

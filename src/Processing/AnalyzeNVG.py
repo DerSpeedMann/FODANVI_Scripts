@@ -80,6 +80,37 @@ RATIO_CONSTANT_LIMIT = 0.15
 # per-pixel properties, so resizing would change them; this crops instead.
 SPATIAL_CROP = 1200
 
+# The region every statistic but the falloff is measured over: a disc of this
+# fraction of the inscribed-circle radius, centred on the frame.
+#
+# The vignette is present in the captures and in the conversions both, so
+# averaging over a whole frame measures the falloff as much as the thing being
+# asked about, and it does so differently on each side: the captures are square
+# crops of the circular field while the conversions are 4:3 and 3:2 frames.
+# Measured over the whole frame the real green reference reads luma_mean 83.3
+# and luma_sd 21.6; over this region it reads 96.6 and 18.0. The mean is 16 per
+# cent low because the dark annulus is averaged in, and the spread is 16 per
+# cent high because the falloff gradient itself counts as contrast, which then
+# propagates into contrast_alpha. For white those errors are 19 and 30 per cent.
+#
+# 0.5 keeps about a quarter of the pixels, enough that the per-image noise
+# figures stay stable, and on the references it cuts the within-region spread
+# from 22.1 to about 13. Channel ratios are the one family that barely moves,
+# a quotient of two means being scale invariant under a vignette, which is why
+# the color conclusions survive this and the tone ones do not.
+REGION_FRAC = 0.5
+
+
+def region_mask(h: int, w: int, frac: float = REGION_FRAC) -> np.ndarray:
+    """Boolean mask of the centred measurement disc.
+
+    Normalised by the inscribed radius rather than the corner, so the region
+    is the same fraction of the field whatever the aspect ratio.
+    """
+    cy, cx = (h - 1) / 2.0, (w - 1) / 2.0
+    yy, xx = np.mgrid[0:h, 0:w]
+    return np.hypot(yy - cy, xx - cx) <= (min(h, w) / 2.0) * frac
+
 COLUMNS = ["group", "file", "width", "height",
            "mean_r", "mean_g", "mean_b", "rg", "bg", "rg_sd", "bg_sd",
            "lit_fraction", "luma_mean", "luma_sd", "p01", "p50", "p99",
@@ -88,9 +119,14 @@ COLUMNS = ["group", "file", "width", "height",
            "edge_over_center"]
 
 
-def ratios(bgr: np.ndarray) -> Dict[str, float]:
-    """Channel ratios against green, and how constant they are."""
-    b, g, r = (bgr[:, :, i].astype(np.float64).ravel() for i in range(3))
+def ratios(bgr: np.ndarray, mask: np.ndarray) -> Dict[str, float]:
+    """Channel ratios against green, and how constant they are.
+
+    Taken inside `mask` (see REGION_FRAC). These move least of anything here
+    when the region changes, but the dark annulus of a real capture is noise
+    dominated and biases the quotient where the signal is near zero.
+    """
+    b, g, r = (bgr[:, :, i].astype(np.float64)[mask] for i in range(3))
     mg = g.mean()
     out = {
         "mean_r": float(r.mean()), "mean_g": float(mg), "mean_b": float(b.mean()),
@@ -107,9 +143,13 @@ def ratios(bgr: np.ndarray) -> Dict[str, float]:
     return out
 
 
-def tones(gray: np.ndarray) -> Dict[str, float]:
-    """Level statistics driving contrast_alpha, contrast_beta and bloom."""
-    v = gray.astype(np.float64).ravel()
+def tones(gray: np.ndarray, mask: np.ndarray) -> Dict[str, float]:
+    """Level statistics driving contrast_alpha, contrast_beta and bloom.
+
+    Taken inside `mask`, so the falloff is not read as either darkness or
+    contrast. See REGION_FRAC for what measuring the whole frame costs.
+    """
+    v = gray.astype(np.float64)[mask]
     p01, p50, p99 = np.percentile(v, [1, 50, 99])
     return {
         "luma_mean": float(v.mean()), "luma_sd": float(v.std()),
@@ -177,17 +217,30 @@ def falloff(gray: np.ndarray) -> Dict[str, float]:
     """
     Edge against center brightness, which is what vignette_intensity sets.
 
-    Radius runs from the frame center and is normalised by the corner, so
-    the number means the same whatever the aspect ratio. On a frame cropped
-    to the field that is the field's own center; on an uncropped one it is
-    not, which is another reason to crop first.
+    Radius runs from the frame center and is normalised by the inscribed
+    radius, so 1.0 is the largest circle the frame contains and the bands
+    below are the same fraction of the field whatever the aspect ratio. On a
+    frame cropped to the field that is the field's own center; on an
+    uncropped one it is not, which is another reason to crop first.
+
+    Normalising by the corner instead, as this did until the region was
+    introduced, makes the bands aspect dependent: on a 4:3 conversion
+    `rad >= 0.8` reaches into corners that lie outside any circular field,
+    while on a square capture it is the outer fifth of the field, so the two
+    numbers were never measuring the same annulus. The edge band is capped at
+    1.0 for the same reason.
+
+    What this still does not reconcile is that GenerateNVG builds its vignette
+    from two 1-D Gaussians scaled to the frame's own width and height, making
+    it elliptical on a non-square frame, where the device's is circular. That
+    is in the conversion, not in the measurement, so it is not fixed here.
     """
     h, w = gray.shape
     yy, xx = np.mgrid[0:h, 0:w]
     rad = np.hypot(yy - (h - 1) / 2, xx - (w - 1) / 2)
-    rad /= rad.max()
+    rad /= min(h, w) / 2.0
     v = gray.astype(np.float64)
-    center, edge = v[rad <= 0.2], v[rad >= 0.8]
+    center, edge = v[rad <= 0.2], v[(rad >= 0.8) & (rad <= 1.0)]
     if center.size < 50 or edge.size < 50 or center.mean() == 0:
         return {"edge_over_center": float("nan")}
     return {"edge_over_center": float(edge.mean() / center.mean())}
@@ -200,14 +253,27 @@ def analyze(path: Path) -> Dict[str, Any]:
     h, w = bgr.shape[:2]
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
 
+    mask = region_mask(h, w)
+
     row: Dict[str, Any] = {"file": path.name, "width": w, "height": h}
-    row.update(ratios(bgr))
-    row.update(tones(gray))
-    if max(h, w) > SPATIAL_CROP:
-        y0, x0 = max(0, h // 2 - SPATIAL_CROP // 2), max(0, w // 2 - SPATIAL_CROP // 2)
-        row.update(grain(gray[y0:y0 + SPATIAL_CROP, x0:x0 + SPATIAL_CROP]))
+    row.update(ratios(bgr, mask))
+    row.update(tones(gray, mask))
+
+    # Grain needs a rectangle: the autocorrelation shifts the residual against
+    # itself, which a masked set of pixels cannot do. The square inscribed in
+    # the measurement disc is the largest one entirely inside the region, so
+    # the brightness bands grain is split by are read off un-vignetted levels.
+    # Averaged over a whole frame the vignette pushes genuine mid-tones into
+    # the dark band instead, which moved noise_dark by up to 43 per cent.
+    side = min(int((min(h, w) / 2.0) * REGION_FRAC * 2 ** 0.5), SPATIAL_CROP)
+    if side >= 16:
+        y0, x0 = (h - side) // 2, (w - side) // 2
+        row.update(grain(gray[y0:y0 + side, x0:x0 + side]))
     else:
         row.update(grain(gray))
+
+    # Deliberately the whole frame: this is the one measurement whose subject
+    # is the falloff itself.
     row.update(falloff(gray))
     return row
 
@@ -373,9 +439,17 @@ def build_config(s: Dict[str, Any], label: str, n: int,
     Two are derived through an assumption and should be treated as a
     starting point. Contrast inverts alpha and beta against an equalised
     histogram, which is only approximately uniform, and the measured levels
-    also carry the vignette and the grain that are applied after contrast.
-    The vignette is solved against a flat field, so anything dark at the
-    edges of the real scene inflates it.
+    carry the grain that is applied after contrast. The vignette is solved
+    against a flat field, so anything dark at the edges of the real scene
+    inflates it.
+
+    Measuring inside REGION_FRAC removes most, not all, of the vignette from
+    these two. GenerateNVG multiplies the mask in after convertScaleAbs, and
+    across the region that mask still averages around 0.93 at the default
+    intensities, so the levels predicted here come out a few per cent dark
+    rather than the 38 to 51 per cent they did over a whole frame. Matching
+    the target exactly still wants the pair solved against the pipeline; what
+    changed is that the starting point is now close enough to be useful.
 
     Nothing is emitted for bloom. Its threshold and intensity do not follow
     from a histogram without assuming what in the scene should bloom.
@@ -394,6 +468,7 @@ def build_config(s: Dict[str, Any], label: str, n: int,
     return {
         "generated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "source": {"group": label, "images": n,
+                   "region_frac": REGION_FRAC,
                    "written_by": "AnalyzeNVG.py --config"},
         "color": color,
         "color_settings": {

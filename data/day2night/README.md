@@ -58,6 +58,83 @@ subset unless the whole set is wanted.
 absent, saying which it did. `--per-image` prints every row instead of the
 first and last five; the csv always holds all of them.
 
+## The groups in the csv
+
+Eleven of them, 1678 rows. The `real_*` groups are the measurements
+everything else is scored against; the rest are conversions of COCO, sampled
+at 200 images each with `--sample 200`.
+
+| group | n | what it is |
+| --- | --- | --- |
+| `real_green` | 6 | green phosphor captures, the green target |
+| `real_white` | 6 | white phosphor captures, the white target |
+| `real_dataset` | 66 | the captures the models are scored on |
+| `coco_green_clean`, `coco_green_noisy` | 200 each | legacy conversion, `GenerateNVGLegacy.py` |
+| `coco_white_clean`, `coco_white_noisy` | 200 each | the same, white |
+| `coco_nvg2_green`, `coco_nvg2_green_clean` | 200 each | current conversion, `GenerateNVG.py` |
+| `coco_nvg2_white`, `coco_nvg2_white_clean` | 200 each | the same, white |
+
+The `nvg2` groups are the corrected sets, built by `BuildNvg2Datasets.py` in
+the repository root from the multipliers in `nvg_config_*.json`. Measured
+against their target the legacy green conversion carried almost no blue,
+`bg` 0.018 against 0.119 on the clean set and 0.084 on the noisy one, because
+the hardcoded `blue_multiplier` is 0.005; the current sets land at 0.115.
+Legacy white was closer to begin with and its `rg` moved from 0.555 to 0.438
+against a target of 0.441.
+
+## The measurement region
+
+Every statistic here except `edge_over_center` is taken inside a centred disc
+of half the inscribed radius, set by `REGION_FRAC` in `AnalyzeNVG.py`. Before
+that it was the whole frame, which measured the vignette as much as the thing
+being asked about, and did so differently on each side: the references are
+square crops of the circular field while the conversions are 4:3 and 3:2 COCO
+frames. What the whole frame cost, on the references:
+
+| | green whole | green region | white whole | white region |
+| --- | --- | --- | --- | --- |
+| `luma_mean` | 83.3 | 96.6 | 126.4 | 150.3 |
+| `luma_sd` | 21.6 | 18.0 | 37.4 | 26.3 |
+| `bg` | 0.119 | 0.136 | 0.910 | 0.901 |
+| `rg` | 0.012 | 0.012 | 0.441 | 0.483 |
+
+The mean reads low because the dark annulus is averaged in, and the spread
+reads high because the falloff gradient itself counts as contrast, which then
+propagates into `contrast_alpha`. Channel ratios barely move, a quotient of
+two means being scale invariant under a vignette, which is why the colour
+figures above survive the change and the tone ones do not. Green `bg` is the
+exception: that annulus is noise dominated and biased it down 14 per cent.
+
+`edge_over_center` is deliberately still whole frame, that being the one
+measurement whose subject is the falloff. Its radius is now normalised by the
+inscribed circle rather than the corner, because on a 4:3 conversion the old
+`rad >= 0.8` band reached into corners outside any circular field while on a
+square capture it was the outer fifth of the field, so the two were never the
+same annulus. On the green references it reads 0.816 where it read 0.642, and
+`vignette_intensity` falls from 1.6 to 1.09 with it.
+
+Two further things are worth knowing when reading these numbers.
+
+`contrast_alpha` and `contrast_beta` are still only a starting point.
+`GenerateNVG` multiplies the vignette in after `convertScaleAbs`, and across
+the region that mask averages about 0.93, so the levels `build_config`
+predicts come out a few per cent dark. Over a whole frame that error was 51
+per cent for green and 38 for white, which is what the region fixes. Hitting
+the target exactly still wants the pair solved against the pipeline, as the
+`TONE` note in `BuildNvg2Datasets.py` does.
+
+What is corrected nowhere is the vignette's shape. `GenerateNVG` builds it
+from two 1-D Gaussians scaled to the frame's own width and height, which is
+elliptical on a non-square frame where the device's is circular. That is in
+the conversion rather than the measurement, so neither the region nor the
+normalisation addresses it.
+
+`real_dataset` and `real_green` disagree about color, `rg` 0.236 against
+0.012 and `bg` 0.010 against 0.119, although both are green phosphor
+captures. The conversions are tuned to `real_green`, so whichever of the two
+describes the imagery the models are actually scored on is an open question
+and not one these measurements answer.
+
 ## What it measures
 
 `GenerateNVG` builds its output from one grayscale image, tinted by a fixed
