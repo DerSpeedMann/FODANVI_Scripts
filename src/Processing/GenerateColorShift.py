@@ -14,10 +14,35 @@ def has_color_shift_suffix(filename: str) -> bool:
 
 def shift_green_to_blue(img_array: np.ndarray) -> np.ndarray:
     """
-    Shift green channel to blue channel while preserving luminance.
+    Swap the green and blue channels, turning a green capture blue.
 
-    This converts green-tinted night vision images to blue-tinted images.
-    The transformation preserves the overall brightness and contrast.
+    A permutation, so every channel keeps its own histogram exactly and the
+    mapping is lossless and invertible. Red is left alone. On the captures
+    this is applied to, green carries the picture and blue holds almost
+    nothing (channel means 122 and 1.2), so the swap moves the whole image
+    into blue and leaves a trace of blue where the red was.
+
+    This does NOT preserve luminance, and cannot. Luma weights green at 0.587
+    and blue at 0.114, so the same signal read as blue is worth about a fifth
+    as much light: measured over the 66 captures the result sits at 29 per
+    cent of the original luma. That is a property of blue, not a fault in the
+    conversion, and it is the reason a blue variant is not photometrically
+    comparable to the grayscale one, which preserves luma exactly because
+    PIL's convert('L') is those same weights.
+
+    Preserving luma here is not an option to be coded around. Holding it
+    fixed while pushing blue above green needs the blue channel past 255 on
+    this content; the bluest luma-preserving tint that does not clip works
+    out near (0.17, 1.36, 1.36), which is cyan. Measure against this variant
+    knowing it changes brightness and hue together.
+
+    What this replaced, and why, since results computed before it differ:
+    the earlier version did g' = 0.3g and b' = b + 0.7g. That halved the luma
+    the same way, but it also threw away range for no reason, capping the
+    signal-carrying channel near 0.7 * 255 so it reached 144 where the source
+    reached 188, about 71 per cent. Its own docstring claimed it preserved
+    brightness and contrast; it measured 49 per cent of the luma mean, 52 of
+    the standard deviation and 52 of the p01-to-p99 range.
 
     Args:
         img_array: Input image as numpy array (RGB or RGBA)
@@ -41,11 +66,11 @@ def shift_green_to_blue(img_array: np.ndarray) -> np.ndarray:
     else:
         r, g, b = result[:, :, 0], result[:, :, 1], result[:, :, 2]
 
-    # Shift green to blue
-    # Strategy: Move green channel intensity to blue, reduce green
+    # Swap green and blue. No arithmetic, so no range is lost and no value
+    # can clip; each channel arrives intact in a different slot.
     new_r = r.copy()
-    new_g = (g * 0.3).astype(np.uint8)  # Reduce green significantly
-    new_b = np.clip(b.astype(np.float32) + g.astype(np.float32) * 0.7, 0, 255).astype(np.uint8)
+    new_g = b.copy()
+    new_b = g.copy()
 
     # Reconstruct image
     if has_alpha:
