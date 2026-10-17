@@ -22,14 +22,15 @@
     "real_nvg_blue_swap",
     "real_nvg_red_light",
     "real_nvg_red_dark",
-    "real_nvg_red_swap"
+    "real_nvg_red_swap",
+    "real_nvg_preprocessed"
   ],
   "validators": {
     "yolo": {
       "script": "yolo_val.py"
     },
     "rtdetr": {
-      "script": "rtdetr_val_fixed.py"
+      "script": "rtdetr_val.py"
     },
     "rfdetr": {
       "script": "rfdetr_val.py",
@@ -154,6 +155,15 @@
         "_red_swap"
       ],
       "describe": "red channel rotation (R'=g, G'=b, B'=r, ~30% luma)"
+    },
+    "preprocessed": {
+      "script": "Preprocess.py",
+      "suffix": "_preprocessed",
+      "args": [
+        "--suffix",
+        "_preprocessed"
+      ],
+      "describe": "CLAHE on luminance channel + colour denoising"
     }
   },
   "variants": [
@@ -180,6 +190,9 @@
         ],
         [
           "red_swap"
+        ],
+        [
+          "preprocessed"
         ]
       ]
     }

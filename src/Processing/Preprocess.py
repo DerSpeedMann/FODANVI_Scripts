@@ -1,3 +1,4 @@
+import argparse
 import os
 from PIL import Image, ImageEnhance, ImageOps
 from pathlib import Path
@@ -5,7 +6,7 @@ from typing import List
 import numpy as np
 import cv2
 
-PROCESSED_SUFFIX: str = "_processed"
+DEFAULT_SUFFIX: str = "_preprocessed"
 
 def enhance_nvg_image(img_array: np.ndarray) -> np.ndarray:
     """
@@ -44,85 +45,74 @@ def enhance_nvg_image(img_array: np.ndarray) -> np.ndarray:
     # Convert back to RGB
     return cv2.cvtColor(denoised, cv2.COLOR_BGR2RGB)
 
-def process_images_for_detection(input_folder: str, output_folder: str | None = None) -> None:
+def process_images_for_detection(input_folder: str, output_folder: str | None = None,
+                                  suffix: str = DEFAULT_SUFFIX) -> None:
     """Preprocess NVG images to improve detection rates"""
     input_path: Path = Path(input_folder)
     output_path: Path = Path(output_folder) if output_folder else input_path
-    
+
     output_path.mkdir(parents=True, exist_ok=True)
-    
+
     image_extensions: set[str] = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp'}
-    image_files: List[Path] = [f for f in input_path.iterdir() 
+    image_files: List[Path] = [f for f in input_path.iterdir()
                                if f.is_file() and f.suffix.lower() in image_extensions]
-    
+
     processed_count: int = 0
-    
+
     for image_file in image_files:
-        if PROCESSED_SUFFIX in image_file.stem:
+        if suffix in image_file.stem:
             continue
-            
-        output_name: str = f"{image_file.stem}{PROCESSED_SUFFIX}{image_file.suffix}"
+
+        output_name: str = f"{image_file.stem}{suffix}{image_file.suffix}"
         output_file_path: Path = output_path / output_name
-        
+
         if output_file_path.exists():
             print(f"Skipping (already processed): {image_file.name}")
             continue
-        
+
         try:
             img: Image.Image = ImageOps.exif_transpose(Image.open(image_file))
             img_array: np.ndarray = np.array(img)
-            
+
             # Enhance the image
             enhanced_array: np.ndarray = enhance_nvg_image(img_array)
-            
+
             # Convert back to PIL
             enhanced_img: Image.Image = Image.fromarray(enhanced_array)
-            
+
             # Save
             enhanced_img.save(output_file_path, quality=95)
             print(f"Processed: {image_file.name} -> {output_name}")
             processed_count += 1
-            
+
         except Exception as e:
             print(f"Error processing {image_file.name}: {e}")
-    
+
     print(f"\n=== Summary ===")
     print(f"Processed: {processed_count}")
     print(f"Output: {output_path.absolute()}")
 
 if __name__ == "__main__":
-    import sys
-    
-    input_folder_path: str
-    output_folder_path: str | None = None
-    in_place_mode: bool = False
-    
-    if len(sys.argv) > 1:
-        input_folder_path = sys.argv[1]
-        
-        # Check for --in-place flag
-        if '--in-place' in sys.argv:
-            in_place_mode = True
-            print("WARNING: In-place mode enabled - original files will be overwritten!")
-            response: str = input("Continue? (yes/no): ")
-            if response.lower() not in ['yes', 'y']:
-                print("Aborted.")
-                exit(0)
-        elif len(sys.argv) > 2 and sys.argv[2] != '--in-place':
-            output_folder_path = sys.argv[2]
+    parser = argparse.ArgumentParser(
+        description="Preprocess NVG images: CLAHE on luminance + denoising."
+    )
+    parser.add_argument("input_folder", help="Folder of source images")
+    parser.add_argument("output_folder", nargs="?", default=None,
+                        help="Destination folder (default: same as input)")
+    parser.add_argument("--suffix", default=DEFAULT_SUFFIX,
+                        help=f"Suffix appended to each output filename (default: {DEFAULT_SUFFIX})")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.input_folder):
+        print(f"Error: Input folder '{args.input_folder}' does not exist")
+        raise SystemExit(1)
+
+    print(f"Processing images from: {args.input_folder}")
+    if args.output_folder:
+        print(f"Saving processed images to: {args.output_folder}")
     else:
-        input_folder_path = os.getcwd()
-    
-    if not os.path.exists(input_folder_path):
-        print(f"Error: Input folder '{input_folder_path}' does not exist")
-    else:
-        print(f"Processing images from: {input_folder_path}")
-        if in_place_mode:
-            print(f"Mode: In-place (will overwrite originals)")
-        elif output_folder_path:
-            print(f"Saving processed images to: {output_folder_path}")
-        else:
-            print(f"Saving processed images to: {input_folder_path} (same as input)")
-        print()
-        
-    process_images_for_detection(input_folder_path, output_folder_path)
+        print(f"Saving processed images to: {args.input_folder} (same as input)")
+    print(f"Suffix: {args.suffix}")
+    print()
+
+    process_images_for_detection(args.input_folder, args.output_folder, args.suffix)
