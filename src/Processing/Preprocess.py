@@ -1,5 +1,5 @@
 import os
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageOps
 from pathlib import Path
 from typing import List
 import numpy as np
@@ -69,7 +69,7 @@ def process_images_for_detection(input_folder: str, output_folder: str | None = 
             continue
         
         try:
-            img: Image.Image = Image.open(image_file)
+            img: Image.Image = ImageOps.exif_transpose(Image.open(image_file))
             img_array: np.ndarray = np.array(img)
             
             # Enhance the image

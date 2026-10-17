@@ -1,5 +1,5 @@
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 from pathlib import Path
 from typing import List
 
@@ -53,7 +53,7 @@ def convert_folder_to_grayscale(input_folder: str, output_folder: str | None = N
         
         # Convert to grayscale
         try:
-            img: Image.Image = Image.open(image_file)
+            img: Image.Image = ImageOps.exif_transpose(Image.open(image_file))
             grayscale_img: Image.Image = img.convert('L').convert('RGB')
             grayscale_img.save(output_file_path)
             print(f"Converted: {image_file.name} -> {output_name}")

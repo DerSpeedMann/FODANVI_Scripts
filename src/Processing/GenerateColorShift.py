@@ -1,5 +1,5 @@
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 from pathlib import Path
 from typing import List, Tuple
 import numpy as np
@@ -131,7 +131,7 @@ def color_shift_images(input_folder: str, output_folder: str | None = None,
         # Process image
         try:
             print(f"Processing: {image_file.name}")
-            img: Image.Image = Image.open(image_file)
+            img: Image.Image = ImageOps.exif_transpose(Image.open(image_file))
 
             # Convert to numpy array
             img_array: np.ndarray = np.array(img)

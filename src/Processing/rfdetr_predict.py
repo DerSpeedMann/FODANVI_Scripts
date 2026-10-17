@@ -29,7 +29,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -56,7 +56,8 @@ def load_names(path: str) -> dict:
 
 def as_rgb(path: Path):
     """RF-DETR raises on anything that is not three channels."""
-    with Image.open(path) as im:
+    with Image.open(path) as raw:
+        im = ImageOps.exif_transpose(raw)
         return im.convert("RGB") if im.mode != "RGB" else im.copy()
 
 

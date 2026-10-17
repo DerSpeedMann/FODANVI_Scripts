@@ -40,7 +40,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
-from PIL import Image
+from PIL import Image, ImageOps
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 from tqdm import tqdm
@@ -147,8 +147,8 @@ def build_gt(pairs, names):
     images, annotations = [], []
     ann_id = 1
     for img_id, (img_path, lbl_path) in enumerate(tqdm(pairs, desc="Reading GT"), start=1):
-        with Image.open(img_path) as im:
-            iw, ih = im.size
+        with Image.open(img_path) as raw:
+            iw, ih = ImageOps.exif_transpose(raw).size
         images.append({"id": img_id, "file_name": str(img_path), "width": iw, "height": ih})
         if not lbl_path.exists():
             continue
@@ -239,7 +239,8 @@ def as_rgb(path):
     different route into predict().
     """
     try:
-        with Image.open(path) as im:
+        with Image.open(path) as raw:
+            im = ImageOps.exif_transpose(raw)
             if im.mode == "RGB":
                 return str(path)
             return im.convert("RGB")

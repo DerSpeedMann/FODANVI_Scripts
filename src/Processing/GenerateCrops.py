@@ -1,5 +1,5 @@
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 from pathlib import Path
 from typing import List, Tuple
 import numpy as np
@@ -187,7 +187,12 @@ def crop_nvg_images(input_folder: str, output_folder: str | None = None,
         
         # Crop image
         try:
-            img: Image.Image = Image.open(image_file)
+            # A phone writes the rotation into EXIF rather than into the
+            # pixels, and Image.open hands back the stored orientation, so
+            # without this the circle is detected in a sideways frame and
+            # the inscribed square is clipped by the edge. cv2.imread
+            # applies the tag; PIL does not.
+            img: Image.Image = ImageOps.exif_transpose(Image.open(image_file))
             
             # Detect bounds if needed
             if detected_bounds is None or per_image_detection:
