@@ -491,8 +491,8 @@ docker run --gpus all --rm `
     model=/models/yolo11s.pt `
     data=/datasets/coco_nvg_clean.yaml `
     optimizer=SGD `
-    lr0=0.0001 `
-    lrf=0.01 `
+    lr0=0.00001 `
+    lrf=0.001 `
     momentum=0.937 `
     warmup_epochs=5.0 `
     epochs=100 `
@@ -502,6 +502,37 @@ docker run --gpus all --rm `
     workers=4 `
     project=/ultralytics/runs/detect `
     name=finetune_yolo11s_nvg_clean
+
+Notes on these settings:
+
+- The first attempts failed during validation in epoch 1, most likely from
+  running out of resources. Dropping `workers` from 8 to 2 fixed it. After
+  giving WSL more resources it ran with `workers=4`. The resources are set in
+  `notepad "$env:USERPROFILE\.wslconfig"`:
+
+      [wsl2]
+      memory=28GB
+      swap=8GB
+      processors=12
+
+  and take effect after `wsl --shutdown`.
+- Standby was turned off so the laptop does not sleep during long runs:
+
+      powercfg /change standby-timeout-ac 0
+      powercfg /change monitor-timeout-ac 0
+
+- `optimizer=SGD` has to be set. The default `optimizer=auto` ignores `lr0`
+  and `momentum` and picks its own, which logs
+  `optimizer: 'optimizer=auto' found, ignoring 'lr0=0.0001' and 'momentum=0.937'`
+  and trains at `SGD(lr=0.01, momentum=0.9)`. That is far too high for this
+  domain shift.
+- A run with `lr0=0.0001` and `epochs=50` diverged. Losses rose every epoch
+  (box 1.292 to 1.437, class 1.700 to 2.114, DFL 1.282 to 1.400 over epochs
+  1 to 4), and by epoch 4 it was at P 0.0946, R 0.00114, mAP50 0.0479,
+  mAP50-95 0.0352.
+- The settings above lower `lr0` to 0.00001 and `lrf` to 0.001, double the
+  epochs to 100 and use 5 warmup epochs. That run showed a similar drop around
+  epoch 5 to 6 but recovered and kept improving slowly from there.
 	
 Fine Tune with noisy images ontop:
 
