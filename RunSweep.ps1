@@ -23,7 +23,7 @@ param(
     [string]   $Config   = "sweep.json",
     [string[]] $Models   = "*",
     [string[]] $Datasets = "*",
-    [string]   $Image    = "ultralytics/ultralytics:latest",
+    [string]   $Image    = "ultralytics/ultralytics:8.4.41",
     [string]   $ShmSize  = "18g",
     [switch]   $Force,
     [switch]   $WhatIf

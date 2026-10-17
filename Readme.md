@@ -102,14 +102,14 @@ Check Images:
   -v ${PWD}\data\images:/data `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   yolo detect predict model=/models/rtdetr-x.pt source=/data save_txt=True
   
 docker run --gpus all --rm `
   -v ${PWD}\data\images:/data `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   yolo detect predict model=/models/yolo11x.pt source=/data save_txt=True
 
 
@@ -117,7 +117,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\images:/data `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   yolo detect predict model=/models/yolo11s_clean-noisy.pt source=/data save_txt=True
 
 
@@ -139,7 +139,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   python /workspace/yolo_val.py /models/yolo11x.pt coco.yaml val_yolo11x
 
 docker run --gpus all --rm `
@@ -148,7 +148,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   python /workspace/yolo_val.py /models/yolo12x.pt /datasets/coco_nvg_clean.yaml val_yolo12x_clean
  
 docker run --gpus all --rm `
@@ -157,7 +157,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   python /workspace/rtdetr_val_fixed.py /models/rtdetr-x.pt /datasets/real_nvg.yaml
 
 docker run --gpus all --rm `
@@ -166,7 +166,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\src\Processing:/workspace `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   bash -c "pip install --quiet rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_val.py /models/rf-detr-large.pth /datasets/real_nvg.yaml val_rfdetr"
 
 
@@ -395,7 +395,7 @@ and `logs/console.log`, into `data\runs\<name>\`.
       -v ${PWD}\data\datasets:/datasets `
       -v ${PWD}\data\runs:/ultralytics/runs/detect `
       -v ${PWD}\src\Processing:/workspace `
-      ultralytics/ultralytics:latest `
+      ultralytics/ultralytics:8.4.41 `
       python /workspace/yolo_predict.py /models/yolo12x.pt /data predict_yolo12x 0.25
 
     docker run --gpus all --rm `
@@ -405,7 +405,7 @@ and `logs/console.log`, into `data\runs\<name>\`.
       -v ${PWD}\data\datasets:/datasets `
       -v ${PWD}\data\runs:/ultralytics/runs/detect `
       -v ${PWD}\src\Processing:/workspace `
-      ultralytics/ultralytics:latest `
+      ultralytics/ultralytics:8.4.41 `
       python /workspace/rtdetr_predict.py /models/rtdetr-x.pt /data predict_rtdetrx 0.25
 
     docker run --gpus all --rm `
@@ -415,7 +415,7 @@ and `logs/console.log`, into `data\runs\<name>\`.
       -v ${PWD}\data\datasets:/datasets `
       -v ${PWD}\data\runs:/ultralytics/runs/detect `
       -v ${PWD}\src\Processing:/workspace `
-      ultralytics/ultralytics:latest `
+      ultralytics/ultralytics:8.4.41 `
       bash -c "pip install --quiet --root-user-action=ignore rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_predict.py /models/rf-detr-large.pth /data /ultralytics/runs/detect/predict_rfdetrl 0.25"
 
 The last argument is the confidence threshold. 0.25 is a reasonable
@@ -486,7 +486,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   yolo detect train `
     model=/models/yolo11s.pt `
     data=/datasets/coco_nvg_clean.yaml `
@@ -541,7 +541,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
-  ultralytics/ultralytics:latest `
+  ultralytics/ultralytics:8.4.41 `
   yolo detect train `
     model=/models/yolo11s_clean.pt `
     data=/datasets/coco_nvg_noisy.yaml `
