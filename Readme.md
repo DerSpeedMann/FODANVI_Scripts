@@ -103,7 +103,7 @@ Check Images:
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:latest `
-  yolo detect predict model=/models/rtdetr-l.pt source=/data save_txt=True
+  yolo detect predict model=/models/rtdetr-x.pt source=/data save_txt=True
   
 docker run --gpus all --rm `
   -v ${PWD}\data\images:/data `
