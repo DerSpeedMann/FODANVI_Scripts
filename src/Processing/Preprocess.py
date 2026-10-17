@@ -4,9 +4,11 @@ Preprocess.py
 Enhance NVG images to improve detection rates with a configurable pipeline.
 
 The json config (--config) holds only the transform: a list of steps, run in
-the order listed. A module may appear any number of times, "enabled": false
-skips a step and "note" is ignored free text. Every module parameter must be
-given; missing, unknown or invalid keys fail before any image is touched.
+the order listed. No module is required: each may appear any number of
+times or not at all (an empty list only re-saves the images). "enabled":
+false skips a step and "note" is ignored free text. Each step must give all
+parameters of its module; missing, unknown or invalid keys fail before any
+image is touched.
 File handling (--suffix, --quality, --overwrite) is set on the command line.
 There are no defaults.
 
