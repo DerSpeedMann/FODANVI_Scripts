@@ -97,25 +97,65 @@ def _tensor_bytes(obj, seen=None) -> int:
     return 0
 
 
-def _weights_bytes(path: Path) -> Optional[int]:
-    """Just the model parameters, not whatever else the file carries.
+# State-dict entries that are buffers rather than parameters. A module can
+# be asked which is which; a bare OrderedDict cannot, so these are named.
+_BUFFER_SUFFIXES = ("num_batches_tracked", "running_mean", "running_var")
+
+
+def _param_count(obj) -> Optional[int]:
+    """Parameters, which is what a published parameter count means.
+
+    Not the same as the number of tensors in the file. A state dict also
+    carries BatchNorm buffers, and counting those would overstate the model.
+    Where the checkpoint holds a module the distinction is exact, since
+    parameters() excludes buffers by definition; where it holds a plain
+    OrderedDict the buffers are dropped by name instead.
+    """
+    if hasattr(obj, "parameters"):
+        try:
+            return sum(p.numel() for p in obj.parameters())
+        except Exception:
+            return None
+    if hasattr(obj, "items"):
+        try:
+            import torch
+            return sum(v.numel() for k, v in obj.items()
+                       if torch.is_tensor(v) and not k.endswith(_BUFFER_SUFFIXES))
+        except Exception:
+            return None
+    return None
+
+
+def _weights_info(path: Path) -> Optional[Tuple[int, Optional[int]]]:
+    """(bytes of parameter data, parameter count), read in one load.
 
     A released Ultralytics checkpoint is the model and nothing else, so its
     file size is its weight size. A training checkpoint is not: RF-DETR's is
     1572 MB on disk against 542 MB of parameters, the rest Adam state, and
     the fine-tuned yolo11s weights are 38 MB against 18 MB for the same
     reason. Comparing file sizes across the two compares different things.
+
+    The count is the figure published leaderboards quote, so it is the one
+    that can be checked against them, where a size in MB cannot: it moves
+    with the dtype the checkpoint happens to be stored in. The two fine-tuned
+    yolo11s files both count 9,458,752, the same as the yolo11s they came
+    from, which is the check that fine-tuning left the architecture alone.
+
+    Those two keep their model under `ema` with `model` set to None, so the
+    keys are tried in order and the first that is actually populated wins.
     """
     try:
         import torch
         ck = torch.load(path, map_location="cpu", weights_only=False)
     except Exception:
         return None
+    obj = ck
     if isinstance(ck, dict):
         for key in ("model", "ema", "state_dict"):
             if ck.get(key) is not None:
-                return _tensor_bytes(ck[key])
-    return _tensor_bytes(ck)
+                obj = ck[key]
+                break
+    return _tensor_bytes(obj), _param_count(obj)
 
 
 def load_sizes(models_dir: Path) -> Dict[str, Dict[str, int]]:
@@ -134,10 +174,17 @@ def load_sizes(models_dir: Path) -> Dict[str, Dict[str, int]]:
     with open(f, newline="", encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
             try:
-                out[row["file"]] = {"bytes": int(row["bytes"]),
-                                    "weights_bytes": int(row["weights_bytes"])}
+                rec = {"bytes": int(row["bytes"]),
+                       "weights_bytes": int(row["weights_bytes"])}
             except (KeyError, ValueError):
                 continue
+            # Added after the first records were written, so a row without it
+            # is not an error: it is re-measured when the file is at hand.
+            try:
+                rec["params"] = int(row["params"])
+            except (KeyError, ValueError, TypeError):
+                pass
+            out[row["file"]] = rec
     return out
 
 
@@ -146,36 +193,44 @@ def save_sizes(models_dir: Path, sizes: Dict[str, Dict[str, int]]) -> None:
     try:
         with open(f, "w", newline="", encoding="utf-8") as fh:
             w = csv.writer(fh)
-            w.writerow(["file", "bytes", "weights_bytes"])
+            w.writerow(["file", "bytes", "weights_bytes", "params"])
             for name in sorted(sizes):
-                w.writerow([name, sizes[name]["bytes"],
-                            sizes[name]["weights_bytes"]])
+                rec = sizes[name]
+                w.writerow([name, rec["bytes"], rec["weights_bytes"],
+                            rec.get("params", "")])
     except OSError:
         pass
 
 
 def weight_sizes(weight: str, models_dir: Path,
                  sizes: Dict[str, Dict[str, int]],
-                 unknown: set) -> Tuple[str, str]:
-    """(file MB, weights MB), measured if the file is here, recorded if not.
+                 unknown: set) -> Tuple[str, str, str]:
+    """(file MB, weights MB, parameters), measured if here, recorded if not.
 
     `sizes` is updated in place when a measurement is taken and `unknown`
     collects any weight that could be neither measured nor looked up, so the
     caller writes the record and reports the gaps once at the end.
     """
     if not weight:
-        return "--", "--"
+        return "--", "--", "--"
 
     f = models_dir / weight
     known = sizes.get(weight)
 
     if f.exists():
         n = f.stat().st_size
-        if not known or known["bytes"] != n:
-            wb = _weights_bytes(f)
-            if wb is not None:
-                sizes[weight] = {"bytes": n, "weights_bytes": wb}
-                known = sizes[weight]
+        # Re-read when the file changed, and also when the record predates
+        # the parameter column, so an old csv fills itself in rather than
+        # reporting a dash next to a file that is sitting right there.
+        if not known or known["bytes"] != n or "params" not in known:
+            info = _weights_info(f)
+            if info is not None:
+                wb, pc = info
+                rec = {"bytes": n, "weights_bytes": wb}
+                if pc is not None:
+                    rec["params"] = pc
+                sizes[weight] = rec
+                known = rec
         file_bytes = n
     elif known:
         file_bytes = known["bytes"]
@@ -183,12 +238,14 @@ def weight_sizes(weight: str, models_dir: Path,
         # Neither here nor written down, so the row goes out with dashes and
         # the caller is told which file would fix it.
         unknown.add(weight)
-        return "--", "--"
+        return "--", "--", "--"
 
     # Truncated, not rounded, to agree with the weight table in the appendix.
     wb = known["weights_bytes"] if known else None
+    pc = known.get("params") if known else None
     return (str(int(file_bytes / 1_000_000)),
-            "--" if wb is None else str(int(wb / 1_000_000)))
+            "--" if wb is None else str(int(wb / 1_000_000)),
+            "--" if pc is None else str(pc))
 
 
 def is_prediction(run: Path) -> bool:
@@ -263,9 +320,11 @@ def main() -> int:
             missing.append(run.name)
             continue
         model, dataset, weight = identify(run)
-        file_mb, weights_mb = weight_sizes(weight, args.models, sizes, unknown)
+        file_mb, weights_mb, params = weight_sizes(weight, args.models,
+                                                   sizes, unknown)
         rows.append({"model": model, "dataset": dataset,
                      "file_mb": file_mb, "weights_mb": weights_mb,
+                     "params": params,
                      "images": overall["images"],
                      "instances": overall["instances"],
                      **{k: overall[k] for k in METRICS}})
@@ -283,8 +342,8 @@ def main() -> int:
     csv_path = args.out / "comparison.csv"
     with open(csv_path, "w", newline="", encoding="utf-8") as fh:
         w = csv.DictWriter(fh, fieldnames=["model", "file_mb", "weights_mb",
-                                           "dataset", "images", "instances",
-                                           *METRICS])
+                                           "params", "dataset", "images",
+                                           "instances", *METRICS])
         w.writeheader()
         w.writerows(rows)
 
