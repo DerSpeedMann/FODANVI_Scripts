@@ -12,14 +12,16 @@ For YOLO and RT-DETR the equivalent already exists, `yolo detect predict`,
 which cannot load RF-DETR because it is not an Ultralytics model.
 
 Writes an annotated copy of each image, a .txt of the detections beside it,
-and the console output to <out_dir>/logs/console.log, as the validation
+and the console output to runs/detect/<name>/logs/console.log, as the validation
 scripts do. Nothing is scored; there is nothing to score against.
 
 Usage, inside the container:
-    python rfdetr_predict.py <model> <image|dir> <out_dir> [conf] [names.yaml]
+    python rfdetr_predict.py <model> <image|dir> <name> [conf] [names.yaml]
 
-    python rfdetr_predict.py /models/rf-detr-large.pth \\
-        /data/rc_car.jpg /ultralytics/runs/detect/predict_rc_car 0.25
+    python rfdetr_predict.py /models/rf-detr-large.pth /data predict_rfdetrl 0.25
+
+Results land in /ultralytics/runs/detect/<name>, matching yolo_predict.py
+and rtdetr_predict.py.
 """
 
 from __future__ import annotations
@@ -65,7 +67,9 @@ def main() -> int:
     if len(sys.argv) < 4:
         print(__doc__)
         return 1
-    model_path, source, out_dir = sys.argv[1], Path(sys.argv[2]), Path(sys.argv[3])
+    model_path, source = sys.argv[1], Path(sys.argv[2])
+    name = sys.argv[3]
+    out_dir = Path("/ultralytics/runs/detect") / name
     conf = float(sys.argv[4]) if len(sys.argv) > 4 else 0.25
     names = load_names(sys.argv[5] if len(sys.argv) > 5
                        else "/datasets/coco.yaml")

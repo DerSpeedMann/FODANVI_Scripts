@@ -5,7 +5,7 @@ Runs Ultralytics RT-DETR prediction over images that have no labels, and
 saves the console output to <run_dir>/logs/console.log alongside the
 annotated images and per-image .txt that Ultralytics writes.
 
-It carries the same scale_boxes patch as rtdetr_val_fixed.py: RT-DETR hands
+It carries the same scale_boxes patch as rtdetr_val.py: RT-DETR hands
 float ratio_pad values to a function that assumes otherwise.
 
 `yolo detect predict` does the same detection but keeps no cleaned log, so a

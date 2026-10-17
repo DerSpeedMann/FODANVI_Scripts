@@ -5,17 +5,17 @@ This script patches the ultralytics scale_boxes function to handle RT-DETR's
 float ratio_pad values correctly, preventing validation errors.
 
 Usage:
-    python rtdetr_val_fixed.py [model_path] [data_yaml] [name]
+    python rtdetr_val.py [model_path] [data_yaml] [name]
 
 Examples:
     # Use defaults (rtdetr-l.pt, coco.yaml)
-    python rtdetr_val_fixed.py
+    python rtdetr_val.py
 
     # Specify model and dataset
-    python rtdetr_val_fixed.py /models/rtdetr-l.pt /datasets/coco_nvg_green.yaml
+    python rtdetr_val.py /models/rtdetr-l.pt /datasets/coco_nvg_green.yaml
 
     # Specify model, dataset, and run name
-    python rtdetr_val_fixed.py /models/rtdetr-l.pt /datasets/coco_nvg_green.yaml val_rtdetr_nvg_green
+    python rtdetr_val.py /models/rtdetr-l.pt /datasets/coco_nvg_green.yaml val_rtdetr_nvg_green
 """
 
 import sys

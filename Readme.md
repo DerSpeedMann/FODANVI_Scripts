@@ -158,7 +158,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\src\Processing:/workspace `
   ultralytics/ultralytics:8.4.41 `
-  python /workspace/rtdetr_val_fixed.py /models/rtdetr-x.pt /datasets/real_nvg.yaml
+  python /workspace/rtdetr_val.py /models/rtdetr-x.pt /datasets/real_nvg.yaml
 
 docker run --gpus all --rm `
   --shm-size=8g `
@@ -382,7 +382,7 @@ One script per model family, named for the validator beside it:
 | --- | --- | --- |
 | YOLO | `yolo_predict.py` | |
 | RT-DETR | `rtdetr_predict.py` | carries the same `scale_boxes` patch as its validator |
-| RF-DETR | `rfdetr_predict.py` | needs the pip install, takes an output directory rather than a run name |
+| RF-DETR | `rfdetr_predict.py` | needs the pip install |
 
 Put the images in `data\images\`, which the commands below mount at
 `/data`. Each writes annotated images, a per-image `.txt` of the detections,
@@ -416,7 +416,7 @@ and `logs/console.log`, into `data\runs\<name>\`.
       -v ${PWD}\data\runs:/ultralytics/runs/detect `
       -v ${PWD}\src\Processing:/workspace `
       ultralytics/ultralytics:8.4.41 `
-      bash -c "pip install --quiet --root-user-action=ignore rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_predict.py /models/rf-detr-large.pth /data /ultralytics/runs/detect/predict_rfdetrl 0.25"
+      bash -c "pip install --quiet --root-user-action=ignore rfdetr==1.2.0 transformers==4.53.3 pycocotools && python /workspace/rfdetr_predict.py /models/rf-detr-large.pth /data predict_rfdetrl 0.25"
 
 The last argument is the confidence threshold. 0.25 is a reasonable
 threshold for looking at a picture, but the sweep validates at 0.001 to
