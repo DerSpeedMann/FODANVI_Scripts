@@ -1,196 +1,186 @@
+"""
+GenerateColorShift.py
+
+Apply a per-channel colour formula to every image in a folder.
+
+Each output channel is an arithmetic expression over the input channels
+r, g, b (float32, 0-255 range). Results are clipped to [0, 255] and
+saved as uint8.  numpy is available as `np` inside the expressions.
+
+--formula R G B is required.
+
+Useful formulas:
+  blue tint (luma-best) : "0" "g*0.5" "g"
+  red tint (luma-best)  : "g" "g*0.5" "0"
+  green-blue swap       : "r" "b" "g"
+  old blue method       : "r" "g*0.3" "b+g*0.7"
+  identity              : "r" "g" "b"
+  luma grayscale        : "Y" "Y" "Y"   (Y = 0.299r+0.587g+0.114b)
+
+Usage:
+    python GenerateColorShift.py input/ output/ --formula "0" "g*0.5" "g" --suffix _blue_light
+    python GenerateColorShift.py input/ output/ --formula "r" "b" "g" --suffix _blue_swap
+"""
+import argparse
 import os
 from PIL import Image, ImageOps
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 import numpy as np
 
-# Global configuration
-COLOR_SHIFT_SUFFIX: str = "_blue"
+DEFAULT_SUFFIX: str = "_shifted"
 
-def has_color_shift_suffix(filename: str) -> bool:
-    """Check if filename contains the color shift suffix"""
-    stem: str = Path(filename).stem
-    return COLOR_SHIFT_SUFFIX in stem
 
-def shift_green_to_blue(img_array: np.ndarray) -> np.ndarray:
+def has_suffix(filename: str, suffix: str) -> bool:
+    return suffix in Path(filename).stem
+
+
+def apply_formula(
+    img_array: np.ndarray,
+    r_expr: str,
+    g_expr: str,
+    b_expr: str,
+) -> np.ndarray:
     """
-    Swap the green and blue channels, turning a green capture blue.
+    Apply per-channel arithmetic formulas to produce a new image.
 
-    A permutation, so every channel keeps its own histogram exactly and the
-    mapping is lossless and invertible. Red is left alone. On the captures
-    this is applied to, green carries the picture and blue holds almost
-    nothing (channel means 122 and 1.2), so the swap moves the whole image
-    into blue and leaves a trace of blue where the red was.
+    r_expr / g_expr / b_expr are Python expressions evaluated with:
+      r, g, b  -- input channels as float32 arrays, values 0-255
+      np       -- numpy (for np.clip, np.sqrt, np.where, etc.)
+      Y        -- ITU-R BT.601 luma: 0.299*r + 0.587*g + 0.114*b
 
-    This does NOT preserve luminance, and cannot. Luma weights green at 0.587
-    and blue at 0.114, so the same signal read as blue is worth about a fifth
-    as much light: measured over the 66 captures the result sits at 29 per
-    cent of the original luma. That is a property of blue, not a fault in the
-    conversion, and it is the reason a blue variant is not photometrically
-    comparable to the grayscale one, which preserves luma exactly because
-    PIL's convert('L') is those same weights.
+    Results are clipped to [0, 255] and cast to uint8. Alpha is passed
+    through unchanged.
 
-    Preserving luma here is not an option to be coded around. Holding it
-    fixed while pushing blue above green needs the blue channel past 255 on
-    this content; the bluest luma-preserving tint that does not clip works
-    out near (0.17, 1.36, 1.36), which is cyan. Measure against this variant
-    knowing it changes brightness and hue together.
-
-    What this replaced, and why, since results computed before it differ:
-    the earlier version did g' = 0.3g and b' = b + 0.7g. That halved the luma
-    the same way, but it also threw away range for no reason, capping the
-    signal-carrying channel near 0.7 * 255 so it reached 144 where the source
-    reached 188, about 71 per cent. Its own docstring claimed it preserved
-    brightness and contrast; it measured 49 per cent of the luma mean, 52 of
-    the standard deviation and 52 of the p01-to-p99 range.
-
-    Args:
-        img_array: Input image as numpy array (RGB or RGBA)
-
-    Returns:
-        Color-shifted image as numpy array
+    Examples
+    --------
+    ("0",   "g*0.5",   "g")          luma-best blue (default)
+    ("r",   "g*0.3",   "b+g*0.7")   old blue method
+    ("r",   "b",       "g")          channel swap
+    ("r",   "g",       "b")          identity
+    ("Y",   "Y",       "Y")          grayscale via luma
     """
-    # Work with a copy
-    result = img_array.copy()
+    arr = img_array.copy()
+    if arr.ndim == 2:                               # grayscale -> RGB
+        arr = np.stack([arr, arr, arr], axis=-1)
 
-    # Handle RGB and RGBA
-    if len(result.shape) == 2:
-        # Grayscale - convert to RGB first
-        result = np.stack([result, result, result], axis=-1)
-
-    has_alpha = result.shape[2] == 4 if len(result.shape) == 3 else False
-
-    # Extract channels
+    has_alpha = arr.ndim == 3 and arr.shape[2] == 4
     if has_alpha:
-        r, g, b, a = result[:, :, 0], result[:, :, 1], result[:, :, 2], result[:, :, 3]
+        r = arr[:, :, 0].astype(np.float32)
+        g = arr[:, :, 1].astype(np.float32)
+        b = arr[:, :, 2].astype(np.float32)
+        a = arr[:, :, 3]
     else:
-        r, g, b = result[:, :, 0], result[:, :, 1], result[:, :, 2]
+        r = arr[:, :, 0].astype(np.float32)
+        g = arr[:, :, 1].astype(np.float32)
+        b = arr[:, :, 2].astype(np.float32)
 
-    # Swap green and blue. No arithmetic, so no range is lost and no value
-    # can clip; each channel arrives intact in a different slot.
-    new_r = r.copy()
-    new_g = b.copy()
-    new_b = g.copy()
+    Y = 0.299 * r + 0.587 * g + 0.114 * b          # BT.601 luma
+    ns = {"r": r, "g": g, "b": b, "Y": Y, "np": np}
 
-    # Reconstruct image
+    def _eval(expr: str) -> np.ndarray:
+        # eval may return a scalar (e.g. "0"); broadcast to channel shape.
+        out = eval(expr, ns)  # noqa: S307
+        return np.clip(np.broadcast_to(out, r.shape), 0, 255).astype(np.uint8)
+
+    new_r = _eval(r_expr)
+    new_g = _eval(g_expr)
+    new_b = _eval(b_expr)
+
     if has_alpha:
-        result = np.stack([new_r, new_g, new_b, a], axis=-1)
-    else:
-        result = np.stack([new_r, new_g, new_b], axis=-1)
+        return np.stack([new_r, new_g, new_b, a], axis=-1)
+    return np.stack([new_r, new_g, new_b], axis=-1)
 
-    return result
 
-def color_shift_images(input_folder: str, output_folder: str | None = None,
-                      shift_type: str = "green_to_blue") -> None:
-    """
-    Apply color shift to all images in a folder.
+def color_shift_images(
+    input_folder: str,
+    output_folder: str | None,
+    formula: tuple[str, str, str],
+    suffix: str = DEFAULT_SUFFIX,
+) -> None:
+    """Apply formula to all images in input_folder, writing to output_folder."""
+    in_path  = Path(input_folder)
+    out_path = Path(output_folder) if output_folder else in_path
+    out_path.mkdir(parents=True, exist_ok=True)
 
-    Args:
-        input_folder: Path to folder containing input images
-        output_folder: Path to folder for output images. If None, uses input_folder
-        shift_type: Type of color shift to apply (currently only "green_to_blue")
-    """
-    input_path: Path = Path(input_folder)
-    output_path: Path = Path(output_folder) if output_folder else input_path
+    image_ext: set[str] = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp"}
+    files: List[Path] = [f for f in in_path.iterdir()
+                         if f.is_file() and f.suffix.lower() in image_ext]
 
-    # Create output folder if it doesn't exist
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    # Supported image extensions
-    image_extensions: set[str] = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp'}
-
-    # Get all image files
-    image_files: List[Path] = [f for f in input_path.iterdir()
-                               if f.is_file() and f.suffix.lower() in image_extensions]
-
-    processed_count: int = 0
-    skipped_count: int = 0
-    failed_count: int = 0
-
-    print(f"Found {len(image_files)} images to process")
-    print(f"Color shift type: {shift_type}")
+    r_expr, g_expr, b_expr = formula
+    print(f"Found {len(files)} images")
+    print(f"Formula : R'={r_expr!r}  G'={g_expr!r}  B'={b_expr!r}")
+    print(f"Suffix  : {suffix}")
     print()
 
-    for image_file in image_files:
-        # Skip if filename already has color shift suffix
-        if has_color_shift_suffix(image_file.name):
-            print(f"Skipping (already color-shifted): {image_file.name}")
-            skipped_count += 1
+    ok = skipped = failed = 0
+    for f in files:
+        if has_suffix(f.name, suffix):
+            skipped += 1
             continue
 
-        # Create output filename
-        output_name: str = f"{image_file.stem}{COLOR_SHIFT_SUFFIX}{image_file.suffix}"
-        output_file_path: Path = output_path / output_name
-
-        # Check if shifted version already exists
-        if output_file_path.exists():
-            print(f"Skipping (shifted version exists): {image_file.name}")
-            skipped_count += 1
+        out_name = f"{f.stem}{suffix}{f.suffix}"
+        out_file = out_path / out_name
+        if out_file.exists():
+            skipped += 1
             continue
 
-        # Process image
         try:
-            print(f"Processing: {image_file.name}")
-            img: Image.Image = ImageOps.exif_transpose(Image.open(image_file))
-
-            # Convert to numpy array
-            img_array: np.ndarray = np.array(img)
-
-            # Apply color shift
-            if shift_type == "green_to_blue":
-                shifted_array: np.ndarray = shift_green_to_blue(img_array)
-            else:
-                print(f"Error: Unknown shift type '{shift_type}'")
-                failed_count += 1
-                continue
-
-            # Convert back to PIL Image
-            shifted_img: Image.Image = Image.fromarray(shifted_array)
-
-            # Save with high quality
-            save_kwargs = {}
-            if image_file.suffix.lower() in ['.jpg', '.jpeg']:
-                save_kwargs['quality'] = 95
-                save_kwargs['subsampling'] = 0
-
-            shifted_img.save(output_file_path, **save_kwargs)
-            print(f"ok: Saved: {output_name}")
-            processed_count += 1
-
+            img  = ImageOps.exif_transpose(Image.open(f))
+            arr  = np.array(img)
+            out  = apply_formula(arr, r_expr, g_expr, b_expr)
+            img2 = Image.fromarray(out)
+            kw   = ({"quality": 95, "subsampling": 0}
+                    if f.suffix.lower() in {".jpg", ".jpeg"} else {})
+            img2.save(out_file, **kw)
+            print(f"ok: {f.name} -> {out_name}")
+            ok += 1
         except Exception as e:
-            print(f"fail: Error processing {image_file.name}: {e}")
-            failed_count += 1
+            print(f"fail: {f.name}: {e}")
+            failed += 1
 
     print(f"\n{'='*60}")
     print(f"=== Summary ===")
     print(f"{'='*60}")
-    print(f"Processed: {processed_count}")
-    print(f"Skipped: {skipped_count}")
-    print(f"Failed: {failed_count}")
-    print(f"Total: {processed_count + skipped_count + failed_count}")
-    print(f"Output folder: {output_path.absolute()}")
+    print(f"Processed : {ok}")
+    print(f"Skipped   : {skipped}")
+    print(f"Failed    : {failed}")
+    print(f"Total     : {ok + skipped + failed}")
+    print(f"Output    : {out_path.absolute()}")
+
 
 if __name__ == "__main__":
-    import sys
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("input_folder",  nargs="?", default=os.getcwd())
+    ap.add_argument("output_folder", nargs="?", default=None)
+    ap.add_argument(
+        "--formula", nargs=3, metavar=("R", "G", "B"), required=True,
+        help=(
+            "Three Python expressions for the output R, G, B channels. "
+            "Variables r, g, b are input channels (float32, 0-255). "
+            "np and Y (BT.601 luma) are also available."
+        ),
+    )
+    ap.add_argument(
+        "--suffix", default=DEFAULT_SUFFIX,
+        help="Suffix appended to output filenames (default: %(default)s)",
+    )
+    args = ap.parse_args()
 
-    input_folder_path: str
-    output_folder_path: str | None = None
+    if not os.path.exists(args.input_folder):
+        print(f"Error: input folder {args.input_folder!r} does not exist")
+        raise SystemExit(1)
 
-    if len(sys.argv) > 1:
-        input_folder_path = sys.argv[1]
-        if len(sys.argv) > 2:
-            output_folder_path = sys.argv[2]
-    else:
-        input_folder_path = os.getcwd()
+    print(f"Input  : {args.input_folder}")
+    print(f"Output : {args.output_folder or args.input_folder + ' (same)'}")
+    print()
 
-    if not os.path.exists(input_folder_path):
-        print(f"Error: Input folder '{input_folder_path}' does not exist")
-    else:
-        print(f"Processing images from: {input_folder_path}")
-        if output_folder_path:
-            print(f"Saving color-shifted images to: {output_folder_path}")
-        else:
-            print(f"Saving color-shifted images to: {input_folder_path} (same as input)")
-        print()
-
-        color_shift_images(input_folder_path, output_folder_path)
+    color_shift_images(
+        args.input_folder,
+        args.output_folder,
+        formula=tuple(args.formula),
+        suffix=args.suffix,
+    )

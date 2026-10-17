@@ -1,7 +1,7 @@
-# real_nvg with: green shifted to blue.
+# real_nvg with: blue tint with luma support (R'=0, G'=g*0.5, B'=g, ~62% luma).
 # Built by BuildDatasets.ps1 from sweep.json. Images and labels
-# both carry the _blue suffix, as the converted COCO sets do.
-path: real_nvg_blue
+# both carry the _blue_light suffix, as the converted COCO sets do.
+path: real_nvg_blue_light
 train: images/train
 val: images/val
 test:
