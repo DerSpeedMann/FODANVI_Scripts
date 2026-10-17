@@ -1,0 +1,8 @@
+{
+  "note": "Original Preprocess.py pipeline: equalize (grayscale only) -> CLAHE -> denoise.",
+  "steps": [
+    {"module": "equalize", "gray_only": true},
+    {"module": "clahe", "clip": 3.0, "tile": 8},
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 7, "search_window": 21}
+  ]
+}

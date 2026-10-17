@@ -92,7 +92,7 @@ cd "C:\Users\micha\Desktop\private\FH\MA\Tests\FODANVI_Scripts"
 $S = ".\src\Processing"
 python $S\GenerateCrops.py .\data\captured_images\ .\data\images_cropped\26_04_29
 Copy-Item -Path .\data\images_cropped\* -Destination .\data\images
-python $S\Preprocess.py .\data\images_cropped\ .\data\images   
+python $S\Preprocess.py .\data\images_cropped\ .\data\images --config .\data\preprocess\preprocess_original.json --suffix _preprocessed --quality 95
 python $S\GenerateColorShift.py .\data\images\ .\data\images
 python $S\GenerateGrayscales.py .\data\images\ .\data\images
 

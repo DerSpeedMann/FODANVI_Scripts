@@ -1,0 +1,8 @@
+{
+  "note": "Denoise before CLAHE so CLAHE does not amplify grain first. Global equalize disabled.",
+  "steps": [
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 7, "search_window": 21},
+    {"module": "equalize", "gray_only": true, "enabled": false},
+    {"module": "clahe", "clip": 3.0, "tile": 8}
+  ]
+}
