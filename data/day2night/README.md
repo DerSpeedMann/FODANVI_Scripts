@@ -60,14 +60,47 @@ first and last five; the csv always holds all of them.
 
 ## The groups in the csv
 
-Eleven of them, 1678 rows. The `real_*` groups are the measurements
+The references are phone photographs only. One video frame per phosphor,
+taken with another camera, was moved to `excluded_other_camera/`, its rows
+dropped from the csv and both configs regenerated from the remaining five.
+The `coco_nvg2_*` sets were built before that, from six references each, and
+the whole-frame and region figures quoted below are from those six.
+
+Two families of config, each measured whole on one set:
+
+| config | measured on | compares against |
+| --- | --- | --- |
+| `nvg_config_selected_green.json` | `real_green`, 5 phone photographs | the hand-tuned green, tuned on the same images |
+| `nvg_config_selected_white.json` | `real_white`, 5 phone photographs | the hand-tuned white; the only white source there is |
+| `nvg_config_setup_green.json` | `real_dataset`, the 66 evaluation captures | selected green: same device, other camera path |
+
+Selected against hand-tuned isolates tuning by eye against tuning by script,
+on the same references. Selected green against setup green isolates the
+camera behind the eyepiece. There is no setup white, as the capture pipeline
+was only run with the green device. `BuildNvg2Datasets.py` reads the
+selected pair.
+
+    cd data/day2night
+    $A = "../../src/Processing/AnalyzeNVG.py"
+    python $A "real_green/*" --config nvg_config_selected_green.json --config-color green --no-plot
+    python $A "real_white/*" --config nvg_config_selected_white.json --config-color white --no-plot
+    python $A "../datasets/real_nvg/images/val/*.jpg" --label real_dataset `
+        --config nvg_config_setup_green.json --config-color green --no-plot
+
+Two values are not usable as written. Selected white grain is NaN: it is read
+from the band below 0.3, where none of the five white photographs has enough
+pixels. Setup green vignette is 1.0, the lower bound of the solver: the
+evaluation captures read 0.956 edge over center, flatter than any setting
+produces.
+
+Eleven of them, 1676 rows. The `real_*` groups are the measurements
 everything else is scored against; the rest are conversions of COCO, sampled
 at 200 images each with `--sample 200`.
 
 | group | n | what it is |
 | --- | --- | --- |
-| `real_green` | 6 | green phosphor captures, the green target |
-| `real_white` | 6 | white phosphor captures, the white target |
+| `real_green` | 5 | green phosphor photographs, the green target |
+| `real_white` | 5 | white phosphor photographs, the white target |
 | `real_dataset` | 66 | the captures the models are scored on |
 | `coco_green_clean`, `coco_green_noisy` | 200 each | legacy conversion, `GenerateNVGLegacy.py` |
 | `coco_white_clean`, `coco_white_noisy` | 200 each | the same, white |

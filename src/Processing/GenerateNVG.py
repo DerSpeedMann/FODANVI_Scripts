@@ -13,21 +13,28 @@ WHAT CHANGED
 The legacy script places grain by a bell curve peaking in the midtones and suppresses it in
 shadows, on the stated reasoning that grain is "visible mainly in mid-tones,
 less in dark areas". Measured against real captures through the device, that
-is backwards. Forty frames from the Pi camera behind the eyepiece, analysed
-with AnalyzeNVG.py, give this noise profile by brightness band:
+is backwards. The 66 evaluation captures from the Pi camera behind the
+eyepiece (datasets/real_nvg, val), measured the way AnalyzeNVG.py does,
+inside the central square of half the field radius, give this noise profile
+by brightness band:
 
-    band      0.0-0.1  0.1-0.2  0.2-0.3  0.3-0.4  0.4-0.5
-    measured     1.20     1.34     1.07     0.68     0.55
-    v1 applies   0.01     0.18     0.63     1.00     1.00
+    band        0.0-0.1  0.1-0.2  0.2-0.3  0.3-0.4  0.4-0.5
+    measured       1.09     1.38     1.20     1.05     0.64
+    relative       0.79     1.00     0.87     0.76     0.46
+    v1 applies     0.01     0.18     0.63     1.00     1.00
+    v2 applies     0.90     1.00     0.68     0.53     0.44
 
 The device is noisiest at about 0.15 and quietens toward the midtones. v1
-applies almost nothing exactly there and full strength exactly where the
-device is quietest, so it is wrong by -99 % at the bottom and +144 % at
-0.45.
+applies almost nothing exactly there and full strength where the device is
+quieter, so it is wrong by -99 % at the bottom and +116 % at 0.45.
 
-v2 moves the peak to 0.15 and decays above it, which fits the measurement to
-within 15 % across every band. The rise below the peak is nearly flat, a
-0.10 exponent, there only to avoid a hard edge at pure black.
+v2 moves the peak to 0.15 and decays above it. Against this profile it is
+within 14 % in the two bands below 0.2 and at 0.45, but falls off too fast
+in between, -22 % at 0.25 and -30 % at 0.35. The curve was fitted to an
+earlier whole-frame measurement, which the vignette pushed toward a steeper
+decay; it has not been refitted, because the coco_nvg2 sets were built with
+it. The rise below the peak is nearly flat, a 0.10 exponent, there only to
+avoid a hard edge at pure black.
 
 NOISE_INTENSITY MEANS SOMETHING DIFFERENT HERE
 

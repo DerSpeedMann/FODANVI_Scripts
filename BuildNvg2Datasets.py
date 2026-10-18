@@ -3,7 +3,7 @@ BuildNvg2Datasets.py
 
 Build the four corrected day-to-night conversions of COCO with the current
 generator, GenerateNVG.py, driven by the channel multipliers AnalyzeNVG.py
-measured off the real captures (data/day2night/nvg_config_*.json).
+measured off the real captures (data/day2night/nvg_config_selected_*.json).
 
 The sets the earlier runs used were produced by GenerateNVGLegacy.py from the
 hardcoded COLOR_MODES, whose green blue multiplier is 0.005 against the 0.119
@@ -136,7 +136,7 @@ def names_block() -> str:
 
 def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
     color, suffix, extra = VARIANTS[name]
-    config = CONFIGS / f"nvg_config_{color}.json"
+    config = CONFIGS / f"nvg_config_selected_{color}.json"
     dst = DATASETS / name
 
     print(f"\n=== {name}  ({color}, {'clean' if extra else 'measured'}) ===")

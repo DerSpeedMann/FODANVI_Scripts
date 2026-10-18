@@ -1,0 +1,39 @@
+{
+  "generated_utc": "2026-10-18T17:57:41+00:00",
+  "source": {
+    "group": "real_white",
+    "images": 5,
+    "region_frac": 0.5,
+    "written_by": "AnalyzeNVG.py --config"
+  },
+  "color": "white",
+  "color_settings": {
+    "color": "white",
+    "red_multiplier": 0.561,
+    "green_multiplier": 1.0,
+    "blue_multiplier": 0.874,
+    "contrast_multiplier": 1.0,
+    "brightness_multiplier": 1.0
+  },
+  "noise_intensity": NaN,
+  "grain_size": 1,
+  "contrast_alpha": 0.367,
+  "contrast_beta": 113,
+  "vignette_intensity": 1.14,
+  "measured": {
+    "rg": 0.5608,
+    "bg": 0.8738,
+    "rg_sd": 0.0615,
+    "bg_sd": 0.023,
+    "luma_mean": 159.7478,
+    "luma_sd": 27.0279,
+    "p01": 108.2,
+    "p50": 158.8,
+    "p99": 216.8,
+    "noise_sd": 2.5392,
+    "noise_dark": NaN,
+    "noise_mid": 2.6901,
+    "grain_px": 1.0,
+    "edge_over_center": 0.7975
+  }
+}
