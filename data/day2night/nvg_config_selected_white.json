@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-18T17:57:41+00:00",
+  "generated_utc": "2026-10-18T18:22:11+00:00",
   "source": {
     "group": "real_white",
     "images": 5,
@@ -15,7 +15,27 @@
     "contrast_multiplier": 1.0,
     "brightness_multiplier": 1.0
   },
-  "noise_intensity": NaN,
+  "noise_intensity": 1.0,
+  "grain_profile": {
+    "brightness": [
+      0.35,
+      0.45,
+      0.55,
+      0.65,
+      0.75,
+      0.85,
+      0.95
+    ],
+    "sigma": [
+      3.6013,
+      3.3154,
+      2.8776,
+      2.4995,
+      2.3201,
+      1.7333,
+      0.6037
+    ]
+  },
   "grain_size": 1,
   "contrast_alpha": 0.367,
   "contrast_beta": 113,

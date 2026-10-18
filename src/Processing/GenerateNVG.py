@@ -59,7 +59,7 @@ carried over from v1 untested rather than fitted.
 import os
 from PIL import Image
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from dataclasses import dataclass
 import numpy as np
 import cv2
@@ -124,6 +124,12 @@ class NVGConfig:
     grain_peak: float = 0.15   # normalised brightness the grain peaks at
     grain_rise: float = 0.10   # exponent below the peak, near flat
     grain_fall: float = 0.75   # exponent above the peak, the measured decay
+
+    # Measured grain per brightness band, as AnalyzeNVG.py --config writes it:
+    # {"brightness": [band centres], "sigma": [residual spread]}, both read off
+    # the luma of real captures. When set it replaces the curve above, and
+    # noise_intensity scales it, 1.0 applying it as measured.
+    grain_profile: Optional[dict] = None
 
     def get_color_settings(self) -> ColorSettings:
         """Get the color settings for the current color mode"""
@@ -238,32 +244,45 @@ def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
         # Create brightness-dependent noise mask (normalized 0-1)
         normalized_brightness = gray.astype(np.float32) / 255.0
 
-        # Grain peaks in the shadows, not the mid-tones. Measured on real
-        # captures through the device the profile peaks near 0.15 and falls
-        # away as the picture brightens; see the module docstring for the
-        # numbers. This is the one place v2 differs from v1.
-        grain_peak = config.grain_peak        # brightness of the peak
-        rise = config.grain_rise              # below the peak, near flat
-        fall = config.grain_fall              # above it, the measured decay
-        bright_threshold = 0.8                # carried over from v1, untested
+        if config.grain_profile:
+            # The measured profile, band by band. It was read off the luma of
+            # tinted captures, while grain is added here to the gray image
+            # before the tint. The tint scales luma by one factor, so the band
+            # positions and the spreads are both carried back into gray levels
+            # by it. np.interp holds the end values beyond the measured range.
+            luma = (0.299 * color_settings.red_multiplier
+                    + 0.587 * color_settings.green_multiplier
+                    + 0.114 * color_settings.blue_multiplier)
+            bands = np.asarray(config.grain_profile["brightness"], dtype=np.float32) / luma
+            sigma = np.asarray(config.grain_profile["sigma"], dtype=np.float32) / luma
+            brightness_mask = np.interp(normalized_brightness, bands, sigma)
+        else:
+            # Grain peaks in the shadows, not the mid-tones. Measured on real
+            # captures through the device the profile peaks near 0.15 and falls
+            # away as the picture brightens; see the module docstring for the
+            # numbers. This is the one place v2 differs from v1.
+            grain_peak = config.grain_peak        # brightness of the peak
+            rise = config.grain_rise              # below the peak, near flat
+            fall = config.grain_fall              # above it, the measured decay
+            bright_threshold = 0.8                # carried over from v1, untested
 
-        safe = np.maximum(normalized_brightness, 1e-6)
-        brightness_mask = np.where(
-            normalized_brightness < grain_peak,
-            # Below the peak: almost flat, shaped only to avoid a hard edge
-            # at pure black rather than to fit anything.
-            (normalized_brightness / grain_peak) ** rise,
-            # Above it: the decay the measurement shows.
-            (grain_peak / safe) ** fall
-        )
-        # Highlights still lose grain, as in v1. No real capture here reaches
-        # this far, so the term is inherited rather than measured.
-        brightness_mask = np.where(
-            normalized_brightness > bright_threshold,
-            brightness_mask * ((1.0 - normalized_brightness)
-                               / (1.0 - bright_threshold)) ** 1.5,
-            brightness_mask
-        )
+            safe = np.maximum(normalized_brightness, 1e-6)
+            brightness_mask = np.where(
+                normalized_brightness < grain_peak,
+                # Below the peak: almost flat, shaped only to avoid a hard edge
+                # at pure black rather than to fit anything.
+                (normalized_brightness / grain_peak) ** rise,
+                # Above it: the decay the measurement shows.
+                (grain_peak / safe) ** fall
+            )
+            # Highlights still lose grain, as in v1. No real capture here reaches
+            # this far, so the term is inherited rather than measured.
+            brightness_mask = np.where(
+                normalized_brightness > bright_threshold,
+                brightness_mask * ((1.0 - normalized_brightness)
+                                   / (1.0 - bright_threshold)) ** 1.5,
+                brightness_mask
+            )
 
         # Generate brightness-dependent noise
         # The AMOUNT of grain varies (via standard deviation), not the intensity (mean stays constant)

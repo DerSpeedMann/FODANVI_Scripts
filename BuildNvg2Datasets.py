@@ -2,25 +2,31 @@
 BuildNvg2Datasets.py
 
 Build the four corrected day-to-night conversions of COCO with the current
-generator, GenerateNVG.py, driven by the channel multipliers AnalyzeNVG.py
-measured off the real captures (data/day2night/nvg_config_selected_*.json).
+generator, GenerateNVG.py, driven by the configs AnalyzeNVG.py measured off
+real captures (data/day2night/, see its README):
+
+    green   nvg_config_setup_green.json      the 66 evaluation captures
+    white   nvg_config_selected_white.json   the five white references
+
+Green is built from the setup measurement because that is the camera path the
+models are scored on; white has only the references.
 
 The sets the earlier runs used were produced by GenerateNVGLegacy.py from the
-hardcoded COLOR_MODES, whose green blue multiplier is 0.005 against the 0.119
-the captures measure, so the green conversion carried almost no blue at all.
-These sets replace that: measured against the same reference captures the new
-green lands within 7 per cent on B/G and the new white within 2 per cent on
-both ratios.
+hardcoded COLOR_MODES, tuned by eye against the reference photographs.
 
-    coco_nvg2_green         noise, grain and vignette as measured
+    coco_nvg2_green         grain, blur, bloom and vignette as configured
     coco_nvg2_green_clean   the same color and tone, those effects disabled
-    coco_nvg2_white         as measured
+    coco_nvg2_white         as configured
     coco_nvg2_white_clean   effects disabled
 
-The clean pair disables noise, blur, bloom and vignette and nothing else, so
+The clean pair disables grain, blur, bloom and vignette and nothing else, so
 it differs from its sibling only in those four, exactly as the clean and noisy
 variants of the legacy sets did. Histogram equalisation stays on in both: it
 is part of the tone mapping, not one of the effects.
+
+Grain comes from the grain_profile each config carries, the residual noise
+AnalyzeNVG.py measured per brightness band, which GenerateNVG.py applies band
+by band. Contrast and brightness are taken from the config as written.
 
 BuildDatasets.ps1 is not used here because it iterates images/train and
 images/val, while COCO carries train2017 and val2017; pointed at COCO it finds
@@ -51,44 +57,16 @@ PROC = ROOT / "src/Processing"
 CONFIGS = ROOT / "data/day2night"
 SOURCE = "coco"
 
+# Which measurement each color is built from (see data/day2night/README.md).
+CONFIG_FOR = {
+    "green": "nvg_config_setup_green.json",
+    "white": "nvg_config_selected_white.json",
+}
+
 # Disabling the four effects. The generator guards each on > 0, so zero skips
 # the block rather than dividing by it.
 CLEAN = ["--noise-intensity", "0", "--blur-amount", "0",
          "--bloom-intensity", "0", "--vignette-intensity", "0"]
-
-# Contrast measured back off the pipeline rather than taken from the config.
-#
-# AnalyzeNVG derives contrast_alpha and contrast_beta by inverting an
-# assumed-uniform equalised histogram, and its own build_config docstring
-# calls that a starting point: the inversion cannot see the vignette, which
-# GenerateNVG applies by multiplying AFTER convertScaleAbs, so every level it
-# predicts is darker by whatever the vignette mask averages. Built from the
-# config as written, the green set came out 51 per cent below the target luma
-# mean and the white set 38 per cent below.
-#
-# These pairs were solved against the real captures' own luma_mean and
-# luma_sd by probing the pipeline at three (alpha, beta) points over 150 val
-# images and stepping to the target; each is a measured pair, not an
-# extrapolation, and lands within 1.3 per cent on both.
-#
-# STALE. They were solved when AnalyzeNVG measured whole frames, so the target
-# they match is the vignette-contaminated one: luma_mean 83.3 for green and
-# 126.4 for white. AnalyzeNVG now measures inside REGION_FRAC and those targets
-# are 96.6 and 150.3, with luma_sd falling from 21.6 to 18.0 and 37.4 to 26.3
-# (see data/day2night/README.md). Checked against the corrected targets the
-# sets these pairs built are about 7 per cent bright and 19 per cent over on
-# spread for white, less for green.
-#
-# So the four datasets under data/datasets/coco_nvg2_* match the old
-# definition, as do the sixteen runs scored on them. Re-solve these against
-# the regenerated configs before rebuilding, and note the vignette and the
-# blur both move the answer.
-TONE = {
-    "coco_nvg2_green":       ("0.5425", "100"),   # mean -0.3%, sd -0.1%
-    "coco_nvg2_green_clean": ("0.4863", "76"),    # mean +0.4%, sd +0.1%
-    "coco_nvg2_white":       ("0.8702", "108"),   # mean -0.0%, sd -1.0%
-    "coco_nvg2_white_clean": ("0.6190", "76"),    # mean +0.6%, sd +1.3%
-}
 
 # name -> (color, suffix the generator appends, extra arguments)
 VARIANTS = {
@@ -98,10 +76,8 @@ VARIANTS = {
     "coco_nvg2_white_clean": ("white", "_nvg2_white", CLEAN),
 }
 
-HEADER = """# {source} converted with GenerateNVG.py and the multipliers
-# AnalyzeNVG.py measured off the real captures ({config}).{note}
-# Contrast is the pair solved against the captures' own luma mean and sd,
-# not the one in the config: see the TONE note in BuildNvg2Datasets.py.
+HEADER = """# {source} converted with GenerateNVG.py and the config AnalyzeNVG.py
+# measured off real captures ({config}).{note}
 # Built by BuildNvg2Datasets.py. Images and labels both carry the
 # {suffix} suffix, as the earlier converted COCO sets do.
 path: /datasets
@@ -113,7 +89,7 @@ val:
 
 """
 
-CLEAN_NOTE = "\n# Noise, blur, bloom and vignette are disabled in this one."
+CLEAN_NOTE = "\n# Grain, blur, bloom and vignette are disabled in this one."
 
 
 def count(folder: Path) -> int:
@@ -136,10 +112,11 @@ def names_block() -> str:
 
 def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
     color, suffix, extra = VARIANTS[name]
-    config = CONFIGS / f"nvg_config_selected_{color}.json"
+    config = CONFIGS / CONFIG_FOR[color]
     dst = DATASETS / name
 
-    print(f"\n=== {name}  ({color}, {'clean' if extra else 'measured'}) ===")
+    print(f"\n=== {name}  ({color}, {config.name}, "
+          f"{'clean' if extra else 'full'}) ===")
     for split in splits:
         src_img = DATASETS / SOURCE / "images" / split
         if not src_img.is_dir():
@@ -167,10 +144,8 @@ def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
         print(f"  {split}: converting {want} images -> {out_img}")
         out_img.mkdir(parents=True, exist_ok=True)
         t0 = time.time()
-        alpha, beta = TONE[name]
         run([str(PROC / "GenerateNVG.py"), str(src_img), str(out_img),
-             "--config", str(config), "--color", color,
-             "--contrast-alpha", alpha, "--contrast-beta", beta, *extra])
+             "--config", str(config), "--color", color, *extra])
         got = count(out_img)
         print(f"  {split}: {got} images in {time.time() - t0:.0f}s")
 

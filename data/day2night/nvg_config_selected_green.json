@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-18T17:57:40+00:00",
+  "generated_utc": "2026-10-18T18:22:10+00:00",
   "source": {
     "group": "real_green",
     "images": 5,
@@ -15,7 +15,23 @@
     "contrast_multiplier": 1.0,
     "brightness_multiplier": 1.0
   },
-  "noise_intensity": 0.824,
+  "noise_intensity": 1.0,
+  "grain_profile": {
+    "brightness": [
+      0.25,
+      0.35,
+      0.45,
+      0.55,
+      0.65
+    ],
+    "sigma": [
+      0.9696,
+      1.0567,
+      1.278,
+      1.6539,
+      0.9214
+    ]
+  },
   "grain_size": 3,
   "contrast_alpha": 0.226,
   "contrast_beta": 76,

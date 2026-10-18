@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-10-18T17:57:46+00:00",
+  "generated_utc": "2026-10-18T18:22:17+00:00",
   "source": {
     "group": "real_dataset",
     "images": 66,
@@ -15,7 +15,25 @@
     "contrast_multiplier": 1.0,
     "brightness_multiplier": 1.0
   },
-  "noise_intensity": 1.195,
+  "noise_intensity": 1.0,
+  "grain_profile": {
+    "brightness": [
+      0.05,
+      0.15,
+      0.25,
+      0.35,
+      0.45,
+      0.55
+    ],
+    "sigma": [
+      1.0866,
+      1.3772,
+      1.2004,
+      1.0483,
+      0.6411,
+      0.5131
+    ]
+  },
   "grain_size": 3,
   "contrast_alpha": 0.355,
   "contrast_beta": 43,

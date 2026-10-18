@@ -100,6 +100,11 @@ SPATIAL_CROP = 1200
 # the color conclusions survive this and the tone ones do not.
 REGION_FRAC = 0.5
 
+# Brightness bands of the grain profile, and how many images a band needs
+# before it is written: one image alone is its scene, not the device.
+PROFILE_BANDS = 10
+PROFILE_MIN_IMAGES = 2
+
 
 def region_mask(h: int, w: int, frac: float = REGION_FRAC) -> np.ndarray:
     """Boolean mask of the centred measurement disc.
@@ -186,7 +191,8 @@ def grain(gray: np.ndarray) -> Dict[str, float]:
     if residual.size < 100:
         return {"noise_sd": float("nan"), "grain_px": float("nan"),
                 "noise_dark": float("nan"), "noise_mid": float("nan"),
-                "noise_bright": float("nan")}
+                "noise_bright": float("nan"),
+                **{f"noise_b{i}": float("nan") for i in range(PROFILE_BANDS)}}
 
     mad = float(np.median(np.abs(residual - np.median(residual))))
 
@@ -199,6 +205,17 @@ def grain(gray: np.ndarray) -> Dict[str, float]:
             continue
         v = residual[sel]
         out_bands[f"noise_{name}"] = 1.4826 * float(
+            np.median(np.abs(v - np.median(v))))
+
+    # The same residual in ten bands of 0.1, which build_config writes as the
+    # grain profile GenerateNVG applies band by band.
+    for i in range(PROFILE_BANDS):
+        sel = (level >= i / PROFILE_BANDS) & (level < (i + 1) / PROFILE_BANDS)
+        if sel.sum() < 500:
+            out_bands[f"noise_b{i}"] = float("nan")
+            continue
+        v = residual[sel]
+        out_bands[f"noise_b{i}"] = 1.4826 * float(
             np.median(np.abs(v - np.median(v))))
 
     centred = residual - residual.mean()
@@ -288,6 +305,7 @@ def summarise(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         vals = vals[~np.isnan(vals)]
         out[k] = float(vals.mean()) if vals.size else float("nan")
         out[k + "_spread"] = float(vals.max() - vals.min()) if vals.size else float("nan")
+        out[k + "_n"] = int(vals.size)
     return out
 
 
@@ -454,8 +472,20 @@ def build_config(s: Dict[str, Any], label: str, n: int,
     Nothing is emitted for bloom. Its threshold and intensity do not follow
     from a histogram without assuming what in the scene should bloom.
     """
-    peak_band = "noise_dark" if GRAIN_PEAK < 0.3 else "noise_mid"
-    noise = s[peak_band]
+    # The grain profile: residual spread per brightness band, for every band
+    # at least PROFILE_MIN_IMAGES images reach. GenerateNVG applies it band by
+    # band and holds the end values beyond the measured range, so nothing is
+    # read off an assumed curve. noise_intensity then scales the profile as a
+    # whole and 1.0 applies it as measured. Only with no band measured at all
+    # does the single figure at GRAIN_PEAK stand in, as it did before.
+    profile = [(round((i + 0.5) / PROFILE_BANDS, 3), round(s[f"noise_b{i}"], 4))
+               for i in range(PROFILE_BANDS)
+               if s.get(f"noise_b{i}_n", 0) >= PROFILE_MIN_IMAGES]
+    if profile:
+        noise = 1.0
+    else:
+        peak_band = "noise_dark" if GRAIN_PEAK < 0.3 else "noise_mid"
+        noise = s[peak_band]
     grain = int(round(s["grain_px"]))
     grain += (grain + 1) % 2                      # kernels must be odd
 
@@ -480,6 +510,8 @@ def build_config(s: Dict[str, Any], label: str, n: int,
             "brightness_multiplier": 1.0,
         },
         "noise_intensity": round(float(noise), 3),
+        "grain_profile": {"brightness": [b for b, _ in profile],
+                          "sigma": [v for _, v in profile]} if profile else None,
         "grain_size": grain,
         "contrast_alpha": round(float(alpha), 3),
         "contrast_beta": int(round(beta)),
