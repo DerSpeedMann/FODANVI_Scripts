@@ -172,76 +172,33 @@ docker run --gpus all --rm `
 
 ## Apply NVG styling to images
 
-The old fine-tuning data was created with `GenerateNVGLegacy.py`, which
-writes the `_nvg_*` suffix:
+All eight converted COCO sets are built by one script in the repository
+root, with COCO in place:
 
-    foreach ($c in "green", "white") {
-      foreach ($split in "train2017", "val2017") {
+    python BuildDay2NightDatasets.py                       all eight, both splits
+    python BuildDay2NightDatasets.py --splits val2017      val only, all the sweep needs
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the current four
 
-        python $S\GenerateNVGLegacy.py `
-          data\datasets\coco\images\$split `
-          data\datasets\coco_nvg_${c}_noisy\images\$split --color $c
-        python $S\CopyFilesWithSuffix.py `
-          data\datasets\coco\labels\$split `
-          data\datasets\coco_nvg_${c}_noisy\labels\$split _nvg_$c
+| sets | generator | values |
+| --- | --- | --- |
+| `coco_nvg_{green,white}_{noisy,clean}` | `GenerateNVGLegacy.py` | hand-tuned, hardcoded in the script |
+| `coco_nvg2_green`, `coco_nvg2_green_clean` | `GenerateNVG.py` | `data/day2night/nvg_config_setup_green.json` |
+| `coco_nvg2_white`, `coco_nvg2_white_clean` | `GenerateNVG.py` | `data/day2night/nvg_config_selected_white.json` |
 
-        python $S\GenerateNVGLegacy.py `
-          data\datasets\coco\images\$split `
-          data\datasets\coco_nvg_${c}_clean\images\$split --color $c `
-          --noise-intensity 0 `
-          --blur-amount 0 `
-          --bloom-intensity 0 `
-          --vignette-intensity 0
-        python $S\CopyFilesWithSuffix.py `
-          data\datasets\coco\labels\$split `
-          data\datasets\coco_nvg_${c}_clean\labels\$split _nvg_$c
-      }
-    }
+The clean variant of each disables grain, blur, bloom and vignette. The
+script only writes images and labels; every yaml under `data/datasets` is
+versioned and already points at those folders. It resumes an interrupted
+run, and `--force` rebuilds a split that is already complete.
 
-New ones should be created with `GenerateNVG.py`, which places grain in the
-shadows where the device puts it and writes `_nvg2_*`:
-
-    foreach ($c in "green", "white") {
-      foreach ($split in "train2017", "val2017") {
-
-        python $S\GenerateNVG.py `
-          data\datasets\coco\images\$split `
-          data\datasets\coco_nvg2_${c}_noisy\images\$split `
-          --config data\day2night\nvg_config_$c.json
-        python $S\CopyFilesWithSuffix.py `
-          data\datasets\coco\labels\$split `
-          data\datasets\coco_nvg2_${c}_noisy\labels\$split _nvg2_$c
-
-        python $S\GenerateNVG.py `
-          data\datasets\coco\images\$split `
-          data\datasets\coco_nvg2_${c}_clean\images\$split `
-          --config data\day2night\nvg_config_$c.json `
-          --noise-intensity 0 `
-          --blur-amount 0 `
-          --bloom-intensity 0 `
-          --vignette-intensity 0
-        python $S\CopyFilesWithSuffix.py `
-          data\datasets\coco\labels\$split `
-          data\datasets\coco_nvg2_${c}_clean\labels\$split _nvg2_$c
-      }
-    }
-
-The configs are measured from the real captures:
-
-    python $S\AnalyzeNVG.py data\day2night\real_green\*.jpg data\day2night\real_green\*.png `
-      --label real_green --config-color green `
-      --config data\day2night\nvg_config_green.json
-
-    python $S\AnalyzeNVG.py data\day2night\real_white\*.jpg data\day2night\real_white\*.png `
-      --label real_white --config-color white `
-      --config data\day2night\nvg_config_white.json
-
-`GenerateNVGLegacy.py` is frozen and must not be edited. The flags above are
-as recorded in `MA_Paper/supplementary/code/Readme.md`; the four-folder
+`GenerateNVGLegacy.py` is frozen and must not be edited. The legacy flags
+are as recorded in `MA_Paper/supplementary/code/Readme.md`; the four-folder
 layout is not, since the original calls wrote into a single `coco_nvg`.
+Rebuilding the legacy sets gives complete sets, not necessarily the original
+ones: the green noisy val2017 on disk came from an earlier revision of the
+script.
 
-New yaml files are needed to point at `coco_nvg2_*`; the existing ones name
-the legacy folders.
+How the configs are measured, and the commands that write them, are in
+[`data/day2night/README.md`](data/day2night/README.md).
 
 ### The yaml files combine them
 

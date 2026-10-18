@@ -77,8 +77,8 @@ Two families of config, each measured whole on one set:
 Selected against hand-tuned isolates tuning by eye against tuning by script,
 on the same references. Selected green against setup green isolates the
 camera behind the eyepiece. There is no setup white, as the capture pipeline
-was only run with the green device. `BuildNvg2Datasets.py` reads the
-selected pair.
+was only run with the green device. `BuildDay2NightDatasets.py` in the
+repository root builds the `nvg2` sets from setup green and selected white.
 
     cd data/day2night
     $A = "../../src/Processing/AnalyzeNVG.py"
@@ -107,8 +107,9 @@ at 200 images each with `--sample 200`.
 | `coco_nvg2_green`, `coco_nvg2_green_clean` | 200 each | current conversion, `GenerateNVG.py` |
 | `coco_nvg2_white`, `coco_nvg2_white_clean` | 200 each | the same, white |
 
-The `nvg2` groups are the corrected sets, built by `BuildNvg2Datasets.py` in
-the repository root from the multipliers in `nvg_config_*.json`. Measured
+The `nvg2` groups in the csv are the corrected sets as first built, from the
+six-reference configs since replaced; they predate the rebuild from setup
+green and selected white by `BuildDay2NightDatasets.py`. Measured
 against their target the legacy green conversion carried almost no blue,
 `bg` 0.018 against 0.119 on the clean set and 0.084 on the noisy one, because
 the hardcoded `blue_multiplier` is 0.005; the current sets land at 0.115.
@@ -153,8 +154,8 @@ Two further things are worth knowing when reading these numbers.
 the region that mask averages about 0.93, so the levels `build_config`
 predicts come out a few per cent dark. Over a whole frame that error was 51
 per cent for green and 38 for white, which is what the region fixes. Hitting
-the target exactly still wants the pair solved against the pipeline, as the
-`TONE` note in `BuildNvg2Datasets.py` does.
+the target exactly still wants the pair solved against the pipeline, which
+the first `nvg2` build did and the current one does not.
 
 What is corrected nowhere is the vignette's shape. `GenerateNVG` builds it
 from two 1-D Gaussians scaled to the frame's own width and height, which is

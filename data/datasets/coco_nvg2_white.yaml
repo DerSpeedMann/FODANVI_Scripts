@@ -1,8 +1,6 @@
-# coco converted with GenerateNVG.py and the multipliers
-# AnalyzeNVG.py measured off the real captures (nvg_config_white.json).
-# Contrast is the pair solved against the captures' own luma mean and sd,
-# not the one in the config: see the TONE note in BuildNvg2Datasets.py.
-# Built by BuildNvg2Datasets.py. Images and labels both carry the
+# coco converted with GenerateNVG.py and the config AnalyzeNVG.py
+# measured off real captures (nvg_config_selected_white.json).
+# Built by BuildDay2NightDatasets.py. Images and labels both carry the
 # _nvg2_white suffix, as the earlier converted COCO sets do.
 path: /datasets
 train:
