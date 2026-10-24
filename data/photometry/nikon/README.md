@@ -14,13 +14,13 @@ Two scenes were measured, and every record here carries the one it belongs to
 in its name.
 
     static   5.15e-04 lux +/- 10 %     the dark scene, 80 mm f/4 ISO 3200
-    moving   3.79e-02 lux +/- 1.1 %    the vehicle scene, 38 mm f/4 ISO 51200
+    moving   1.98e-02 lux +/- 1.5 %    the vehicle scene, 38 mm f/4 ISO 51200
 
 The steps below are written for the static measurement. The moving one runs
 the same scripts against its own frames; what differs is listed under The
 moving measurement near the end.
 
-Its 1.1 % is a within-session figure and not comparable to the static 10 %,
+Its 1.5 % is a within-session figure and not comparable to the static 10 %,
 which is widened by a disagreement between two reference sessions that the
 moving set has no equivalent measurement of.
 
@@ -419,7 +419,19 @@ aperture priority is used and the camera varies the shutter instead.
 ## Regions
 
 Every direct frame, calibration, noise and signal, uses SceneLux's built-in
-default rectangles, which is what a bare `--rois` selects.
+default rectangles, which is what a bare `--rois` selects, except the noise
+and signal frames of the moving scene.
+
+`rois_moving.json` holds the defaults moved 356 px to the right (0.063571 of
+frame width), for the s21 noise and signal frames only. The camera was not
+put back on the same framing for that scene: the reticle sits about 356 px
+further right in the s21 frames than in the s23 calibration, which the
+defaults still fit. On the s21 frames the defaults lay on the reticle rings,
+the left pair on the outer ring and the right pair on the inner one, and the
+bright lines raised the card level; the moved boxes sit on plain card between
+the rings, in the same place relative to the reticle as the defaults in the
+calibration. Measured on the defaults, the moving scene came out at
+3.79e-02 lux.
 
 `rois_nvg.json` is specific to session s05. Through the tube the card fills only
 the middle of a much wider field and sits off-center, so the frame-centered
@@ -494,6 +506,12 @@ display passes the same check under 2 %.
     gives    measured R/G 0.391, B/G 0.797,
              which is -1.5 % and +2.1 % against the target
 
+Both steps above ran on the default rectangles, which on the s21 scene frames
+lie on the reticle (see Regions). Run with `--rois rois\rois_moving.json`,
+the estimate gives a target of R/G 0.396, B/G 0.753, against which the
+displayed color measures -1.3 % and +5.8 %. `color_moving.json` still holds
+the run on the defaults.
+
 Then the calibration, the two scene records and the result:
 
     python $S\SceneLux.py --rois --y-mid 0.04837403318646708 `
@@ -503,11 +521,11 @@ Then the calibration, the two scene records and the result:
     $c = (Get-Content calibration_moving.json | ConvertFrom-Json).captures
     $yMid = ($c.y_card | Measure-Object -Average).Average
 
-    python $S\SceneLux.py --rois --y-mid $yMid `
+    python $S\SceneLux.py --rois rois\rois_moving.json --y-mid $yMid `
         (Get-ChildItem bg_noise\s21_*.NEF).FullName `
         --record noise_moving.json --overlay-dir overlay
 
-    python $S\SceneLux.py --rois --y-mid $yMid `
+    python $S\SceneLux.py --rois rois\rois_moving.json --y-mid $yMid `
         (Get-ChildItem dark_card\s21_*.NEF).FullName `
         --record signal_moving.json --overlay-dir overlay
 
@@ -520,7 +538,7 @@ Then the calibration, the two scene records and the result:
     writes   calibration_moving.json, noise_moving.json, signal_moving.json,
              result_moving.json, result_table_moving.csv,
              noise_model_moving.png
-    gives    y_mid 0.078478, 3.794e-02 lux +/- 4.20e-04
+    gives    y_mid 0.078478, 1.978e-02 lux +/- 2.97e-04
 
 The calibration took three attempts: a 40 mm pair against a 38 mm scene,
 which put `y_mid` 6.4 % low and the illuminance 6.0 % high at 4.038e-02, then
