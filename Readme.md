@@ -411,6 +411,11 @@ that produced it has moved on. It prints how many runs it found, names any
 with no tables yet, and warns when a weight's size is neither measurable
 nor recorded.
 
+The csv keeps every run, but the figures show only what `sweep.json` lists:
+a run is drawn when its dataset is in the sweep's `datasets` and its weight
+belongs to one of the sweep's `models`. This holds for the default figures
+and for every `PlotRuns.py` selection below; `--all` draws every run.
+
 Two size columns, not one. `file_mb` is what the checkpoint costs to fetch,
 `weights_mb` the model parameters inside it. They differ where a file is a
 training checkpoint: `rf-detr-large.pth` is 1571 MB of which 542 MB is

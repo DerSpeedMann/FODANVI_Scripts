@@ -12,6 +12,11 @@ buy". Selecting a subset here answers one question at a time.
     --models and --datasets take glob patterns, matched against the model
     and dataset columns of comparison.csv.
 
+The csv holds every run ever made, including conversions and models since
+dropped from the study. A figure shows only what sweep.json lists: a run is
+drawn when its dataset is among the sweep's datasets and its model among the
+sweep's weights. --all draws every run in the csv.
+
 Two figures per run:
 
     bars_<metric>.png      one group per dataset, one bar per model
@@ -37,8 +42,9 @@ from __future__ import annotations
 import argparse
 import csv
 import fnmatch
+import json
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 METRICS = ("precision", "recall", "map50", "map50_95")
 HEADER = {"precision": "P", "recall": "R",
@@ -57,6 +63,30 @@ def select(rows: List[dict], models: str, datasets: str) -> List[dict]:
                    for p in patterns.split(",") if p.strip())
     return [r for r in rows
             if match(r["model"], models) and match(r["dataset"], datasets)]
+
+
+def sweep_selection(path: Path) -> Optional[Tuple[set, set]]:
+    """(datasets, models) the sweep covers, models named by weight stem.
+
+    A model in sweep.json is a key with a weight file, and comparison.csv
+    names a model by its weight, so the weight's stem is what is compared.
+    """
+    if not path.exists():
+        return None
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    datasets = set(cfg.get("datasets", []))
+    models = {Path(m["weight"]).stem for m in cfg.get("models", {}).values()}
+    return datasets, models
+
+
+def in_sweep(rows: List[dict], sweep: Optional[Path]) -> List[dict]:
+    """Rows the sweep lists; all of them when there is no sweep to go by."""
+    selection = sweep_selection(sweep) if sweep else None
+    if selection is None:
+        return rows
+    datasets, models = selection
+    return [r for r in rows
+            if r["dataset"] in datasets and r["model"] in models]
 
 
 def axes(rows: List[dict]) -> Tuple[List[str], List[str], Dict[str, int]]:
@@ -146,8 +176,10 @@ def plot_by_model(rows: List[dict], metric: str, path: Path) -> None:
     plt.close(fig)
 
 
-def draw(rows: List[dict], metric: str, out: Path, prefix: str = "") -> List[Path]:
-    """Both figures for a selection. Returns what was written."""
+def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
+         sweep: Optional[Path] = Path("sweep.json")) -> List[Path]:
+    """Both figures for a selection, limited to the sweep. Returns what was written."""
+    rows = in_sweep(rows, sweep)
     out.mkdir(parents=True, exist_ok=True)
     tag = f"{prefix}_" if prefix else ""
     bars = out / f"{tag}bars_{metric}.png"
@@ -168,20 +200,26 @@ def main() -> int:
     ap.add_argument("--prefix", default="",
                     help="prepended to the file names, to keep a selection "
                          "from overwriting the default figures")
+    ap.add_argument("--sweep", type=Path, default=Path("sweep.json"),
+                    help="draw only the datasets and models it lists")
+    ap.add_argument("--all", action="store_true",
+                    help="draw every run in the csv, listed in the sweep or not")
     args = ap.parse_args()
+    sweep = None if args.all else args.sweep
 
     if not args.csv.exists():
         print(f"{args.csv} does not exist; run CompareRuns.py first")
         return 1
 
-    rows = select(load_rows(args.csv), args.models, args.datasets)
+    rows = in_sweep(select(load_rows(args.csv), args.models, args.datasets),
+                    sweep)
     if not rows:
         print(f"nothing matched models={args.models} datasets={args.datasets}")
         return 1
 
     models, datasets, _ = axes(rows)
     print(f"{len(rows)} runs: {len(models)} model(s) x {len(datasets)} dataset(s)")
-    for p in draw(rows, args.metric, args.out, args.prefix):
+    for p in draw(rows, args.metric, args.out, args.prefix, sweep):
         print(f"wrote {p}")
     return 0
 
