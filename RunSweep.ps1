@@ -51,11 +51,15 @@ if (-not $pickedModels) { throw "no model matched: $($Models -join ', ')" }
 $named = @($cfg.datasets)
 if (-not $named) { throw "$Config lists no datasets" }
 
-$pickedSets = @($named | ForEach-Object {
-    $f = Join-Path $cfg.paths.datasets "$_.yaml"
-    if (-not (Test-Path $f)) { throw "$Config lists '$_', but $f does not exist" }
-    Get-Item $f
-} | Where-Object { $n = $_.BaseName; $Datasets | Where-Object { $n -like $_ } })
+# Filtered before the existence check, so a listed set that is not built yet
+# only stops a sweep that actually asks for it.
+$pickedSets = @($named |
+    Where-Object { $n = $_; $Datasets | Where-Object { $n -like $_ } } |
+    ForEach-Object {
+        $f = Join-Path $cfg.paths.datasets "$_.yaml"
+        if (-not (Test-Path $f)) { throw "$Config lists '$_', but $f does not exist" }
+        Get-Item $f
+    })
 if (-not $pickedSets) { throw "no dataset matched: $($Datasets -join ', ')" }
 
 # A variant built but never added to the list would otherwise be missing
