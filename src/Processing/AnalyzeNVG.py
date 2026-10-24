@@ -1,7 +1,7 @@
 """
 Analyze NVG
 
-Measures one set of images and reports the quantities GenerateNVG.py is
+Measures one set of images and reports the quantities GenerateNVGv2.py is
 parameterised by, so the synthetic conversion can be tuned against numbers
 rather than by eye.
 
@@ -20,7 +20,7 @@ statistic toward zero, so crop first.
 
 WHAT IT MEASURES AND WHY
 
-GenerateNVG builds its output from one grayscale image, tinted by a fixed
+GenerateNVGv2 builds its output from one grayscale image, tinted by a fixed
 triple of channel multipliers. Every pixel therefore carries the same R:G:B
 ratio until something clips, which has two consequences. The color of a real
 device is fully described by two numbers, R/G and B/G, so they can be read
@@ -179,7 +179,7 @@ def grain(gray: np.ndarray) -> Dict[str, float]:
     was blurred to a coarser particle stays correlated about that far.
 
     The residual is also reported per brightness band, over the thresholds
-    GenerateNVG modulates grain with: it suppresses grain below 0.3 and above
+    GenerateNVGv2 modulates grain with: it suppresses grain below 0.3 and above
     0.8 and runs it at full strength between. A single figure averages those
     bands together and cannot tell grain from image texture, because texture
     does not follow that curve. The shape does: added grain rises from the
@@ -208,7 +208,7 @@ def grain(gray: np.ndarray) -> Dict[str, float]:
             np.median(np.abs(v - np.median(v))))
 
     # The same residual in ten bands of 0.1, which build_config writes as the
-    # grain profile GenerateNVG applies band by band.
+    # grain profile GenerateNVGv2 applies band by band.
     for i in range(PROFILE_BANDS):
         sel = (level >= i / PROFILE_BANDS) & (level < (i + 1) / PROFILE_BANDS)
         if sel.sum() < 500:
@@ -247,7 +247,7 @@ def falloff(gray: np.ndarray) -> Dict[str, float]:
     numbers were never measuring the same annulus. The edge band is capped at
     1.0 for the same reason.
 
-    What this still does not reconcile is that GenerateNVG builds its vignette
+    What this still does not reconcile is that GenerateNVGv2 builds its vignette
     from two 1-D Gaussians scaled to the frame's own width and height, making
     it elliptical on a non-square frame, where the device's is circular. That
     is in the conversion, not in the measurement, so it is not fixed here.
@@ -313,7 +313,7 @@ def color_split(rg: float, bg: float) -> Dict[str, float]:
     """
     Channel multipliers reproducing this color, scaled so nothing clips.
 
-    GenerateNVG multiplies one gray image by each of these, so the largest
+    GenerateNVGv2 multiplies one gray image by each of these, so the largest
     has to stay at or below 1 or the brightest pixels saturate in that
     channel and the tint shifts where the image is brightest, which is the
     one place a viewer would notice.
@@ -392,11 +392,11 @@ def plot(path: Path, rows: Sequence[Dict[str, Any]]) -> None:
 
 
 # Brightness the v2 grain curve peaks at. noise_intensity is the grain there,
-# so that is the band to read it from. Must match GenerateNVG's grain_peak.
+# so that is the band to read it from. Must match GenerateNVGv2's grain_peak.
 GRAIN_PEAK = 0.15
 
 # An equalised histogram is close to uniform over 0..255, whose mean and
-# standard deviation are these. GenerateNVG equalises before applying
+# standard deviation are these. GenerateNVGv2 equalises before applying
 # contrast, so they are what alpha and beta act on.
 EQUALISED_MEAN = 127.5
 EQUALISED_SD = 255.0 / (12 ** 0.5)
@@ -406,7 +406,7 @@ def solve_vignette(shape, target, lo=1.0, hi=8.0):
     """
     The vignette_intensity whose mask would produce this edge/center ratio.
 
-    GenerateNVG builds the mask as an outer product of two Gaussian kernels
+    GenerateNVGv2 builds the mask as an outer product of two Gaussian kernels
     with sigma = side / vignette_intensity, normalised to peak at one. There
     is no tidy inverse, so this bisects on the same statistic falloff()
     measures, computed on the mask itself. Monotonic in the intensity, so
@@ -445,12 +445,12 @@ def solve_vignette(shape, target, lo=1.0, hi=8.0):
 def build_config(s: Dict[str, Any], label: str, n: int,
                  color: str) -> Dict[str, Any]:
     """
-    Turn the measurements into something GenerateNVG.py can load.
+    Turn the measurements into something GenerateNVGv2.py can load.
 
     Three of these are read almost directly and are the reason the file is
     worth writing. The channel multipliers are the measured ratios. The
     grain is the residual spread at the band the curve peaks at, since
-    GenerateNVG draws its noise with a standard deviation of
+    GenerateNVGv2 draws its noise with a standard deviation of
     noise_intensity * mask and the mask is one there. Grain size is the lag
     the residual stays correlated over, rounded to an odd kernel.
 
@@ -462,7 +462,7 @@ def build_config(s: Dict[str, Any], label: str, n: int,
     inflates it.
 
     Measuring inside REGION_FRAC removes most, not all, of the vignette from
-    these two. GenerateNVG multiplies the mask in after convertScaleAbs, and
+    these two. GenerateNVGv2 multiplies the mask in after convertScaleAbs, and
     across the region that mask still averages around 0.93 at the default
     intensities, so the levels predicted here come out a few per cent dark
     rather than the 38 to 51 per cent they did over a whole frame. Matching
@@ -473,7 +473,7 @@ def build_config(s: Dict[str, Any], label: str, n: int,
     from a histogram without assuming what in the scene should bloom.
     """
     # The grain profile: residual spread per brightness band, for every band
-    # at least PROFILE_MIN_IMAGES images reach. GenerateNVG applies it band by
+    # at least PROFILE_MIN_IMAGES images reach. GenerateNVGv2 applies it band by
     # band and holds the end values beyond the measured range, so nothing is
     # read off an assumed curve. noise_intensity then scales the profile as a
     # whole and 1.0 applies it as measured. Only with no band measured at all
@@ -532,7 +532,7 @@ def table(rows: Sequence[Sequence[Any]], head: Sequence[str]) -> None:
 
 def main() -> int:
     p = argparse.ArgumentParser(
-        description="Measure one set of images for tuning GenerateNVG. "
+        description="Measure one set of images for tuning GenerateNVGv2. "
                     "Crop first with GenerateCrops.py; this measures whole "
                     "frames.")
     p.add_argument("files", nargs="+", help="images in this set")
@@ -549,7 +549,7 @@ def main() -> int:
     p.add_argument("--seed", type=int, default=0,
                    help="seed for --sample")
     p.add_argument("--config", metavar="FILE",
-                   help="write a json GenerateNVG.py can load with its own "
+                   help="write a json GenerateNVGv2.py can load with its own "
                         "--config, derived from these measurements")
     p.add_argument("--config-color", choices=["green", "white"], default="green",
                    help="which color mode the written config targets")
@@ -603,7 +603,7 @@ def main() -> int:
               "images exactly, whatever it is set to.")
 
     m = color_split(s["rg"], s["bg"])
-    print("\n=== color split for GenerateNVG ===")
+    print("\n=== color split for GenerateNVGv2 ===")
     for k in ("red_multiplier", "green_multiplier", "blue_multiplier"):
         print(f"  {k:<17}{m[k]}")
     print("  scaled so the largest is 1.0; multiply all three by one factor to "

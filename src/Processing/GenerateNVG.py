@@ -1,65 +1,7 @@
-"""
-Generate NVG, second version.
-
-A copy of GenerateNVGLegacy.py with one change: where grain is placed.
-
-GenerateNVGLegacy.py is kept and must not be edited. Every fine-tuning dataset in
-this project was produced with it, and reproducing those datasets requires
-the script exactly as it was. This file exists so the grain can be corrected
-without taking that away.
-
-WHAT CHANGED
-
-The legacy script places grain by a bell curve peaking in the midtones and suppresses it in
-shadows, on the stated reasoning that grain is "visible mainly in mid-tones,
-less in dark areas". Measured against real captures through the device, that
-is backwards. The 66 evaluation captures from the Pi camera behind the
-eyepiece (datasets/real_nvg, val), measured the way AnalyzeNVG.py does,
-inside the central square of half the field radius, give this noise profile
-by brightness band:
-
-    band        0.0-0.1  0.1-0.2  0.2-0.3  0.3-0.4  0.4-0.5
-    measured       1.09     1.38     1.20     1.05     0.64
-    relative       0.79     1.00     0.87     0.76     0.46
-    v1 applies     0.01     0.18     0.63     1.00     1.00
-    v2 applies     0.90     1.00     0.68     0.53     0.44
-
-The device is noisiest at about 0.15 and quietens toward the midtones. v1
-applies almost nothing exactly there and full strength where the device is
-quieter, so it is wrong by -99 % at the bottom and +116 % at 0.45.
-
-v2 moves the peak to 0.15 and decays above it. Against this profile it is
-within 14 % in the two bands below 0.2 and at 0.45, but falls off too fast
-in between, -22 % at 0.25 and -30 % at 0.35. The curve was fitted to an
-earlier whole-frame measurement, which the vignette pushed toward a steeper
-decay; it has not been refitted, because the coco_nvg2 sets were built with
-it. The rise below the peak is nearly flat, a 0.10 exponent, there only to
-avoid a hard edge at pure black.
-
-NOISE_INTENSITY MEANS SOMETHING DIFFERENT HERE
-
-In v1 the mask is 1.0 across the midtones, so noise_intensity set the
-midtone grain. In v2 the mask peaks at 0.15 and the midtones sit near 0.5,
-so noise_intensity sets the grain at the peak, in the shadows. The same
-numeric value therefore produces a different image, and v1 values should not
-be carried across without rechecking them against AnalyzeNVG.py.
-
-ONE CAVEAT ON THE MEASUREMENT
-
-Two other real sets, phone photographs and VLC frames of the device output,
-show the opposite profile and would support v1. They are not used here
-because a phone ISP denoises shadows hard, so that profile is the phone's
-noise reduction rather than the tube's behaviour. The Pi camera is also the
-path the evaluation imagery comes from, which is the one worth matching.
-
-Nothing above 0.6 appears in the real captures, so the highlight cutoff is
-carried over from v1 untested rather than fitted.
-"""
-
 import os
 from PIL import Image
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 from dataclasses import dataclass
 import numpy as np
 import cv2
@@ -83,7 +25,7 @@ class ColorSettings:
 # Global color mode definitions
 COLOR_MODES = {
     "green": ColorSettings(
-        suffix="_nvg2_green",
+        suffix="_nvg_green",
         red_multiplier=0.005,
         green_multiplier=1.0,
         blue_multiplier=0.005,
@@ -91,7 +33,7 @@ COLOR_MODES = {
         brightness_multiplier=1.0
     ),
     "white": ColorSettings(
-        suffix="_nvg2_white",
+        suffix="_nvg_white",
         red_multiplier=0.60,
         green_multiplier=1.08,
         blue_multiplier=0.95,
@@ -118,19 +60,6 @@ class NVGConfig:
     contrast_beta: int = 40  # Base brightness adjustment (-100 to 100) - shift histogram right
     vignette_intensity: float = 2.2  # Vignette strength (1.0-4.0, higher = stronger edge darkening)
 
-    # Where grain sits against brightness. Fitted to real captures through
-    # the device; see the module docstring. noise_intensity is the grain at
-    # grain_peak, which is in the shadows, not in the mid-tones as in v1.
-    grain_peak: float = 0.15   # normalised brightness the grain peaks at
-    grain_rise: float = 0.10   # exponent below the peak, near flat
-    grain_fall: float = 0.75   # exponent above the peak, the measured decay
-
-    # Measured grain per brightness band, as AnalyzeNVG.py --config writes it:
-    # {"brightness": [band centres], "sigma": [residual spread]}, both read off
-    # the luma of real captures. When set it replaces the curve above, and
-    # noise_intensity scales it, 1.0 applying it as measured.
-    grain_profile: Optional[dict] = None
-
     def get_color_settings(self) -> ColorSettings:
         """Get the color settings for the current color mode"""
         return COLOR_MODES.get(self.color.lower(), COLOR_MODES["green"])
@@ -139,55 +68,6 @@ class NVGConfig:
         """Get the file suffix for the current color mode"""
         return self.get_color_settings().suffix
 
-
-def load_config(path: str) -> "NVGConfig":
-    """
-    Build a config from a json file, typically one AnalyzeNVG.py wrote.
-
-    Only keys that name a real NVGConfig field are applied, and an unknown
-    key is an error rather than a shrug: a misspelled field that is silently
-    ignored would leave the run looking configured while it quietly used a
-    default, which is the kind of thing nobody notices until the dataset is
-    already built.
-
-    Channel multipliers live on ColorSettings rather than NVGConfig, so a
-    settings block in the file is applied to the color mode it names.
-    """
-    import json
-    with open(path, "r", encoding="utf-8") as fh:
-        data = json.load(fh)
-
-    cfg = NVGConfig()
-    fields = set(cfg.__dataclass_fields__)
-    settings = data.pop("color_settings", None)
-
-    # Anything AnalyzeNVG writes for context rather than for configuring.
-    for note in ("measured", "source", "generated_utc", "note"):
-        data.pop(note, None)
-
-    unknown = [k for k in data if k not in fields]
-    if unknown:
-        raise SystemExit(
-            f"{path}: not NVGConfig fields: {', '.join(sorted(unknown))}.\n"
-            f"  known: {', '.join(sorted(fields))}")
-    for k, v in data.items():
-        setattr(cfg, k, v)
-
-    if settings:
-        mode = settings.pop("color", cfg.color)
-        target = COLOR_MODES.get(str(mode).lower())
-        if target is None:
-            raise SystemExit(f"{path}: unknown color mode {mode!r}")
-        known = set(target.__dataclass_fields__)
-        bad = [k for k in settings if k not in known]
-        if bad:
-            raise SystemExit(
-                f"{path}: not ColorSettings fields: {', '.join(sorted(bad))}")
-        for k, v in settings.items():
-            setattr(target, k, v)
-        cfg.color = str(mode).lower()
-
-    return cfg
 
 def has_nvg_suffix(filename: str, config: NVGConfig) -> bool:
     """Check if filename contains the NVG suffix"""
@@ -237,52 +117,30 @@ def simulate_nvg(image: np.ndarray, config: NVGConfig) -> np.ndarray:
 
     # Add noise (grain) - characteristic of image intensifiers
     # Real NVG grain is ADDITIVE (lightening), not subtractive
-    # Grain is strongest in the shadows and falls as the picture brightens,
-    # which is what the device does and the reverse of v1.
+    # Grain should be visible mainly in mid-tones, less in dark areas, and cutoff in very bright areas
 
     if config.noise_intensity > 0:
         # Create brightness-dependent noise mask (normalized 0-1)
         normalized_brightness = gray.astype(np.float32) / 255.0
 
-        if config.grain_profile:
-            # The measured profile, band by band. It was read off the luma of
-            # tinted captures, while grain is added here to the gray image
-            # before the tint. The tint scales luma by one factor, so the band
-            # positions and the spreads are both carried back into gray levels
-            # by it. np.interp holds the end values beyond the measured range.
-            luma = (0.299 * color_settings.red_multiplier
-                    + 0.587 * color_settings.green_multiplier
-                    + 0.114 * color_settings.blue_multiplier)
-            bands = np.asarray(config.grain_profile["brightness"], dtype=np.float32) / luma
-            sigma = np.asarray(config.grain_profile["sigma"], dtype=np.float32) / luma
-            brightness_mask = np.interp(normalized_brightness, bands, sigma)
-        else:
-            # Grain peaks in the shadows, not the mid-tones. Measured on real
-            # captures through the device the profile peaks near 0.15 and falls
-            # away as the picture brightens; see the module docstring for the
-            # numbers. This is the one place v2 differs from v1.
-            grain_peak = config.grain_peak        # brightness of the peak
-            rise = config.grain_rise              # below the peak, near flat
-            fall = config.grain_fall              # above it, the measured decay
-            bright_threshold = 0.8                # carried over from v1, untested
+        # Create a bell curve for grain: low grain in dark and bright areas, peak in mid-tones
+        # Use power functions to shape the distribution
+        dark_threshold = 0.3  # Below this, grain decreases rapidly
+        bright_threshold = 0.8  # Above this, grain decreases
 
-            safe = np.maximum(normalized_brightness, 1e-6)
-            brightness_mask = np.where(
-                normalized_brightness < grain_peak,
-                # Below the peak: almost flat, shaped only to avoid a hard edge
-                # at pure black rather than to fit anything.
-                (normalized_brightness / grain_peak) ** rise,
-                # Above it: the decay the measurement shows.
-                (grain_peak / safe) ** fall
-            )
-            # Highlights still lose grain, as in v1. No real capture here reaches
-            # this far, so the term is inherited rather than measured.
-            brightness_mask = np.where(
+        # Calculate grain mask with bell curve shape
+        brightness_mask = np.where(
+            normalized_brightness < dark_threshold,
+            # Dark areas: quadratic falloff (very little grain in shadows)
+            (normalized_brightness / dark_threshold) ** 2.5,
+            np.where(
                 normalized_brightness > bright_threshold,
-                brightness_mask * ((1.0 - normalized_brightness)
-                                   / (1.0 - bright_threshold)) ** 1.5,
-                brightness_mask
+                # Bright areas: decrease grain (bloom/saturation effect)
+                ((1.0 - normalized_brightness) / (1.0 - bright_threshold)) ** 1.5,
+                # Mid-tones: full grain
+                1.0
             )
+        )
 
         # Generate brightness-dependent noise
         # The AMOUNT of grain varies (via standard deviation), not the intensity (mean stays constant)
@@ -424,10 +282,6 @@ if __name__ == "__main__":
                         help='Output folder for processed images (default: same as input)')
 
     # NVG effect parameters
-    parser.add_argument('--config', type=str, default=None,
-                        help='json of NVGConfig fields, as AnalyzeNVG.py '
-                             '--config writes. Command line flags given '
-                             'explicitly still win over it')
     parser.add_argument('--color', '-c', type=str, default='white', choices=['green', 'white'],
                         help='NVG color mode: green or white (default: white)')
     parser.add_argument('--no-equalize', action='store_true',
@@ -452,13 +306,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Create config with defaults
-    config = load_config(args.config) if args.config else NVGConfig()
+    config = NVGConfig()
 
     # Override with command-line arguments
-    # The config file sets the color unless the flag was given explicitly,
-    # which argparse cannot distinguish from the default, so compare against it.
-    if args.color != parser.get_default("color") or not args.config:
-        config.color = args.color
+    config.color = args.color
     config.equalize_histogram = not args.no_equalize
     if args.noise_intensity is not None:
         config.noise_intensity = args.noise_intensity

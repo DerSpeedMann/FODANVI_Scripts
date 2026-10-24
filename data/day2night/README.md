@@ -1,20 +1,20 @@
 # Day to night
 
 Measurements of real night vision captures and of the synthetic conversions
-meant to imitate them, used to tune `GenerateNVG.py` against numbers rather
+meant to imitate them, used to tune `GenerateNVGv2.py` against numbers rather
 than by eye.
 
     AnalyzeNVG.py         src/Processing/AnalyzeNVG.py
     GenerateCrops.py      src/Processing/GenerateCrops.py
+    GenerateNVGv2.py      src/Processing/GenerateNVGv2.py
     GenerateNVG.py        src/Processing/GenerateNVG.py
-    GenerateNVGLegacy.py  src/Processing/GenerateNVGLegacy.py
 
-`GenerateNVGLegacy.py` is frozen and produced every fine-tuning dataset in
-this project. `GenerateNVG.py` is the current one and differs in where it
-puts grain: the legacy curve suppresses grain in the shadows, which the
-measurements here showed to be backwards, so the current one peaks it at
-0.15 instead. Measurements of a legacy-generated set should be read against
-the legacy curve, not the current one.
+`GenerateNVG.py` is frozen and produced every fine-tuning dataset in
+this project. `GenerateNVGv2.py` is the second version and differs in where it
+puts grain: the v1 curve suppresses grain in the shadows, which the
+measurements here showed to be backwards, so v2 peaks it at
+0.15 instead. Measurements of a v1-generated set should be read against
+the v1 curve, not the v2 one.
 
 ## The images are not versioned
 
@@ -102,18 +102,18 @@ at 200 images each with `--sample 200`.
 | `real_green` | 5 | green phosphor photographs, the green target |
 | `real_white` | 5 | white phosphor photographs, the white target |
 | `real_dataset` | 66 | the captures the models are scored on |
-| `coco_green_clean`, `coco_green_noisy` | 200 each | legacy conversion, `GenerateNVGLegacy.py` |
+| `coco_green_clean`, `coco_green_noisy` | 200 each | v1 conversion, `GenerateNVG.py` |
 | `coco_white_clean`, `coco_white_noisy` | 200 each | the same, white |
-| `coco_nvg2_green`, `coco_nvg2_green_clean` | 200 each | current conversion, `GenerateNVG.py` |
+| `coco_nvg2_green`, `coco_nvg2_green_clean` | 200 each | v2 conversion, `GenerateNVGv2.py` |
 | `coco_nvg2_white`, `coco_nvg2_white_clean` | 200 each | the same, white |
 
 The `nvg2` groups in the csv are the corrected sets as first built, from the
 six-reference configs since replaced; they predate the rebuild from setup
 green and selected white by `BuildDay2NightDatasets.py`. Measured
-against their target the legacy green conversion carried almost no blue,
+against their target the v1 green conversion carried almost no blue,
 `bg` 0.018 against 0.119 on the clean set and 0.084 on the noisy one, because
-the hardcoded `blue_multiplier` is 0.005; the current sets land at 0.115.
-Legacy white was closer to begin with and its `rg` moved from 0.555 to 0.438
+the hardcoded `blue_multiplier` is 0.005; the v2 sets land at 0.115.
+The v1 white was closer to begin with and its `rg` moved from 0.555 to 0.438
 against a target of 0.441.
 
 ## The measurement region
@@ -150,14 +150,14 @@ same annulus. On the green references it reads 0.816 where it read 0.642, and
 Two further things are worth knowing when reading these numbers.
 
 `contrast_alpha` and `contrast_beta` are still only a starting point.
-`GenerateNVG` multiplies the vignette in after `convertScaleAbs`, and across
+`GenerateNVGv2` multiplies the vignette in after `convertScaleAbs`, and across
 the region that mask averages about 0.93, so the levels `build_config`
 predicts come out a few per cent dark. Over a whole frame that error was 51
 per cent for green and 38 for white, which is what the region fixes. Hitting
 the target exactly still wants the pair solved against the pipeline, which
 the first `nvg2` build did and the current one does not.
 
-What is corrected nowhere is the vignette's shape. `GenerateNVG` builds it
+What is corrected nowhere is the vignette's shape. `GenerateNVGv2` builds it
 from two 1-D Gaussians scaled to the frame's own width and height, which is
 elliptical on a non-square frame where the device's is circular. That is in
 the conversion rather than the measurement, so neither the region nor the
@@ -171,7 +171,7 @@ and not one these measurements answer.
 
 ## What it measures
 
-`GenerateNVG` builds its output from one grayscale image, tinted by a fixed
+`GenerateNVGv2` builds its output from one grayscale image, tinted by a fixed
 triple of channel multipliers, so every pixel carries the same R:G:B ratio
 until something clips. Two numbers therefore describe the color of a device,
 and they can be read off a capture and used as multipliers directly. The

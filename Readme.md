@@ -177,23 +177,23 @@ root, with COCO in place:
 
     python BuildDay2NightDatasets.py                       all eight, both splits
     python BuildDay2NightDatasets.py --splits val2017      val only, all the sweep needs
-    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the current four
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 four
 
 | sets | generator | values |
 | --- | --- | --- |
-| `coco_nvg_{green,white}_{noisy,clean}` | `GenerateNVGLegacy.py` | hand-tuned, hardcoded in the script |
-| `coco_nvg2_green`, `coco_nvg2_green_clean` | `GenerateNVG.py` | `data/day2night/nvg_config_setup_green.json` |
-| `coco_nvg2_white`, `coco_nvg2_white_clean` | `GenerateNVG.py` | `data/day2night/nvg_config_selected_white.json` |
+| `coco_nvg_{green,white}_{noisy,clean}` | `GenerateNVG.py` | hand-tuned, hardcoded in the script |
+| `coco_nvg2_green`, `coco_nvg2_green_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_setup_green.json` |
+| `coco_nvg2_white`, `coco_nvg2_white_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_white.json` |
 
 The clean variant of each disables grain, blur, bloom and vignette. The
 script only writes images and labels; every yaml under `data/datasets` is
 versioned and already points at those folders. It resumes an interrupted
 run, and `--force` rebuilds a split that is already complete.
 
-`GenerateNVGLegacy.py` is frozen and must not be edited. The legacy flags
+`GenerateNVG.py` is frozen and must not be edited. The v1 flags
 are as recorded in `MA_Paper/supplementary/code/Readme.md`; the four-folder
 layout is not, since the original calls wrote into a single `coco_nvg`.
-Rebuilding the legacy sets gives complete sets, not necessarily the original
+Rebuilding the v1 sets gives complete sets, not necessarily the original
 ones: the green noisy val2017 on disk came from an earlier revision of the
 script.
 

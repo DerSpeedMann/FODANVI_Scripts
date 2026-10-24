@@ -4,13 +4,13 @@ BuildDay2NightDatasets.py
 Build every day-to-night conversion of COCO this project uses, from one
 command, so a fresh clone with COCO in place can regenerate all of them.
 
-    legacy, GenerateNVGLegacy.py, hand-tuned values hardcoded in the script
+    v1, GenerateNVG.py, hand-tuned values hardcoded in the script
         coco_nvg_green_noisy    grain, blur, bloom and vignette on
         coco_nvg_green_clean    those four off
         coco_nvg_white_noisy
         coco_nvg_white_clean
 
-    current, GenerateNVG.py, configs AnalyzeNVG.py measured off real captures
+    v2, GenerateNVGv2.py, configs AnalyzeNVG.py measured off real captures
         coco_nvg2_green         green from nvg_config_setup_green.json
         coco_nvg2_green_clean   (the 66 evaluation captures)
         coco_nvg2_white         white from nvg_config_selected_white.json
@@ -22,17 +22,17 @@ data/day2night/README.md for how the configs were measured.
 
 Each clean variant disables grain, blur, bloom and vignette and nothing else,
 so it differs from its sibling only in those four. Histogram equalisation stays
-on in both: it is part of the tone mapping, not one of the effects. The legacy
+on in both: it is part of the tone mapping, not one of the effects. The v1
 flags are those recorded in MA_Paper/supplementary/code/Readme.md.
 
-GenerateNVGLegacy.py is frozen. Regenerating the legacy sets with it gives
+GenerateNVG.py is frozen. Regenerating the v1 sets with it gives
 complete sets, not necessarily the original ones: the green noisy val2017 on
 disk was written by an earlier revision of that script and carries more blue
 than the frozen one produces.
 
 Each set also gets its yaml, written beside the source's: a copy of coco.yaml
 with train and val pointed at the new folders and the header comment replaced
-by one naming the generator and config. The groupings that combine two legacy
+by one naming the generator and config. The groupings that combine two v1
 conversions for fine-tuning are not sets of their own and stay versioned.
 
 BuildDatasets.ps1 is not used here because it iterates images/train and
@@ -46,7 +46,7 @@ is only needed to fine-tune, and takes most of the time.
 
     python BuildDay2NightDatasets.py                       all eight, both splits
     python BuildDay2NightDatasets.py --splits val2017      all eight, val only
-    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the current four
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 four
     python BuildDay2NightDatasets.py --dry-run
 """
 
@@ -66,8 +66,8 @@ PROC = ROOT / "src/Processing"
 CONFIGS = ROOT / "data/day2night"
 SOURCE = "coco"
 
-LEGACY = "GenerateNVGLegacy.py"
-CURRENT = "GenerateNVG.py"
+V1 = "GenerateNVG.py"
+V2 = "GenerateNVGv2.py"
 
 # Disabling the four effects. Both generators guard each on > 0, so zero
 # skips the block rather than dividing by it.
@@ -77,25 +77,25 @@ CLEAN = ["--noise-intensity", "0", "--blur-amount", "0",
 # name -> (generator, color, config or None, suffix the generator appends,
 #          extra arguments)
 VARIANTS = {
-    "coco_nvg_green_noisy":  (LEGACY, "green", None, "_nvg_green", []),
-    "coco_nvg_green_clean":  (LEGACY, "green", None, "_nvg_green", CLEAN),
-    "coco_nvg_white_noisy":  (LEGACY, "white", None, "_nvg_white", []),
-    "coco_nvg_white_clean":  (LEGACY, "white", None, "_nvg_white", CLEAN),
-    "coco_nvg2_green":       (CURRENT, "green", "nvg_config_setup_green.json",
+    "coco_nvg_green_noisy":  (V1, "green", None, "_nvg_green", []),
+    "coco_nvg_green_clean":  (V1, "green", None, "_nvg_green", CLEAN),
+    "coco_nvg_white_noisy":  (V1, "white", None, "_nvg_white", []),
+    "coco_nvg_white_clean":  (V1, "white", None, "_nvg_white", CLEAN),
+    "coco_nvg2_green":       (V2, "green", "nvg_config_setup_green.json",
                               "_nvg2_green", []),
-    "coco_nvg2_green_clean": (CURRENT, "green", "nvg_config_setup_green.json",
+    "coco_nvg2_green_clean": (V2, "green", "nvg_config_setup_green.json",
                               "_nvg2_green", CLEAN),
-    "coco_nvg2_white":       (CURRENT, "white", "nvg_config_selected_white.json",
+    "coco_nvg2_white":       (V2, "white", "nvg_config_selected_white.json",
                               "_nvg2_white", []),
-    "coco_nvg2_white_clean": (CURRENT, "white", "nvg_config_selected_white.json",
+    "coco_nvg2_white_clean": (V2, "white", "nvg_config_selected_white.json",
                               "_nvg2_white", CLEAN),
 }
 
-LEGACY_HEADER = """# One conversion on its own, so a model can be scored against it
+V1_HEADER = """# One conversion on its own, so a model can be scored against it
 # alone. The paired configs beside this one combine two.
 """
 
-CURRENT_HEADER = """# {source} converted with GenerateNVG.py and the config AnalyzeNVG.py
+V2_HEADER = """# {source} converted with GenerateNVGv2.py and the config AnalyzeNVG.py
 # measured off real captures ({config}).{note}
 # Built by BuildDay2NightDatasets.py. Images and labels both carry the
 # {suffix} suffix, as the earlier converted COCO sets do.
@@ -135,10 +135,10 @@ def write_yaml(name: str) -> None:
         raise SystemExit(f"{SOURCE}.yaml names no {SOURCE}/images/ folder "
                          "to point at the new set")
 
-    if script == LEGACY:
-        header = LEGACY_HEADER
+    if script == V1:
+        header = V1_HEADER
     else:
-        header = CURRENT_HEADER.format(source=SOURCE, config=config,
+        header = V2_HEADER.format(source=SOURCE, config=config,
                                        suffix=suffix,
                                        note=CLEAN_NOTE if extra else "")
     out = (header + body).replace("\n", "\r\n")      # CRLF, no BOM

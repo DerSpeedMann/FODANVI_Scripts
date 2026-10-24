@@ -1,4 +1,4 @@
-# coco converted with GenerateNVG.py and the config AnalyzeNVG.py
+# coco converted with GenerateNVGv2.py and the config AnalyzeNVG.py
 # measured off real captures (nvg_config_selected_white.json).
 # Built by BuildDay2NightDatasets.py. Images and labels both carry the
 # _nvg2_white suffix, as the earlier converted COCO sets do.
