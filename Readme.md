@@ -217,7 +217,7 @@ is a yaml rather than a copy of the images.
 | `coco_nvg_white_noisy.yaml` | that conversion alone |
 | `real_nvg.yaml` | the real captures, val only |
 | `real_nvg_grayscale.yaml` | the real captures, grayscaled |
-| `real_nvg_blue.yaml` | the real captures, green shifted to blue |
+| `real_nvg_white.yaml` | the real captures, green shifted to the white phosphor tint |
 
 The four single-conversion configs exist so a model can be scored against
 one conversion on its own; the combined four are what training uses.
@@ -233,7 +233,7 @@ relative to it, a different style that resolves the same way.
 apply to each:
 
     "variants": [
-      { "source": "real_nvg", "chains": [["grayscale"], ["blue"]] }
+      { "source": "real_nvg", "chains": [["grayscale"], ["white"]] }
     ]
 
 Every name in a chain comes from the `generators` block beside it, which
@@ -241,13 +241,13 @@ gives the script in `src/Processing`, the suffix that script appends, and
 any extra arguments it takes after the input and output folders.
 
     .\BuildDatasets.ps1                        build whatever is missing
-    .\BuildDatasets.ps1 -Only real_nvg_blue    one of them
+    .\BuildDatasets.ps1 -Only real_nvg_white   one of them
     .\BuildDatasets.ps1 -Force                 rebuild even if present
     .\BuildDatasets.ps1 -WhatIf                list without building
 
 A chain runs its generators in order, each over the previous one's output,
-so `["grayscale", "blue"]` gives `real_nvg_grayscale_blue` with files
-suffixed `_grayscale_blue`. The dataset is named for its source and those
+so `["grayscale", "white"]` gives `real_nvg_grayscale_white` with files
+suffixed `_grayscale_white`. The dataset is named for its source and those
 suffixes and is never named in the config, so the folder and the filenames
 cannot disagree. Intermediate steps go to a staging folder that is deleted
 on success, so a chain that dies half way cannot leave something that looks

@@ -17,9 +17,7 @@
     "coco_nvg2_white_clean",
     "real_nvg",
     "real_nvg_grayscale",
-    "real_nvg_blue_light",
-    "real_nvg_blue_dark",
-    "real_nvg_blue_swap",
+    "real_nvg_white",
     "real_nvg_red_light",
     "real_nvg_red_dark",
     "real_nvg_red_swap",
@@ -78,44 +76,18 @@
       ],
       "describe": "grayscale via BT.601 luma (Y to all channels)"
     },
-    "blue_light": {
+    "white": {
       "script": "GenerateColorShift.py",
-      "suffix": "_blue_light",
+      "suffix": "_white",
       "args": [
         "--formula",
-        "0",
-        "g*0.5",
+        "g*0.561",
         "g",
+        "g*0.874",
         "--suffix",
-        "_blue_light"
+        "_white"
       ],
-      "describe": "blue tint with luma support (R'=0, G'=g*0.5, B'=g, ~62% luma)"
-    },
-    "blue_dark": {
-      "script": "GenerateColorShift.py",
-      "suffix": "_blue_dark",
-      "args": [
-        "--formula",
-        "r",
-        "g*0.3",
-        "b+g*0.7",
-        "--suffix",
-        "_blue_dark"
-      ],
-      "describe": "original blue blend (R'=r, G'=g*0.3, B'=b+g*0.7, ~39% luma)"
-    },
-    "blue_swap": {
-      "script": "GenerateColorShift.py",
-      "suffix": "_blue_swap",
-      "args": [
-        "--formula",
-        "r",
-        "b",
-        "g",
-        "--suffix",
-        "_blue_swap"
-      ],
-      "describe": "green-blue channel swap (R'=r, G'=b, B'=g, ~17% luma)"
+      "describe": "white phosphor tint from data/day2night/nvg_config_selected_white.json (R'=g*0.561, G'=g, B'=g*0.874, ~85% luma)"
     },
     "red_light": {
       "script": "GenerateColorShift.py",
@@ -174,13 +146,7 @@
           "grayscale"
         ],
         [
-          "blue_light"
-        ],
-        [
-          "blue_dark"
-        ],
-        [
-          "blue_swap"
+          "white"
         ],
         [
           "red_light"

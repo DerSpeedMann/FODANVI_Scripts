@@ -10,8 +10,8 @@
     extra arguments it takes after the input and output folders.
 
     The dataset a chain produces is named for its source and the suffixes it
-    applies, so real_nvg with ["grayscale","blue"] becomes
-    real_nvg_grayscale_blue. Naming it in the config as well would only be a
+    applies, so real_nvg with ["grayscale","white"] becomes
+    real_nvg_grayscale_white. Naming it in the config as well would only be a
     second place for it to be wrong.
 
     The work is done by the scripts that are already there. A generator writes
@@ -26,7 +26,7 @@
     sweep.
 
         .\BuildDatasets.ps1                        build what is missing
-        .\BuildDatasets.ps1 -Only real_nvg_blue    one of them
+        .\BuildDatasets.ps1 -Only real_nvg_white   one of them
         .\BuildDatasets.ps1 -Force                 rebuild even if present
         .\BuildDatasets.ps1 -WhatIf                list what would be built
 #>

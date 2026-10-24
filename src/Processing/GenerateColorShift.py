@@ -10,6 +10,8 @@ saved as uint8.  numpy is available as `np` inside the expressions.
 --formula R G B is required.
 
 Useful formulas:
+  white phosphor tint   : "g*0.561" "g" "g*0.874"
+                          (ratios from data/day2night/nvg_config_selected_white.json)
   blue tint (luma-best) : "0" "g*0.5" "g"
   red tint (luma-best)  : "g" "g*0.5" "0"
   green-blue swap       : "r" "b" "g"
@@ -18,7 +20,7 @@ Useful formulas:
   luma grayscale        : "Y" "Y" "Y"   (Y = 0.299r+0.587g+0.114b)
 
 Usage:
-    python GenerateColorShift.py input/ output/ --formula "0" "g*0.5" "g" --suffix _blue_light
+    python GenerateColorShift.py input/ output/ --formula "g*0.561" "g" "g*0.874" --suffix _white
     python GenerateColorShift.py input/ output/ --formula "r" "b" "g" --suffix _blue_swap
 """
 import argparse
