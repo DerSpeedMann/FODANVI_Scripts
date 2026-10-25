@@ -96,6 +96,21 @@ function Get-Epochs($csv) {
     @(Import-Csv $csv)
 }
 
+# The container runs with --rm, so its output is gone once it stops. This
+# follows it into logs/console.log in the run folder, appending, so a resumed
+# stage keeps the earlier part. Started only once the framework has made the
+# run folder: one that exists beforehand would send the run to <name>2. That
+# loses nothing, since docker logs -f replays from the container's start, and
+# it ends by itself when the container stops.
+function Start-ConsoleLog($container, $runDir) {
+    $dir = Join-Path $runDir "logs"
+    New-Item -ItemType Directory -Force $dir | Out-Null
+    $log = Join-Path $dir "console.log"
+    Add-Content $log "`n=== $container, $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ==="
+    Start-Process cmd -WindowStyle Hidden -PassThru `
+        -ArgumentList "/c docker logs -f $container >> `"$log`" 2>&1"
+}
+
 # Windows sleeps on its idle timer whatever a container is doing, and a stage
 # is many hours without input. Held for as long as this process lives, as in
 # RunSweep.ps1, and released at the end or when the process exits.
@@ -217,9 +232,17 @@ try {
             Write-Host "$(if ($mode -eq 'resume') { "resumed after epoch $done" } else { 'started' }) $container; follow it with: docker logs -f $container"
 
             $seen = $done
+            $logger = $null
             while ($true) {
                 Start-Sleep $PollSeconds
-                $rows = Get-Epochs $csv
+                if (-not $logger -and (Test-Path $runDir)) {
+                    $logger = Start-ConsoleLog $container $runDir
+                    Write-Host "  console output -> $(Join-Path $runDir 'logs\console.log')"
+                }
+                # @() again at the call: PowerShell unrolls what a function
+                # returns, so one row comes back as a bare object, which in
+                # Windows PowerShell has no Count and cannot be indexed.
+                $rows = @(Get-Epochs $csv)
                 for ($i = $seen; $i -lt $rows.Count; $i++) {
                     $r = $rows[$i]
                     Write-Host ("  epoch {0,3}  mAP50-95 {1}  {2}" -f `
