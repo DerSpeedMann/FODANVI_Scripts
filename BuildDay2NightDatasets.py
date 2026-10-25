@@ -11,12 +11,15 @@ command, so a fresh clone with COCO in place can regenerate all of them.
         coco_nvg_white_clean
 
     v2, GenerateNVGv2.py, configs AnalyzeNVG.py measured off real captures
-        coco_nvg2_green                 green from nvg_config_selected_green.json
+        coco_nvg2_green_noisy           green from nvg_config_selected_green.json
         coco_nvg2_green_clean           (the five green references)
-        coco_nvg2_white                 white from nvg_config_selected_white.json
+        coco_nvg2_white_noisy           white from nvg_config_selected_white.json
         coco_nvg2_white_clean           (the five white references)
-        coco_nvg_captures_green         green from nvg_config_setup_green.json
+        coco_nvg_captures_green_noisy   green from nvg_config_setup_green.json
         coco_nvg_captures_green_clean   (the 66 evaluation captures)
+
+Named like the v1 sets: _noisy carries grain, blur, bloom and vignette,
+_clean has all four off.
 
 The nvg2 sets are the fine-tuning data of the v2 chain, both phosphors measured
 on the handpicked references, so that no statistic of the 66 evaluation
@@ -88,15 +91,15 @@ VARIANTS = {
     "coco_nvg_green_clean":  (V1, "green", None, "_nvg_green", CLEAN),
     "coco_nvg_white_noisy":  (V1, "white", None, "_nvg_white", []),
     "coco_nvg_white_clean":  (V1, "white", None, "_nvg_white", CLEAN),
-    "coco_nvg2_green":       (V2, "green", "nvg_config_selected_green.json",
+    "coco_nvg2_green_noisy": (V2, "green", "nvg_config_selected_green.json",
                               "_nvg2_green", []),
     "coco_nvg2_green_clean": (V2, "green", "nvg_config_selected_green.json",
                               "_nvg2_green", CLEAN),
-    "coco_nvg2_white":       (V2, "white", "nvg_config_selected_white.json",
+    "coco_nvg2_white_noisy": (V2, "white", "nvg_config_selected_white.json",
                               "_nvg2_white", []),
     "coco_nvg2_white_clean": (V2, "white", "nvg_config_selected_white.json",
                               "_nvg2_white", CLEAN),
-    "coco_nvg_captures_green":       (V2, "green", "nvg_config_setup_green.json",
+    "coco_nvg_captures_green_noisy": (V2, "green", "nvg_config_setup_green.json",
                                       "_nvg2_green", []),
     "coco_nvg_captures_green_clean": (V2, "green", "nvg_config_setup_green.json",
                                       "_nvg2_green", CLEAN),

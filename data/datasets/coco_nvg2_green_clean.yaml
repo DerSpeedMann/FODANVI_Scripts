@@ -1,5 +1,5 @@
 # coco converted with GenerateNVGv2.py and the config AnalyzeNVG.py
-# measured off real captures (nvg_config_setup_green.json).
+# measured off real captures (nvg_config_selected_green.json).
 # Grain, blur, bloom and vignette are disabled in this one.
 # Built by BuildDay2NightDatasets.py. Images and labels both carry the
 # _nvg2_green suffix, as the earlier converted COCO sets do.

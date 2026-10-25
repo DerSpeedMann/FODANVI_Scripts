@@ -182,9 +182,9 @@ root, with COCO in place:
 | sets | generator | values | used for |
 | --- | --- | --- | --- |
 | `coco_nvg_{green,white}_{noisy,clean}` | `GenerateNVG.py` | hand-tuned, hardcoded in the script | v1 fine-tuning, validation |
-| `coco_nvg2_green`, `coco_nvg2_green_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_green.json` (five green references) | v2 fine-tuning, validation |
-| `coco_nvg2_white`, `coco_nvg2_white_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_white.json` (five white references) | v2 fine-tuning, validation |
-| `coco_nvg_captures_green`, `coco_nvg_captures_green_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_setup_green.json` (66 evaluation captures) | validation only |
+| `coco_nvg2_green_{noisy,clean}` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_green.json` (five green references) | v2 fine-tuning, validation |
+| `coco_nvg2_white_{noisy,clean}` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_white.json` (five white references) | v2 fine-tuning, validation |
+| `coco_nvg_captures_green_{noisy,clean}` | `GenerateNVGv2.py` | `data/day2night/nvg_config_setup_green.json` (66 evaluation captures) | validation only |
 
 The v2 fine-tuning trains on the references only, so that no statistic of the
 evaluation captures reaches its training data; `coco_nvg2_clean.yaml` and

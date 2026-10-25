@@ -3,12 +3,12 @@
 # not a sweep dataset.
 path: /datasets
 train:
-  - coco_nvg2_green/images/train2017
-  - coco_nvg2_white/images/train2017
+  - coco_nvg2_green_noisy/images/train2017
+  - coco_nvg2_white_noisy/images/train2017
 
 val:
-  - coco_nvg2_green/images/val2017
-  - coco_nvg2_white/images/val2017
+  - coco_nvg2_green_noisy/images/val2017
+  - coco_nvg2_white_noisy/images/val2017
 
 names:
   0: person

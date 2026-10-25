@@ -4,10 +4,10 @@
 # _nvg2_green suffix, as the earlier converted COCO sets do.
 path: /datasets
 train:
-  - coco_nvg2_green/images/train2017
+  - coco_nvg_captures_green_noisy/images/train2017
 
 val:
-  - coco_nvg2_green/images/val2017
+  - coco_nvg_captures_green_noisy/images/val2017
 
 names:
   0: person
