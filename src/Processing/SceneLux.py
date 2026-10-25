@@ -105,8 +105,10 @@ REFERENCES
 """
 
 import argparse
+import csv
 import glob
 import json
+import re
 import struct
 from datetime import datetime, timezone
 from pathlib import Path
@@ -331,6 +333,35 @@ def write_overlay(path: Path, measured: Dict[str, Any], out: Path) -> None:
     img.save(out, quality=90)
 
 
+def csv_row(record: Dict[str, Any]) -> Dict[str, Any]:
+    """One table row per frame. Color is read from the file name,
+    s19_04_calibRED_1s_010937.NEF giving red, so a run over every reference
+    color comes out as one table; a frame named otherwise leaves it empty."""
+    name = record["file"]
+    color = re.search(r"_calib([A-Za-z]+)_", name)
+    tags = record["exif"]
+    return {
+        "file": name,
+        "color": color.group(1).lower() if color else "",
+        "datetime": tags.get("datetime"),
+        "exposure_s": tags["exposure_time"],
+        "f_number": tags["f_number"],
+        "iso": tags["iso"],
+        "focal_length": tags.get("focal_length"),
+        "y_card": record["y_card"],
+        "y_card_spread": record.get("y_card_spread"),
+    }
+
+
+def write_csv(path: Path, rows: List[Dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", newline="") as fh:
+        w = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    print(f"table -> {path}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Estimate scene illuminance from a raw grey-card capture.")
@@ -346,6 +377,9 @@ def main() -> int:
                              "bare flag uses DEFAULT_ROIS, or give a JSON file of "
                              "{name: [cx, cy, half_w, half_h]}")
     parser.add_argument("--record", type=Path, help="write a JSON record here")
+    parser.add_argument("--csv", type=Path,
+                        help="write a table here, one row per frame with its "
+                             "session and color")
     parser.add_argument("--overlay-dir", type=Path,
                         help="write ROI overlay images into this folder")
     args = parser.parse_args()
@@ -409,6 +443,9 @@ def main() -> int:
             "captures": records,
         }, indent=2))
         print(f"\nrecord -> {args.record}")
+
+    if args.csv:
+        write_csv(args.csv, [csv_row(r) for r in records])
 
     return 0
 

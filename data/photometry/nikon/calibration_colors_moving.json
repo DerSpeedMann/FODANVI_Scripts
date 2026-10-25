@@ -1,0 +1,1101 @@
+{
+  "generated_utc": "2026-10-25T17:13:51+00:00",
+  "region": {
+    "rois_normalised": {
+      "q_ul": [
+        0.422,
+        0.438,
+        0.015,
+        0.02
+      ],
+      "q_ur": [
+        0.578,
+        0.438,
+        0.015,
+        0.02
+      ],
+      "q_ll": [
+        0.422,
+        0.562,
+        0.015,
+        0.02
+      ],
+      "q_lr": [
+        0.578,
+        0.562,
+        0.015,
+        0.02
+      ]
+    }
+  },
+  "captures": [
+    {
+      "file": "s21_04_calibBLUE_20th_051915.NEF",
+      "exif": {
+        "exposure_time": 0.05,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:19:15"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.052364037037034815,
+          "sd_over_mean": 0.4934491923417584,
+          "lineness": 1.3206854345165238,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.04890153042321433,
+          "sd_over_mean": 0.5161052350388927,
+          "lineness": 1.4120529801324533,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.05197885029129804,
+          "sd_over_mean": 0.4996909251028398,
+          "lineness": 1.365074441687347,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.049696258650655245,
+          "sd_over_mean": 0.5116235828249145,
+          "lineness": 1.3785900783289817,
+          "clean": false
+        }
+      },
+      "y_card": 0.050735169100550606,
+      "y_card_spread": 0.06824667533793452,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 1.4461612311596728
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_04_calibBLUE_20th_051917.NEF",
+      "exif": {
+        "exposure_time": 0.05,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:19:17"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.051387448116963996,
+          "sd_over_mean": 0.4997638380582291,
+          "lineness": 1.3421383647798744,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.047269178239815246,
+          "sd_over_mean": 0.5281713458432673,
+          "lineness": 1.4594222833562587,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.049704651836552045,
+          "sd_over_mean": 0.5039178991466051,
+          "lineness": 1.3914174252275684,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.048058607612550625,
+          "sd_over_mean": 0.5214970494020867,
+          "lineness": 1.4408602150537637,
+          "clean": false
+        }
+      },
+      "y_card": 0.049104971451470476,
+      "y_card_spread": 0.0838666586176261,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 1.3996938855092618
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_05_calibBLACK_10th_052000.NEF",
+      "exif": {
+        "exposure_time": 0.1,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:20:00"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.00036411130098340543,
+          "sd_over_mean": 28.03015979460973,
+          "lineness": 69.0,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.0002988803999903461,
+          "sd_over_mean": 34.25857257297168,
+          "lineness": Infinity,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.00017002325117449114,
+          "sd_over_mean": 60.32227919022241,
+          "lineness": Infinity,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.00017659683036108575,
+          "sd_over_mean": 58.32794871834123,
+          "lineness": Infinity,
+          "clean": false
+        }
+      },
+      "y_card": 0.00025240294562733207,
+      "y_card_spread": 0.7689611122664212,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 0.0035972616339696906
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_05_calibBLACK_10th_052001.NEF",
+      "exif": {
+        "exposure_time": 0.1,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:20:01"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": -1.8146077906721326e-06,
+          "sd_over_mean": -5664.708804460487,
+          "lineness": -71.0,
+          "clean": true
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.00018894916052844337,
+          "sd_over_mean": 53.48481585537098,
+          "lineness": Infinity,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.00045073757757998193,
+          "sd_over_mean": 22.36523733725477,
+          "lineness": 70.0,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.0004087816459350476,
+          "sd_over_mean": 25.48601471585012,
+          "lineness": 70.83333333333333,
+          "clean": false
+        }
+      },
+      "y_card": 0.0002616634440632002,
+      "y_card_spread": 1.7295200978144583,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 0.0037292428026204317
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_06_calibGREEN_30th_052104.NEF",
+      "exif": {
+        "exposure_time": 0.03333333333333333,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:21:04"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.1252823764671504,
+          "sd_over_mean": 0.30620829461195187,
+          "lineness": 0.7701772151898745,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.11432945883076832,
+          "sd_over_mean": 0.3222091917114016,
+          "lineness": 0.8554752640355755,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.12207533463717152,
+          "sd_over_mean": 0.30972074971381763,
+          "lineness": 0.7967775467775468,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.11738987235298962,
+          "sd_over_mean": 0.3136080727652277,
+          "lineness": 0.8213897937024974,
+          "clean": false
+        }
+      },
+      "y_card": 0.11976926057201998,
+      "y_card_spread": 0.09145015661005806,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 5.120875648821963
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_06_calibGREEN_30th_052105.NEF",
+      "exif": {
+        "exposure_time": 0.03333333333333333,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:21:05"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.13423411163911034,
+          "sd_over_mean": 0.2943617621536894,
+          "lineness": 0.7478034955125186,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.12167994009774728,
+          "sd_over_mean": 0.305953503827695,
+          "lineness": 0.7994282744282756,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.12956541073212435,
+          "sd_over_mean": 0.29869087999559835,
+          "lineness": 0.7616250611845324,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.1249068476339524,
+          "sd_over_mean": 0.3037238388106406,
+          "lineness": 0.7803762074224707,
+          "clean": false
+        }
+      },
+      "y_card": 0.12759657752573358,
+      "y_card_spread": 0.09838956330024713,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 5.455541794312447
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_07_calibRED_13th_052128.NEF",
+      "exif": {
+        "exposure_time": 0.07692307692307693,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:21:28"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.03300844555457784,
+          "sd_over_mean": 0.6524475033832786,
+          "lineness": 1.8316831683168318,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.030219608333854717,
+          "sd_over_mean": 0.6885164281429422,
+          "lineness": 1.923913043478261,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.03231074635528277,
+          "sd_over_mean": 0.6534188276283809,
+          "lineness": 1.8729508196721312,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.03024468791315445,
+          "sd_over_mean": 0.6838243792913514,
+          "lineness": 1.923913043478261,
+          "clean": false
+        }
+      },
+      "y_card": 0.03144587203921745,
+      "y_card_spread": 0.08868690991444118,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 0.5826189443943326
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_07_calibRED_15th_052129.NEF",
+      "exif": {
+        "exposure_time": 0.06666666666666667,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:21:29"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.02678601547061618,
+          "sd_over_mean": 0.7399902416051297,
+          "lineness": 2.0660146699266506,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.02438064536731031,
+          "sd_over_mean": 0.7870842411951134,
+          "lineness": 2.2303523035230346,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.02593587921906559,
+          "sd_over_mean": 0.7498757204541537,
+          "lineness": 2.1122448979591835,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.024701161091041784,
+          "sd_over_mean": 0.7868859010848591,
+          "lineness": 2.285333333333334,
+          "clean": false
+        }
+      },
+      "y_card": 0.02545092528700847,
+      "y_card_spread": 0.09451012394169034,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 0.5440921273111551
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_08_calibWHITE_50th_052155.NEF",
+      "exif": {
+        "exposure_time": 0.02,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:21:55"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.08702055637694467,
+          "sd_over_mean": 0.3660218877488038,
+          "lineness": 0.9588839941262848,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.08002904752166866,
+          "sd_over_mean": 0.3884865138191249,
+          "lineness": 1.018134920634921,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.08522506945348832,
+          "sd_over_mean": 0.3749545222634931,
+          "lineness": 0.9827586206896551,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.08109649680318097,
+          "sd_over_mean": 0.3831835077266609,
+          "lineness": 1.0000786782061386,
+          "clean": false
+        }
+      },
+      "y_card": 0.08334279253882065,
+      "y_card_spread": 0.08388858403105943,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 5.9390319182418
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s21_08_calibWHITE_50th_052156.NEF",
+      "exif": {
+        "exposure_time": 0.02,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:02 05:21:56"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.08699349222659014,
+          "sd_over_mean": 0.37288895126479077,
+          "lineness": 0.986967694566815,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.07969557459850628,
+          "sd_over_mean": 0.3875685086898832,
+          "lineness": 1.0216973578863109,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.08437059413978262,
+          "sd_over_mean": 0.3761004076776385,
+          "lineness": 0.9615963855421686,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.08112802498867895,
+          "sd_over_mean": 0.3834666336467293,
+          "lineness": 1.0134281200631912,
+          "clean": false
+        }
+      },
+      "y_card": 0.0830469214883895,
+      "y_card_spread": 0.08787703983830586,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 5.917948060134024
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s23_02_calibMOVING_40th_210959.NEF",
+      "exif": {
+        "exposure_time": 0.025,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:03 21:09:59"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.08191073081464172,
+          "sd_over_mean": 0.37942699462552637,
+          "lineness": 0.9681923972071376,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.07766151424031209,
+          "sd_over_mean": 0.3893115948426298,
+          "lineness": 1.0181069958847737,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.08026030753712893,
+          "sd_over_mean": 0.38729490571822667,
+          "lineness": 1.0,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.07746790608677841,
+          "sd_over_mean": 0.3930547794262869,
+          "lineness": 1.0454732510288083,
+          "clean": false
+        }
+      },
+      "y_card": 0.07932511466971529,
+      "y_card_spread": 0.056007794585130166,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 4.522184808935335
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s23_02_calibMOVING_40th_211001.NEF",
+      "exif": {
+        "exposure_time": 0.025,
+        "f_number": 4.0,
+        "iso": 51200,
+        "focal_length": 38.0,
+        "datetime": "2026:10:03 21:10:01"
+      },
+      "black_level": 400.0,
+      "white_level": 16383.0,
+      "shape": [
+        3728,
+        5600
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            2279,
+            1558,
+            2447,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.0808158774562466,
+          "sd_over_mean": 0.3891659642868781,
+          "lineness": 1.0228166797797007,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            3152,
+            1558,
+            3320,
+            1707
+          ],
+          "pixels": 12516,
+          "mean": 0.07547372210970321,
+          "sd_over_mean": 0.3993081175488679,
+          "lineness": 1.0881094952951238,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            2279,
+            2020,
+            2447,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.07897702990475639,
+          "sd_over_mean": 0.3887417232708392,
+          "lineness": 1.0370654810024258,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            3152,
+            2020,
+            3320,
+            2169
+          ],
+          "pixels": 12516,
+          "mean": 0.07525676400302839,
+          "sd_over_mean": 0.4003227957012843,
+          "lineness": 1.0423370025402203,
+          "clean": false
+        }
+      },
+      "y_card": 0.07763084836843365,
+      "y_card_spread": 0.07160959296534844,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.4252058845941427,
+        "lux": 4.425597676829089
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.04837403318646708,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    }
+  ]
+}
