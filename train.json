@@ -1,0 +1,68 @@
+{
+  "_about": "Fine-tuning stages run by RunTrain.ps1. Keys starting with _ are comments.",
+  "paths": {
+    "datasets": "data/datasets",
+    "models": "data/models",
+    "runs": "data/runs"
+  },
+  "_device": "What this machine can carry: 8 GB of VRAM and a WSL2 VM with 28 GB, see the Readme. batch and workers are the values the runs converged with.",
+  "device": {
+    "image": "ultralytics/ultralytics:8.4.41",
+    "gpus": "all",
+    "shm_size": "12g",
+    "batch": 16,
+    "workers": 4
+  },
+  "_train": "Passed to yolo detect train for every stage. A stage's args and -Set on the command line override these.",
+  "train": {
+    "optimizer": "SGD",
+    "lrf": 0.01,
+    "momentum": 0.937,
+    "warmup_epochs": 5.0,
+    "warmup_bias_lr": 0.1,
+    "epochs": 100,
+    "imgsz": 640,
+    "patience": 30
+  },
+  "_stages": "model is read from paths.models, data names a yaml in paths.datasets. stop_after ends the run after that many epochs while epochs stays at 100, so the learning-rate schedule is the one of a 100 epoch run. export is where best.pt is copied when the stage ends.",
+  "stages": {
+    "nvg_clean": {
+      "_note": "hand-tuned chain, stage 1; ran on 8.3.221 against a single coco_nvg folder",
+      "image": "ultralytics/ultralytics:8.3.221",
+      "model": "yolo11s.pt",
+      "data": "coco_nvg_clean",
+      "args": { "lr0": 0.0001 },
+      "stop_after": 13,
+      "name": "finetune_yolo11s_nvg_clean",
+      "export": "yolo11s_clean.pt"
+    },
+    "nvg_clean-noisy": {
+      "_note": "hand-tuned chain, stage 2",
+      "image": "ultralytics/ultralytics:8.3.221",
+      "model": "yolo11s_clean.pt",
+      "data": "coco_nvg_noisy",
+      "args": { "lr0": 0.0005 },
+      "stop_after": 19,
+      "name": "finetune_yolo11s_nvg_clean-noisy",
+      "export": "yolo11s_clean-noisy.pt"
+    },
+    "nvg2_clean": {
+      "_note": "measured chain, stage 1",
+      "model": "yolo11s.pt",
+      "data": "coco_nvg2_clean",
+      "args": { "lr0": 0.0001 },
+      "stop_after": 13,
+      "name": "finetune_yolo11s_nvg2_clean",
+      "export": "yolo11s_nvg2_clean.pt"
+    },
+    "nvg2_clean-noisy": {
+      "_note": "measured chain, stage 2",
+      "model": "yolo11s_nvg2_clean.pt",
+      "data": "coco_nvg2_noisy",
+      "args": { "lr0": 0.0005 },
+      "stop_after": 19,
+      "name": "finetune_yolo11s_nvg2_clean-noisy",
+      "export": "yolo11s_nvg2_clean-noisy.pt"
+    }
+  }
+}

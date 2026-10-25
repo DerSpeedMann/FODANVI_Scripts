@@ -495,6 +495,23 @@ take comma separated globs matched against the csv, the prefix keeps a
 selection from overwriting the default figures, and the metrics are the same
 four as above.
 
+## Fine-tuning
+
+    .\RunTrain.ps1 -Stages nvg2_clean,nvg2_clean-noisy   the measured chain
+    .\RunTrain.ps1 -Stages nvg2_* -WhatIf                print the commands
+    .\RunTrain.ps1 -Stages nvg2_clean -Set lr0=0.0002    override any train argument
+
+`train.json` holds the device settings (image, GPU, shared memory, batch,
+workers), the hyperparameters every stage shares and one entry per stage:
+starting weights, training set, own arguments, `stop_after` and the file in
+`data/models` its `best.pt` is exported to. A stage keeps `epochs=100`, so it
+runs on the learning-rate schedule of a 100 epoch run, and is stopped once
+`results.csv` holds `stop_after` epochs, as the hand-tuned runs ended at 13
+and 19. A stage whose run folder exists is skipped; `-Force` redoes it and
+overwrites its export. The hand-tuned stages are in the config for the
+record and export over the weights the results use, so they never run
+without `-Force`. The manual commands they were run with:
+
 Fine Tune:
 docker run --gpus all --rm `
   --shm-size=12g `
