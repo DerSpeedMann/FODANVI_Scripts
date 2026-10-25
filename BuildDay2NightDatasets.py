@@ -11,13 +11,19 @@ command, so a fresh clone with COCO in place can regenerate all of them.
         coco_nvg_white_clean
 
     v2, GenerateNVGv2.py, configs AnalyzeNVG.py measured off real captures
-        coco_nvg2_green         green from nvg_config_setup_green.json
-        coco_nvg2_green_clean   (the 66 evaluation captures)
-        coco_nvg2_white         white from nvg_config_selected_white.json
-        coco_nvg2_white_clean   (the five white references)
+        coco_nvg2_green                 green from nvg_config_selected_green.json
+        coco_nvg2_green_clean           (the five green references)
+        coco_nvg2_white                 white from nvg_config_selected_white.json
+        coco_nvg2_white_clean           (the five white references)
+        coco_nvg_captures_green         green from nvg_config_setup_green.json
+        coco_nvg_captures_green_clean   (the 66 evaluation captures)
 
-Green nvg2 is built from the setup measurement because that is the camera path
-the models are scored on; white has only the references. See
+The nvg2 sets are the fine-tuning data of the v2 chain, both phosphors measured
+on the handpicked references, so that no statistic of the 66 evaluation
+captures reaches the training data; coco_nvg2_clean.yaml and
+coco_nvg2_noisy.yaml pair green with white for the two stages. The captures
+set is matched to the camera path the models are scored on and is for
+validation only; its train split is never needed. See
 data/day2night/README.md for how the configs were measured.
 
 Each clean variant disables grain, blur, bloom and vignette and nothing else,
@@ -44,9 +50,10 @@ left alone, so an interrupted run continues where it stopped. Pass --force to
 rebuild one anyway. The validation split is all the sweep scores; train2017
 is only needed to fine-tune, and takes most of the time.
 
-    python BuildDay2NightDatasets.py                       all eight, both splits
-    python BuildDay2NightDatasets.py --splits val2017      all eight, val only
-    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 four
+    python BuildDay2NightDatasets.py                       all ten, both splits
+    python BuildDay2NightDatasets.py --splits val2017      all ten, val only
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 training four
+    python BuildDay2NightDatasets.py --only "coco_nvg_captures_*" --splits val2017
     python BuildDay2NightDatasets.py --dry-run
 """
 
@@ -81,14 +88,18 @@ VARIANTS = {
     "coco_nvg_green_clean":  (V1, "green", None, "_nvg_green", CLEAN),
     "coco_nvg_white_noisy":  (V1, "white", None, "_nvg_white", []),
     "coco_nvg_white_clean":  (V1, "white", None, "_nvg_white", CLEAN),
-    "coco_nvg2_green":       (V2, "green", "nvg_config_setup_green.json",
+    "coco_nvg2_green":       (V2, "green", "nvg_config_selected_green.json",
                               "_nvg2_green", []),
-    "coco_nvg2_green_clean": (V2, "green", "nvg_config_setup_green.json",
+    "coco_nvg2_green_clean": (V2, "green", "nvg_config_selected_green.json",
                               "_nvg2_green", CLEAN),
     "coco_nvg2_white":       (V2, "white", "nvg_config_selected_white.json",
                               "_nvg2_white", []),
     "coco_nvg2_white_clean": (V2, "white", "nvg_config_selected_white.json",
                               "_nvg2_white", CLEAN),
+    "coco_nvg_captures_green":       (V2, "green", "nvg_config_setup_green.json",
+                                      "_nvg2_green", []),
+    "coco_nvg_captures_green_clean": (V2, "green", "nvg_config_setup_green.json",
+                                      "_nvg2_green", CLEAN),
 }
 
 V1_HEADER = """# One conversion on its own, so a model can be scored against it

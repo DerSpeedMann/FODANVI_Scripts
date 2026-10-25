@@ -172,18 +172,25 @@ docker run --gpus all --rm `
 
 ## Apply NVG styling to images
 
-All eight converted COCO sets are built by one script in the repository
+All ten converted COCO sets are built by one script in the repository
 root, with COCO in place:
 
-    python BuildDay2NightDatasets.py                       all eight, both splits
+    python BuildDay2NightDatasets.py                       all ten, both splits
     python BuildDay2NightDatasets.py --splits val2017      val only, all the sweep needs
-    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 four
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 training four
 
-| sets | generator | values |
-| --- | --- | --- |
-| `coco_nvg_{green,white}_{noisy,clean}` | `GenerateNVG.py` | hand-tuned, hardcoded in the script |
-| `coco_nvg2_green`, `coco_nvg2_green_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_setup_green.json` |
-| `coco_nvg2_white`, `coco_nvg2_white_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_white.json` |
+| sets | generator | values | used for |
+| --- | --- | --- | --- |
+| `coco_nvg_{green,white}_{noisy,clean}` | `GenerateNVG.py` | hand-tuned, hardcoded in the script | v1 fine-tuning, validation |
+| `coco_nvg2_green`, `coco_nvg2_green_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_green.json` (five green references) | v2 fine-tuning, validation |
+| `coco_nvg2_white`, `coco_nvg2_white_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_selected_white.json` (five white references) | v2 fine-tuning, validation |
+| `coco_nvg_captures_green`, `coco_nvg_captures_green_clean` | `GenerateNVGv2.py` | `data/day2night/nvg_config_setup_green.json` (66 evaluation captures) | validation only |
+
+The v2 fine-tuning trains on the references only, so that no statistic of the
+evaluation captures reaches its training data; `coco_nvg2_clean.yaml` and
+`coco_nvg2_noisy.yaml` pair green with white for its two stages. The captures
+set is matched to the camera path the models are scored on and never trained
+on, so it needs only val2017.
 
 The clean variant of each disables grain, blur, bloom and vignette. The
 script only writes images and labels; every yaml under `data/datasets` is
