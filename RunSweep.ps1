@@ -167,8 +167,12 @@ foreach ($m in $pickedModels) {
         if ($v.PSObject.Properties.Name -contains "pip") {
             # Checked above, so it is there.
             $gtArg = if ($v.needs_box_annotations) { " /datasets/$($d.BaseName)_gt.json" } else { "" }
+            # The image sets PIP_NO_CACHE_DIR, and pip disables its cache
+            # whatever value that holds, so it is removed for this one
+            # command. Otherwise nothing reaches the mounted cache below and
+            # every run downloads the packages again.
             $cmd = @("bash", "-c",
-                     "pip install --quiet --root-user-action=ignore $($v.pip) && python $script $weight $data $name$gtArg")
+                     "env -u PIP_NO_CACHE_DIR pip install --quiet --root-user-action=ignore $($v.pip) && python $script $weight $data $name$gtArg")
         } else {
             $cmd = @("python", $script, $weight, $data, $name)
         }
@@ -179,7 +183,14 @@ foreach ($m in $pickedModels) {
         # The exit code is what says whether the run worked.
         $prevEAP = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
+        # /root/.cache holds pip's wheels and the Hugging Face hub, which a
+        # --rm container would otherwise fetch again on every run. Kept in
+        # .cache\<model> at the repo root, which is gitignored, one folder per
+        # model so pins that differ between models cannot collide.
+        $cache = Join-Path $PWD ".cache\$($m.Name)"
+        New-Item -ItemType Directory -Force $cache | Out-Null
         docker run --gpus all --rm --shm-size=$ShmSize `
+            -v "${cache}:/root/.cache" `
             -v "${PWD}\$($cfg.paths.datasets -replace '/','\'):/datasets" `
             -v "${PWD}\$($cfg.paths.models   -replace '/','\'):/models" `
             -v "${PWD}\$($cfg.paths.runs -replace '/','\\'):/ultralytics/runs/detect" `
