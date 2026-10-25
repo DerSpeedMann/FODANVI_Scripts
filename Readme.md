@@ -99,14 +99,14 @@ python $S\GenerateGrayscales.py .\data\images\ .\data\images
 Check Images:
 
  docker run --gpus all --rm `
-  -v ${PWD}\data\images:/data `
+  -v ${PWD}\data\images\predict:/data `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:8.4.41 `
   yolo detect predict model=/models/rtdetr-x.pt source=/data save_txt=True
   
 docker run --gpus all --rm `
-  -v ${PWD}\data\images:/data `
+  -v ${PWD}\data\images\predict:/data `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:8.4.41 `
@@ -114,7 +114,7 @@ docker run --gpus all --rm `
 
 
 docker run --gpus all --rm `
-  -v ${PWD}\data\images:/data `
+  -v ${PWD}\data\images\predict:/data `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
   -v ${PWD}\data\models:/models `
   ultralytics/ultralytics:8.4.41 `
@@ -348,13 +348,20 @@ One script per model family, named for the validator beside it:
 | RT-DETR | `rtdetr_predict.py` | carries the same `scale_boxes` patch as its validator |
 | RF-DETR | `rfdetr_predict.py` | needs the pip install |
 
-Put the images in `data\images\`, which the commands below mount at
-`/data`. Each writes annotated images, a per-image `.txt` of the detections,
+`data\images\` holds the images in two folders, neither of them versioned:
+
+    raw\       what the cameras wrote: D500 .NEF files and recorder captures,
+               each also kept under Captures\
+    predict\   what the models see: the cropped frames through the NVD, and
+               the D500 frames without an intensified field as converted by
+               ConvertRaw.py
+
+The commands below mount `predict\` at `/data`. Each writes annotated images, a per-image `.txt` of the detections,
 and `logs/console.log`, into `data\runs\<name>\`.
 
     docker run --gpus all --rm `
       --shm-size=8g `
-      -v ${PWD}\data\images:/data `
+      -v ${PWD}\data\images\predict:/data `
       -v ${PWD}\data\models:/models `
       -v ${PWD}\data\datasets:/datasets `
       -v ${PWD}\data\runs:/ultralytics/runs/detect `
@@ -364,7 +371,7 @@ and `logs/console.log`, into `data\runs\<name>\`.
 
     docker run --gpus all --rm `
       --shm-size=8g `
-      -v ${PWD}\data\images:/data `
+      -v ${PWD}\data\images\predict:/data `
       -v ${PWD}\data\models:/models `
       -v ${PWD}\data\datasets:/datasets `
       -v ${PWD}\data\runs:/ultralytics/runs/detect `
@@ -374,7 +381,7 @@ and `logs/console.log`, into `data\runs\<name>\`.
 
     docker run --gpus all --rm `
       --shm-size=8g `
-      -v ${PWD}\data\images:/data `
+      -v ${PWD}\data\images\predict:/data `
       -v ${PWD}\data\models:/models `
       -v ${PWD}\data\datasets:/datasets `
       -v ${PWD}\data\runs:/ultralytics/runs/detect `
@@ -455,13 +462,13 @@ docker run --gpus all --rm `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
-  ultralytics/ultralytics:8.4.41 `
+  ultralytics/ultralytics:8.3.221 `
   yolo detect train `
     model=/models/yolo11s.pt `
     data=/datasets/coco_nvg_clean.yaml `
     optimizer=SGD `
-    lr0=0.00001 `
-    lrf=0.001 `
+    lr0=0.0001 `
+    lrf=0.01 `
     momentum=0.937 `
     warmup_epochs=5.0 `
     epochs=100 `
@@ -499,9 +506,12 @@ Notes on these settings:
   (box 1.292 to 1.437, class 1.700 to 2.114, DFL 1.282 to 1.400 over epochs
   1 to 4), and by epoch 4 it was at P 0.0946, R 0.00114, mAP50 0.0479,
   mAP50-95 0.0352.
-- The settings above lower `lr0` to 0.00001 and `lrf` to 0.001, double the
-  epochs to 100 and use 5 warmup epochs. That run showed a similar drop around
-  epoch 5 to 6 but recovered and kept improving slowly from there.
+- The settings above keep `lr0` at 0.0001, double the epochs to 100 and use
+  5 warmup epochs. That run showed a similar drop around epoch 5 to 6 but
+  recovered and kept improving slowly from there. They are the settings
+  stored in `train_args` of `yolo11s_clean.pt`.
+- Both stages ran on Ultralytics 8.3.221, the version both checkpoints
+  record, not the 8.4.41 image the validation runs use.
 	
 Fine Tune with noisy images ontop:
 
@@ -510,7 +520,7 @@ docker run --gpus all --rm `
   -v ${PWD}\data\datasets:/datasets `
   -v ${PWD}\data\models:/models `
   -v ${PWD}\data\runs:/ultralytics/runs/detect `
-  ultralytics/ultralytics:8.4.41 `
+  ultralytics/ultralytics:8.3.221 `
   yolo detect train `
     model=/models/yolo11s_clean.pt `
     data=/datasets/coco_nvg_noisy.yaml `
