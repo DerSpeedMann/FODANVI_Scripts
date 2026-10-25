@@ -16,10 +16,19 @@ validation script. This reads the "all" row out of each and writes:
     comparison.csv          one row per run, long form
     matrix_<metric>.csv     a dataset by model grid of one metric
 
-and, unless --no-plots, the default figures for everything it found, drawn
-by PlotRuns.py. That script takes the same csv and will draw any subset of
+and, unless --no-plots, every figure the "plots" block of sweep.json names,
+drawn by PlotRuns.py. That script takes the same csv and will draw any subset of
 it, which is what to reach for when a figure should answer one question
 rather than show every run at once.
+
+When sweep.json has a "classes" list, every run is scored on those classes
+only: each metric is the mean of their per-class values, which is how the
+"all" row is formed in the first place, so a set that contains only those
+classes reads the same either way. This is what makes COCO comparable with
+the real captures, which hold four classes, where the "all" row of a COCO run
+averages eighty. Instances are summed over the classes; images stays the
+number of images scored, since every image can produce a false positive.
+--all-classes reports the "all" row instead.
 
 A validation run with no tables is named rather than skipped quietly: an
 absent row in a thesis table should be visible here first. Prediction runs
@@ -34,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 import sys
 from pathlib import Path
@@ -240,11 +250,11 @@ def weight_sizes(weight: str, models_dir: Path,
         unknown.add(weight)
         return "--", "--", "--"
 
-    # Truncated, not rounded, to agree with the weight table in the appendix.
+    # Rounded to the nearest MB, as in the weight table in the appendix.
     wb = known["weights_bytes"] if known else None
     pc = known.get("params") if known else None
-    return (str(int(file_bytes / 1_000_000)),
-            "--" if wb is None else str(int(wb / 1_000_000)),
+    return (str(round(file_bytes / 1_000_000)),
+            "--" if wb is None else str(round(wb / 1_000_000)),
             "--" if pc is None else str(pc))
 
 
@@ -263,16 +273,35 @@ def is_prediction(run: Path) -> bool:
     return "PREDICTION" in head
 
 
-def read_overall(run: Path) -> Optional[Dict[str, str]]:
-    """The 'all' row of a run's per-class table."""
+def sweep_classes(path: Path) -> List[str]:
+    """The "classes" list of sweep.json, empty when there is none."""
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8")).get("classes", [])
+
+
+def read_overall(run: Path, classes: List[str]) -> Optional[Dict[str, str]]:
+    """The 'all' row of a run's per-class table, or its mean over `classes`.
+
+    A class missing from the table has no instances in that dataset and so
+    no AP to average; it is left out of the mean rather than counted as zero.
+    """
     table = run / "tables" / "per_class_metrics.csv"
     if not table.exists():
         return None
     with open(table, newline="", encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            if row.get("class") == "all":
-                return row
-    return None
+        rows = list(csv.DictReader(fh))
+    overall = next((r for r in rows if r.get("class") == "all"), None)
+    if overall is None or not classes:
+        return overall
+    picked = [r for r in rows if r.get("class") in classes]
+    if not picked:
+        return None
+    out = dict(overall)
+    out["instances"] = str(sum(int(r["instances"]) for r in picked))
+    for k in METRICS:
+        out[k] = str(round(sum(float(r[k]) for r in picked) / len(picked), 4))
+    return out
 
 
 def write_matrix_csv(rows: List[dict], metric: str, path: Path,
@@ -302,7 +331,14 @@ def main() -> int:
                     help="which metric the matrix and figures report")
     ap.add_argument("--no-plots", action="store_true",
                     help="tables only, leave the figures to PlotRuns.py")
+    ap.add_argument("--sweep", type=Path, default=Path("sweep.json"),
+                    help="its \"classes\" list restricts every run to those")
+    ap.add_argument("--all-classes", action="store_true",
+                    help="report the 'all' row, over every class a run has")
     args = ap.parse_args()
+    classes = [] if args.all_classes else sweep_classes(args.sweep)
+    if classes:
+        print(f"scored on {len(classes)} classes: {', '.join(classes)}")
 
     sizes = load_sizes(args.models)
     unknown: set = set()
@@ -315,7 +351,7 @@ def main() -> int:
         if is_prediction(run):
             predictions.append(run.name)
             continue
-        overall = read_overall(run)
+        overall = read_overall(run, classes)
         if overall is None:
             missing.append(run.name)
             continue
@@ -350,14 +386,16 @@ def main() -> int:
     matrix_csv = args.out / f"matrix_{args.metric}.csv"
     write_matrix_csv(rows, args.metric, matrix_csv, models, datasets)
 
-    # The default figures, everything in one. PlotRuns.py draws the same
-    # two from this csv for any subset, which is how a selection that
-    # answers one question at a time gets made.
+    # The figures sweep.json names, so one run of this redraws all of them.
+    # Without a plots block, the default two for everything in one.
     written = []
     if not args.no_plots:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from PlotRuns import draw
-        written = draw(rows, args.metric, args.out)
+        from PlotRuns import configured, draw, draw_configured
+        if configured(Path("sweep.json")):
+            written = draw_configured(rows, args.out)
+        else:
+            written = draw(rows, args.metric, args.out)
 
     full = len(models) * len(datasets)
     print(f"{len(rows)} runs: {len(models)} models x {len(datasets)} datasets"

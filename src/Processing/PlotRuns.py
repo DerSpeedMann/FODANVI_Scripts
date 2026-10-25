@@ -10,7 +10,7 @@ models mixes "what does a bigger model buy" with "what does fine-tuning
 buy". Selecting a subset here answers one question at a time.
 
     --models and --datasets take glob patterns, matched against the model
-    and dataset columns of comparison.csv.
+    and dataset columns of comparison.csv; a pattern starting with ! excludes.
 
 The csv holds every run ever made, including conversions and models since
 dropped from the study. A figure shows only what sweep.json lists: a run is
@@ -23,18 +23,14 @@ Two figures per run:
     models_<metric>.png    one point per model, ordered by parameter size,
                            one line per dataset
 
+The figures worth keeping are named in the "plots" block of sweep.json,
+each with a prefix, model and dataset globs and the metrics to draw, so
+the whole set is redrawn by one command rather than retyped. CompareRuns.py
+draws the same block after writing the csv.
+
 Usage:
-    python PlotRuns.py                                  everything
-    python PlotRuns.py --models "yolo11s*" --prefix finetune
-    python PlotRuns.py --models "yolo12x,rtdetr-x,rf-detr-large" --prefix raw
-
-Examples of the two the thesis wants:
-
-    the fine-tuning question, one architecture trained three ways
-        --models "yolo11s*" --prefix finetune
-
-    the model question, the pre-trained models on their own
-        --models "yolo12x,rtdetr-x,rf-detr-large" --prefix raw
+    python PlotRuns.py                                  every plot in sweep.json
+    python PlotRuns.py --models "yolo11s*" --prefix test   one selection
 """
 
 from __future__ import annotations
@@ -57,10 +53,16 @@ def load_rows(path: Path) -> List[dict]:
 
 
 def select(rows: List[dict], models: str, datasets: str) -> List[dict]:
-    """Keep rows whose model and dataset match any of the given patterns."""
+    """Keep rows whose model and dataset match any of the given patterns.
+
+    A pattern starting with ! excludes what it matches, whatever else
+    matched, so "real_nvg*,!*_original" is every real set but those.
+    """
     def match(value: str, patterns: str) -> bool:
-        return any(fnmatch.fnmatch(value, p.strip())
-                   for p in patterns.split(",") if p.strip())
+        pats = [p.strip() for p in patterns.split(",") if p.strip()]
+        if any(fnmatch.fnmatch(value, p[1:]) for p in pats if p.startswith("!")):
+            return False
+        return any(fnmatch.fnmatch(value, p) for p in pats if not p.startswith("!"))
     return [r for r in rows
             if match(r["model"], models) and match(r["dataset"], datasets)]
 
@@ -189,13 +191,43 @@ def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
     return [bars, models]
 
 
+def configured(sweep: Path) -> List[dict]:
+    """The "plots" block of sweep.json, empty when there is none."""
+    if not sweep.exists():
+        return []
+    return json.loads(sweep.read_text(encoding="utf-8")).get("plots", [])
+
+
+def draw_configured(rows: List[dict], out: Path,
+                    sweep: Path = Path("sweep.json")) -> List[Path]:
+    """Every plot sweep.json names. Returns what was written.
+
+    A plot whose selection matches nothing is reported and skipped rather
+    than failing the rest, since a model or dataset can leave the sweep
+    while a plot still names it.
+    """
+    written = []
+    for p in configured(sweep):
+        chosen = select(rows, p.get("models", "*"), p.get("datasets", "*"))
+        if not in_sweep(chosen, sweep):
+            print(f"  plot '{p.get('prefix', '')}' matched nothing, skipped")
+            continue
+        for metric in p.get("metrics", ["map50_95"]):
+            if metric not in METRICS:
+                raise ValueError(f"plot '{p.get('prefix', '')}' asks for "
+                                 f"unknown metric '{metric}'")
+            written += draw(chosen, metric, out, p.get("prefix", ""), sweep)
+    return written
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--csv", type=Path,
                     default=Path("data/results/comparison.csv"))
     ap.add_argument("--out", type=Path, default=Path("data/results"))
-    ap.add_argument("--models", default="*", help="glob(s), comma separated")
-    ap.add_argument("--datasets", default="*", help="glob(s), comma separated")
+    ap.add_argument("--models", help="glob(s), comma separated; without "
+                    "--models or --datasets every plot in sweep.json is drawn")
+    ap.add_argument("--datasets", help="glob(s), comma separated")
     ap.add_argument("--metric", default="map50_95", choices=METRICS)
     ap.add_argument("--prefix", default="",
                     help="prepended to the file names, to keep a selection "
@@ -211,6 +243,16 @@ def main() -> int:
         print(f"{args.csv} does not exist; run CompareRuns.py first")
         return 1
 
+    if args.models is None and args.datasets is None:
+        if not configured(args.sweep):
+            print(f"{args.sweep} names no plots; give --models or --datasets")
+            return 1
+        for p in draw_configured(load_rows(args.csv), args.out, args.sweep):
+            print(f"wrote {p}")
+        return 0
+
+    args.models = args.models or "*"
+    args.datasets = args.datasets or "*"
     rows = in_sweep(select(load_rows(args.csv), args.models, args.datasets),
                     sweep)
     if not rows:

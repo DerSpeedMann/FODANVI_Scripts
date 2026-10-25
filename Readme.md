@@ -415,6 +415,9 @@ Reads the `all` row of every run under `data\runs\` and writes into
     bars_map50_95.png       grouped bars, one group per dataset
     models_map50_95.png     one point per model, ordered by parameter size
 
+plus every figure the `plots` block of `sweep.json` names (below), so this
+one command redraws all of them after a sweep.
+
 `--metric` switches all of them between `map50_95`, `map50`, `precision`
 and `recall`. `--no-plots` writes the tables only.
 
@@ -424,6 +427,30 @@ told which folders to look at and a run stays readable after the config
 that produced it has moved on. It prints how many runs it found, names any
 with no tables yet, and warns when a weight's size is neither measurable
 nor recorded.
+
+Every run is scored on the classes in the `classes` list of `sweep.json`
+(backpack, bottle, laptop, mouse: the four the real captures contain), as
+the mean of their rows in the run's per-class table. A COCO run's `all` row
+averages all eighty, so without this its baseline measures a different
+category mix than the real set. No inference is repeated; `--all-classes`
+reports the `all` row instead.
+
+YOLO and RT-DETR are scored by Ultralytics, RF-DETR by pycocotools in
+`rfdetr_val.py`. `CrossCheckScoring.py` rescores a run Ultralytics has
+already scored through `rfdetr_val.py`'s own functions, from its saved
+`predictions.json`, and writes both side by side to
+`data\results\scoring_crosscheck.csv`:
+
+    python src\Processing\CrossCheckScoring.py
+
+For yolo12x on `coco` and `real_nvg`, mAP50 and mAP50-95 agree to 0.0015
+over the four classes and to 0.006 for any one class, so mAP can share a
+table across the two paths. Precision and recall cannot: Ultralytics reads
+both at one confidence for all classes, where mean F1 peaks, and
+`rfdetr_val.py` at each class's own F1 peak. On COCO that moves them by
+0.01 to 0.02; on the 66 real captures precision goes from 0.33 to 0.83,
+because a class with few instances can reach its own F1 peak on its few
+most confident hits (mouse: 4 of 17 found, none wrong, precision 1.0).
 
 The csv keeps every run, but the figures show only what `sweep.json` lists:
 a run is drawn when its dataset is in the sweep's `datasets` and its weight
@@ -439,22 +466,34 @@ the same architecture as the 19 MB they came from. See
 
 ### Drawing a subset
 
-`CompareRuns.py` draws everything it found, which is the record rather than
-the picture worth looking at. `PlotRuns.py` reads the same csv and draws any
-subset, so a figure can answer one question at a time:
+Everything at once is the record rather than the picture worth looking at,
+so the figures worth keeping are named in the `plots` block of `sweep.json`,
+each with a prefix, model and dataset globs and the metrics to draw:
 
-    python src\Processing\PlotRuns.py --models "yolo11s*" --prefix finetune
-    python src\Processing\PlotRuns.py --models "yolo12x,rtdetr-x,rf-detr-large" --prefix raw
+    "plots": [
+      { "prefix": "",         "models": "*",        "datasets": "*", "metrics": ["map50_95"] },
+      { "prefix": "finetune", "models": "yolo11s*", "datasets": "*", "metrics": ["map50_95"] },
+      { "prefix": "raw",      "models": "yolo12x,rtdetr-x,rf-detr-large", ... }
+    ]
 
-The first is one architecture trained three ways, so the spread is the
-effect of fine-tuning. The second is the pre-trained models on their own, so
+`CompareRuns.py` draws all of them, and so does `PlotRuns.py` on its own,
+which redraws from the csv without collecting the runs again:
+
+    python src\Processing\PlotRuns.py                                   every configured plot
+    python src\Processing\PlotRuns.py --models "yolo11s*" --prefix test   one selection, not kept in the config
+
+Adding a metric to `metrics` or a new entry to the block is how a figure
+becomes part of the set. The `finetune` entry is one architecture trained
+three ways, so the spread is the effect of fine-tuning. The `raw` entry is
+the pre-trained models on their own, so
 the spread is the effect of the model. Mixed together they are hard to read
 apart, because the three `yolo11s` weights are the same architecture and sit
 at the same parameter size.
 
-`--models` and `--datasets` take comma separated globs matched against the
-csv, `--prefix` keeps a selection from overwriting the default figures, and
-`--metric` is the same four as above.
+`models` and `datasets`, in the config or as `--models` and `--datasets`,
+take comma separated globs matched against the csv, the prefix keeps a
+selection from overwriting the default figures, and the metrics are the same
+four as above.
 
 Fine Tune:
 docker run --gpus all --rm `
