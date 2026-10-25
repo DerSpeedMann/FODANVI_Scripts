@@ -15,13 +15,28 @@
     "coco_nvg2_green_clean",
     "coco_nvg2_white",
     "coco_nvg2_white_clean",
+    "coco_nvg_captures_green",
+    "coco_nvg_captures_green_clean",
     "real_nvg",
     "real_nvg_grayscale",
     "real_nvg_white",
     "real_nvg_red_light",
     "real_nvg_red_dark",
     "real_nvg_red_swap",
-    "real_nvg_preprocessed"
+    "real_nvg_denoise",
+    "real_nvg_clahe",
+    "real_nvg_preprocessed",
+    "real_nvg_white_denoise",
+    "real_nvg_white_clahe",
+    "real_nvg_white_preprocessed",
+    "real_nvg_preprocessed_original",
+    "real_nvg_white_preprocessed_original"
+  ],
+  "classes": [
+    "backpack",
+    "bottle",
+    "laptop",
+    "mouse"
   ],
   "validators": {
     "yolo": {
@@ -132,10 +147,66 @@
       "script": "Preprocess.py",
       "suffix": "_preprocessed",
       "args": [
+        "--config",
+        "data/preprocess/preprocess_gentle.json",
+        "--quality",
+        "95",
         "--suffix",
         "_preprocessed"
       ],
-      "describe": "CLAHE on luminance channel + colour denoising"
+      "describe": "enhancement pipeline data/preprocess/preprocess_gentle.json: non-local means denoise, then CLAHE (clip 1.5, tile 4)"
+    },
+    "denoise": {
+      "script": "Preprocess.py",
+      "suffix": "_denoise",
+      "args": [
+        "--config",
+        "data/preprocess/preprocess_denoise.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_denoise"
+      ],
+      "describe": "ablation: non-local means denoise only (h 10), data/preprocess/preprocess_denoise.json"
+    },
+    "clahe": {
+      "script": "Preprocess.py",
+      "suffix": "_clahe",
+      "args": [
+        "--config",
+        "data/preprocess/preprocess_clahe.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_clahe"
+      ],
+      "describe": "ablation: CLAHE only (clip 1.5, tile 4), data/preprocess/preprocess_clahe.json"
+    },
+    "preprocessed_soft": {
+      "script": "Preprocess.py",
+      "suffix": "_preprocessed_soft",
+      "args": [
+        "--config",
+        "data/preprocess/preprocess_gentle_soft.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_preprocessed_soft"
+      ],
+      "describe": "preprocessed with half-strength denoise (h 5), then CLAHE (clip 1.5, tile 4), data/preprocess/preprocess_gentle_soft.json"
+    },
+    "preprocessed_original": {
+      "script": "Preprocess.py",
+      "suffix": "_preprocessed_original",
+      "args": [
+        "--config",
+        "data/preprocess/preprocess_original.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_preprocessed_original"
+      ],
+      "describe": "the first preprocessing, kept for citation only: data/preprocess/preprocess_original.json, grayscale-only equalize (a no-op on RGB), CLAHE (clip 3.0, tile 8), then non-local means denoise"
     }
   },
   "variants": [
@@ -158,9 +229,81 @@
           "red_swap"
         ],
         [
+          "denoise"
+        ],
+        [
+          "clahe"
+        ],
+        [
+          "white",
+          "denoise"
+        ],
+        [
+          "white",
+          "clahe"
+        ],
+        [
           "preprocessed"
+        ],
+        [
+          "white",
+          "preprocessed"
+        ],
+        [
+          "preprocessed_original"
+        ],
+        [
+          "white",
+          "preprocessed_original"
         ]
       ]
+    }
+  ],
+  "plots": [
+    {
+      "prefix": "",
+      "models": "*",
+      "datasets": "coco,coco_nvg_*,real_nvg*,!*_preprocessed_original",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "every model on every dataset"
+    },
+    {
+      "prefix": "finetune",
+      "models": "yolo11s*",
+      "datasets": "coco,coco_nvg_*,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_*",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "one architecture trained three ways: the spread is the effect of fine-tuning"
+    },
+    {
+      "prefix": "pre-trained",
+      "models": "yolo12x,rtdetr-x,rf-detr-large",
+      "datasets": "coco,coco_nvg_*,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_*",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "the pre-trained models on their own: the spread is the effect of the model"
+    },
+    {
+      "prefix": "preprocess_pre-trained",
+      "models": "yolo12x,rtdetr-x,rf-detr-large",
+      "datasets": "real_nvg,real_nvg_denoise,real_nvg_clahe,real_nvg_preprocessed,real_nvg_white,real_nvg_white_denoise,real_nvg_white_clahe,real_nvg_white_preprocessed",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "preprocessing ablation on the real captures, pre-trained models: none, denoise only, CLAHE only, denoise then CLAHE, green and white"
+    },
+    {
+      "prefix": "preprocess_finetune",
+      "models": "yolo11s*",
+      "datasets": "real_nvg,real_nvg_denoise,real_nvg_clahe,real_nvg_preprocessed,real_nvg_white,real_nvg_white_denoise,real_nvg_white_clahe,real_nvg_white_preprocessed",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "preprocessing ablation on the real captures, yolo11s trained three ways: none, denoise only, CLAHE only, denoise then CLAHE, green and white"
     }
   ]
 }

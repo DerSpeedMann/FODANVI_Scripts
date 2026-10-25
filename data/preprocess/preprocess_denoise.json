@@ -1,0 +1,6 @@
+{
+  "note": "Ablation of preprocess_gentle.json: the denoise step alone.",
+  "steps": [
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 7, "search_window": 21}
+  ]
+}

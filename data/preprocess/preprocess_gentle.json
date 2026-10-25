@@ -1,0 +1,7 @@
+{
+  "note": "Denoise first, then a gentle CLAHE (clip 1.5, 4x4 tiles) so the intensifier's coarse luminance noise is not stretched into texture. Against the 66 real_nvg captures: object-scale detail 0.95 vs 0.91 unprocessed (original pipeline 1.52), fine grain 0.61 vs 0.79.",
+  "steps": [
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 7, "search_window": 21},
+    {"module": "clahe", "clip": 1.5, "tile": 4}
+  ]
+}
