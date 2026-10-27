@@ -1,0 +1,6 @@
+{
+  "note": "Step below the selected CLAHE (clip 0.75, tile 2, cl_c0p75_t2.json): CLAHE only, clip 0.375, tile 1. One tile makes it a clipped global equalisation.",
+  "steps": [
+    {"module": "clahe", "clip": 0.375, "tile": 1}
+  ]
+}

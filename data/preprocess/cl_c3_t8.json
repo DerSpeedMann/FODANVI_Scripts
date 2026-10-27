@@ -1,0 +1,6 @@
+{
+  "note": "Strength step of cl_c1p5_t4.json: CLAHE only, one step stronger, at the settings of eq_cl_c3_t8_dn_h10_w7.json (clip 3.0, tile 8).",
+  "steps": [
+    {"module": "clahe", "clip": 3.0, "tile": 8}
+  ]
+}

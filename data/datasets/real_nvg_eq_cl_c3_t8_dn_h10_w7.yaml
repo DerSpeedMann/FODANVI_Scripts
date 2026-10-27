@@ -1,7 +1,7 @@
-# real_nvg with: the first preprocessing, kept for citation only: data/preprocess/preprocess_original.json, grayscale-only equalize (a no-op on RGB), CLAHE (clip 3.0, tile 8), then non-local means denoise.
+# real_nvg with: the first preprocessing, kept for citation only: data/preprocess/eq_cl_c3_t8_dn_h10_w7.json, grayscale-only equalize (a no-op on RGB), CLAHE (clip 3.0, tile 8), then non-local means denoise.
 # Built by BuildDatasets.ps1 from sweep.json. Images and labels
-# both carry the _preprocessed_original suffix, as the converted COCO sets do.
-path: real_nvg_preprocessed_original
+# both carry the _eq_cl_c3_t8_dn_h10_w7 suffix, as the converted COCO sets do.
+path: real_nvg_eq_cl_c3_t8_dn_h10_w7
 train: images/train
 val: images/val
 test:

@@ -21,8 +21,8 @@ There are no defaults.
       ]
     }
 
-data/preprocess/preprocess_original.json (above) reproduces the original
-script exactly; preprocess_denoise_first.json denoises before CLAHE so CLAHE
+data/preprocess/eq_cl_c3_t8_dn_h10_w7.json (above) reproduces the original
+script exactly; dn_h10_w7_cl_c3_t8.json denoises before CLAHE so CLAHE
 does not amplify grain first. All modules accept grayscale and RGB; colour
 images are processed on luminance (L of LAB) so hue is preserved. Grayscale
 is saved as 3-channel RGB.
@@ -66,8 +66,8 @@ References:
     denoising", CVPR 2005.
 
 Usage:
-    python src/Processing/Preprocess.py input/ output/ --config data/preprocess/preprocess_original.json --suffix _preprocessed --quality 95
-    python src/Processing/Preprocess.py input/ --config data/preprocess/preprocess_denoise_first.json --suffix _pp --quality 95 --overwrite
+    python src/Processing/Preprocess.py input/ output/ --config data/preprocess/eq_cl_c3_t8_dn_h10_w7.json --suffix _preprocessed --quality 95
+    python src/Processing/Preprocess.py input/ --config data/preprocess/dn_h10_w7_cl_c3_t8.json --suffix _pp --quality 95 --overwrite
 """
 import argparse
 import inspect
@@ -248,7 +248,7 @@ if __name__ == "__main__":
                         help="Destination folder (default: same as input)")
     parser.add_argument("--config", required=True,
                         help="json pipeline config, see the module docstring "
-                             "(e.g. data/preprocess/preprocess_original.json)")
+                             "(e.g. data/preprocess/eq_cl_c3_t8_dn_h10_w7.json)")
     parser.add_argument("--suffix", required=True,
                         help="Suffix appended to each output filename, e.g. _preprocessed")
     parser.add_argument("--quality", type=int, required=True,

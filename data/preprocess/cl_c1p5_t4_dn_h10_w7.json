@@ -1,0 +1,7 @@
+{
+  "note": "dn_h10_w7_cl_c1p5_t4.json with the steps swapped: CLAHE (clip 1.5, tile 4), then denoise (h 10). Against eq_cl_c3_t8_dn_h10_w7.json (CLAHE 3.0/8 then denoise) it separates the order of the steps from the strength of the CLAHE.",
+  "steps": [
+    {"module": "clahe", "clip": 1.5, "tile": 4},
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 7, "search_window": 21}
+  ]
+}

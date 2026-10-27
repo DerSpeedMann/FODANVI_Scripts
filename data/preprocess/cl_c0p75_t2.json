@@ -1,0 +1,6 @@
+{
+  "note": "The selected CLAHE: CLAHE only, clip 0.75, tile 2. Scored above clip 1.5, tile 4 (cl_c1p5_t4.json) on the pre-trained models.",
+  "steps": [
+    {"module": "clahe", "clip": 0.75, "tile": 2}
+  ]
+}

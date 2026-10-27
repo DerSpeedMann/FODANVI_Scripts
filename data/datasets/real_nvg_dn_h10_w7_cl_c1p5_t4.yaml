@@ -1,7 +1,7 @@
-# real_nvg with: enhancement pipeline data/preprocess/preprocess_gentle.json: non-local means denoise, then CLAHE (clip 1.5, tile 4).
+# real_nvg with: enhancement pipeline data/preprocess/dn_h10_w7_cl_c1p5_t4.json: non-local means denoise, then CLAHE (clip 1.5, tile 4).
 # Built by BuildDatasets.ps1 from sweep.json. Images and labels
-# both carry the _preprocessed suffix, as the converted COCO sets do.
-path: real_nvg_preprocessed
+# both carry the _dn_h10_w7_cl_c1p5_t4 suffix, as the converted COCO sets do.
+path: real_nvg_dn_h10_w7_cl_c1p5_t4
 train: images/train
 val: images/val
 test:

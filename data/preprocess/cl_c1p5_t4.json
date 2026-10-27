@@ -1,5 +1,5 @@
 {
-  "note": "Ablation of preprocess_gentle.json: the CLAHE step alone.",
+  "note": "Ablation of dn_h10_w7_cl_c1p5_t4.json: the CLAHE step alone.",
   "steps": [
     {"module": "clahe", "clip": 1.5, "tile": 4}
   ]

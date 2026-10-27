@@ -1,0 +1,6 @@
+{
+  "note": "Strength step below denoise h 5, window 3/9 (dn_h5_w3.json), where rf-detr-large peaked at the edge of the tested h: denoise only, h 2.5, window 3/9.",
+  "steps": [
+    {"module": "denoise", "h": 2.5, "h_color": 2.5, "template_window": 3, "search_window": 9}
+  ]
+}

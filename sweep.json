@@ -23,14 +23,46 @@
     "real_nvg_red_light",
     "real_nvg_red_dark",
     "real_nvg_red_swap",
-    "real_nvg_denoise",
-    "real_nvg_clahe",
-    "real_nvg_preprocessed",
-    "real_nvg_white_denoise",
-    "real_nvg_white_clahe",
-    "real_nvg_white_preprocessed",
-    "real_nvg_preprocessed_original",
-    "real_nvg_white_preprocessed_original"
+    "real_nvg_dn_h10_w1",
+    "real_nvg_dn_h10_w3",
+    "real_nvg_dn_h10_w5",
+    "real_nvg_dn_h5_w3",
+    "real_nvg_dn_h20_w3",
+    "real_nvg_cl_c0p375_t1",
+    "real_nvg_cl_c0p75_t2",
+    "real_nvg_cl_c1p5_t4",
+    "real_nvg_cl_c3_t8",
+    "real_nvg_dn_h10_w3_cl_c0p75_t2",
+    "real_nvg_cl_c0p75_t2_dn_h10_w3",
+    "real_nvg_eq_cl_c3_t8_dn_h10_w7",
+    "real_nvg_dn_h40_w3",
+    "real_nvg_dn_h80_w3",
+    "real_nvg_dn_h20_w1",
+    "real_nvg_dn_h20_w3_cl_c0p75_t2",
+    "real_nvg_dn_h2p5_w3",
+    "real_nvg_dn_h5_w1",
+    "real_nvg_dn_h5_w3_cl_c1p5_t4",
+    "real_nvg_cl_c1p5_t4_dn_h5_w3",
+    "real_nvg_white_dn_h10_w1",
+    "real_nvg_white_dn_h10_w3",
+    "real_nvg_white_dn_h10_w5",
+    "real_nvg_white_dn_h5_w3",
+    "real_nvg_white_dn_h20_w3",
+    "real_nvg_white_cl_c0p375_t1",
+    "real_nvg_white_cl_c0p75_t2",
+    "real_nvg_white_cl_c1p5_t4",
+    "real_nvg_white_cl_c3_t8",
+    "real_nvg_white_dn_h10_w3_cl_c0p75_t2",
+    "real_nvg_white_cl_c0p75_t2_dn_h10_w3",
+    "real_nvg_white_eq_cl_c3_t8_dn_h10_w7",
+    "real_nvg_white_dn_h40_w3",
+    "real_nvg_white_dn_h80_w3",
+    "real_nvg_white_dn_h20_w1",
+    "real_nvg_white_dn_h20_w3_cl_c0p75_t2",
+    "real_nvg_white_dn_h2p5_w3",
+    "real_nvg_white_dn_h5_w1",
+    "real_nvg_white_dn_h5_w3_cl_c1p5_t4",
+    "real_nvg_white_cl_c1p5_t4_dn_h5_w3"
   ],
   "classes": [
     "backpack",
@@ -66,6 +98,14 @@
     },
     "yolo11s_clean-noisy": {
       "weight": "yolo11s_clean-noisy.pt",
+      "validator": "yolo"
+    },
+    "yolo11s_nvg2_clean": {
+      "weight": "yolo11s_nvg2_clean.pt",
+      "validator": "yolo"
+    },
+    "yolo11s_nvg2_clean-noisy": {
+      "weight": "yolo11s_nvg2_clean-noisy.pt",
       "validator": "yolo"
     },
     "rtdetrx": {
@@ -143,70 +183,265 @@
       ],
       "describe": "red channel rotation (R'=g, G'=b, B'=r, ~30% luma)"
     },
-    "preprocessed": {
+    "cl_c1p5_t4": {
       "script": "Preprocess.py",
-      "suffix": "_preprocessed",
+      "suffix": "_cl_c1p5_t4",
       "args": [
         "--config",
-        "data/preprocess/preprocess_gentle.json",
+        "data/preprocess/cl_c1p5_t4.json",
         "--quality",
         "95",
         "--suffix",
-        "_preprocessed"
+        "_cl_c1p5_t4"
       ],
-      "describe": "enhancement pipeline data/preprocess/preprocess_gentle.json: non-local means denoise, then CLAHE (clip 1.5, tile 4)"
+      "describe": "step: CLAHE only, clip 1.5, tile 4 (selected CLAHE is 0.75/2), data/preprocess/cl_c1p5_t4.json"
     },
-    "denoise": {
+    "eq_cl_c3_t8_dn_h10_w7": {
       "script": "Preprocess.py",
-      "suffix": "_denoise",
+      "suffix": "_eq_cl_c3_t8_dn_h10_w7",
       "args": [
         "--config",
-        "data/preprocess/preprocess_denoise.json",
+        "data/preprocess/eq_cl_c3_t8_dn_h10_w7.json",
         "--quality",
         "95",
         "--suffix",
-        "_denoise"
+        "_eq_cl_c3_t8_dn_h10_w7"
       ],
-      "describe": "ablation: non-local means denoise only (h 10), data/preprocess/preprocess_denoise.json"
+      "describe": "the first preprocessing, kept for citation only: data/preprocess/eq_cl_c3_t8_dn_h10_w7.json, grayscale-only equalize (a no-op on RGB), CLAHE (clip 3.0, tile 8), then non-local means denoise"
     },
-    "clahe": {
+    "cl_c0p75_t2": {
       "script": "Preprocess.py",
-      "suffix": "_clahe",
+      "suffix": "_cl_c0p75_t2",
       "args": [
         "--config",
-        "data/preprocess/preprocess_clahe.json",
+        "data/preprocess/cl_c0p75_t2.json",
         "--quality",
         "95",
         "--suffix",
-        "_clahe"
+        "_cl_c0p75_t2"
       ],
-      "describe": "ablation: CLAHE only (clip 1.5, tile 4), data/preprocess/preprocess_clahe.json"
+      "describe": "the selected CLAHE: CLAHE only, clip 0.75, tile 2, data/preprocess/cl_c0p75_t2.json"
     },
-    "preprocessed_soft": {
+    "dn_h10_w5": {
       "script": "Preprocess.py",
-      "suffix": "_preprocessed_soft",
+      "suffix": "_dn_h10_w5",
       "args": [
         "--config",
-        "data/preprocess/preprocess_gentle_soft.json",
+        "data/preprocess/dn_h10_w5.json",
         "--quality",
         "95",
         "--suffix",
-        "_preprocessed_soft"
+        "_dn_h10_w5"
       ],
-      "describe": "preprocessed with half-strength denoise (h 5), then CLAHE (clip 1.5, tile 4), data/preprocess/preprocess_gentle_soft.json"
+      "describe": "window step: denoise only, h 10, window 5/15 (selected denoise is h 10, 3/9), data/preprocess/dn_h10_w5.json"
     },
-    "preprocessed_original": {
+    "dn_h10_w3": {
       "script": "Preprocess.py",
-      "suffix": "_preprocessed_original",
+      "suffix": "_dn_h10_w3",
       "args": [
         "--config",
-        "data/preprocess/preprocess_original.json",
+        "data/preprocess/dn_h10_w3.json",
         "--quality",
         "95",
         "--suffix",
-        "_preprocessed_original"
+        "_dn_h10_w3"
       ],
-      "describe": "the first preprocessing, kept for citation only: data/preprocess/preprocess_original.json, grayscale-only equalize (a no-op on RGB), CLAHE (clip 3.0, tile 8), then non-local means denoise"
+      "describe": "the selected denoise: denoise only, h 10, window 3/9, data/preprocess/dn_h10_w3.json"
+    },
+    "dn_h10_w1": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h10_w1",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h10_w1.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h10_w1"
+      ],
+      "describe": "window step: denoise only, h 10, window 1/3 (selected denoise is h 10, 3/9), data/preprocess/dn_h10_w1.json"
+    },
+    "dn_h5_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h5_w3",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h5_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h5_w3"
+      ],
+      "describe": "strength step: denoise only, h 5, window 3/9 (selected denoise is h 10, 3/9), data/preprocess/dn_h5_w3.json"
+    },
+    "dn_h20_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h20_w3",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h20_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h20_w3"
+      ],
+      "describe": "strength step: denoise only, h 20, window 3/9 (selected denoise is h 10, 3/9), data/preprocess/dn_h20_w3.json"
+    },
+    "cl_c0p375_t1": {
+      "script": "Preprocess.py",
+      "suffix": "_cl_c0p375_t1",
+      "args": [
+        "--config",
+        "data/preprocess/cl_c0p375_t1.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_cl_c0p375_t1"
+      ],
+      "describe": "step: CLAHE only, clip 0.375, tile 1 (selected CLAHE is 0.75/2), data/preprocess/cl_c0p375_t1.json"
+    },
+    "dn_h10_w3_cl_c0p75_t2": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h10_w3_cl_c0p75_t2",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h10_w3_cl_c0p75_t2.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h10_w3_cl_c0p75_t2"
+      ],
+      "describe": "the selected steps combined: denoise (h 10, window 3/9), then CLAHE (clip 0.75, tile 2), data/preprocess/dn_h10_w3_cl_c0p75_t2.json"
+    },
+    "cl_c0p75_t2_dn_h10_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_cl_c0p75_t2_dn_h10_w3",
+      "args": [
+        "--config",
+        "data/preprocess/cl_c0p75_t2_dn_h10_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_cl_c0p75_t2_dn_h10_w3"
+      ],
+      "describe": "the selected steps combined in the original's order: CLAHE (clip 0.75, tile 2), then denoise (h 10, window 3/9), data/preprocess/cl_c0p75_t2_dn_h10_w3.json"
+    },
+    "dn_h40_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h40_w3",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h40_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h40_w3"
+      ],
+      "describe": "fine-tune search: denoise only, h 40, window 3/9, data/preprocess/dn_h40_w3.json"
+    },
+    "dn_h20_w1": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h20_w1",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h20_w1.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h20_w1"
+      ],
+      "describe": "fine-tune search: denoise only, h 20, window 1/3, data/preprocess/dn_h20_w1.json"
+    },
+    "dn_h20_w3_cl_c0p75_t2": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h20_w3_cl_c0p75_t2",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h20_w3_cl_c0p75_t2.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h20_w3_cl_c0p75_t2"
+      ],
+      "describe": "fine-tune search: denoise (h 20, window 3/9), then CLAHE (clip 0.75, tile 2), data/preprocess/dn_h20_w3_cl_c0p75_t2.json"
+    },
+    "dn_h80_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h80_w3",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h80_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h80_w3"
+      ],
+      "describe": "fine-tune search: denoise only, h 80, window 3/9, data/preprocess/dn_h80_w3.json"
+    },
+    "dn_h2p5_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h2p5_w3",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h2p5_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h2p5_w3"
+      ],
+      "describe": "pre-trained search: denoise only, h 2.5, window 3/9, data/preprocess/dn_h2p5_w3.json"
+    },
+    "dn_h5_w1": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h5_w1",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h5_w1.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h5_w1"
+      ],
+      "describe": "pre-trained search: denoise only, h 5, window 1/3, data/preprocess/dn_h5_w1.json"
+    },
+    "dn_h5_w3_cl_c1p5_t4": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h5_w3_cl_c1p5_t4",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h5_w3_cl_c1p5_t4.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h5_w3_cl_c1p5_t4"
+      ],
+      "describe": "pre-trained search: denoise (h 5, window 3/9), then CLAHE (clip 1.5, tile 4), data/preprocess/dn_h5_w3_cl_c1p5_t4.json"
+    },
+    "cl_c1p5_t4_dn_h5_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_cl_c1p5_t4_dn_h5_w3",
+      "args": [
+        "--config",
+        "data/preprocess/cl_c1p5_t4_dn_h5_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_cl_c1p5_t4_dn_h5_w3"
+      ],
+      "describe": "pre-trained search: CLAHE (clip 1.5, tile 4), then denoise (h 5, window 3/9), data/preprocess/cl_c1p5_t4_dn_h5_w3.json"
+    },
+    "cl_c3_t8": {
+      "script": "Preprocess.py",
+      "suffix": "_cl_c3_t8",
+      "args": [
+        "--config",
+        "data/preprocess/cl_c3_t8.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_cl_c3_t8"
+      ],
+      "describe": "step: CLAHE only, clip 3.0, tile 8 as in preprocessed_original, data/preprocess/cl_c3_t8.json"
     }
   },
   "variants": [
@@ -229,32 +464,144 @@
           "red_swap"
         ],
         [
-          "denoise"
-        ],
-        [
-          "clahe"
+          "dn_h10_w1"
         ],
         [
           "white",
-          "denoise"
+          "dn_h10_w1"
+        ],
+        [
+          "dn_h10_w3"
         ],
         [
           "white",
-          "clahe"
+          "dn_h10_w3"
         ],
         [
-          "preprocessed"
-        ],
-        [
-          "white",
-          "preprocessed"
-        ],
-        [
-          "preprocessed_original"
+          "dn_h10_w5"
         ],
         [
           "white",
-          "preprocessed_original"
+          "dn_h10_w5"
+        ],
+        [
+          "dn_h5_w3"
+        ],
+        [
+          "white",
+          "dn_h5_w3"
+        ],
+        [
+          "dn_h20_w3"
+        ],
+        [
+          "white",
+          "dn_h20_w3"
+        ],
+        [
+          "cl_c0p375_t1"
+        ],
+        [
+          "white",
+          "cl_c0p375_t1"
+        ],
+        [
+          "cl_c0p75_t2"
+        ],
+        [
+          "white",
+          "cl_c0p75_t2"
+        ],
+        [
+          "cl_c1p5_t4"
+        ],
+        [
+          "white",
+          "cl_c1p5_t4"
+        ],
+        [
+          "dn_h10_w3_cl_c0p75_t2"
+        ],
+        [
+          "white",
+          "dn_h10_w3_cl_c0p75_t2"
+        ],
+        [
+          "cl_c0p75_t2_dn_h10_w3"
+        ],
+        [
+          "white",
+          "cl_c0p75_t2_dn_h10_w3"
+        ],
+        [
+          "eq_cl_c3_t8_dn_h10_w7"
+        ],
+        [
+          "white",
+          "eq_cl_c3_t8_dn_h10_w7"
+        ],
+        [
+          "dn_h40_w3"
+        ],
+        [
+          "white",
+          "dn_h40_w3"
+        ],
+        [
+          "dn_h20_w1"
+        ],
+        [
+          "white",
+          "dn_h20_w1"
+        ],
+        [
+          "dn_h20_w3_cl_c0p75_t2"
+        ],
+        [
+          "white",
+          "dn_h20_w3_cl_c0p75_t2"
+        ],
+        [
+          "dn_h80_w3"
+        ],
+        [
+          "white",
+          "dn_h80_w3"
+        ],
+        [
+          "dn_h2p5_w3"
+        ],
+        [
+          "white",
+          "dn_h2p5_w3"
+        ],
+        [
+          "dn_h5_w1"
+        ],
+        [
+          "white",
+          "dn_h5_w1"
+        ],
+        [
+          "dn_h5_w3_cl_c1p5_t4"
+        ],
+        [
+          "white",
+          "dn_h5_w3_cl_c1p5_t4"
+        ],
+        [
+          "cl_c1p5_t4_dn_h5_w3"
+        ],
+        [
+          "white",
+          "cl_c1p5_t4_dn_h5_w3"
+        ],
+        [
+          "cl_c3_t8"
+        ],
+        [
+          "white",
+          "cl_c3_t8"
         ]
       ]
     }
@@ -263,11 +610,11 @@
     {
       "prefix": "",
       "models": "*",
-      "datasets": "coco,coco_nvg_*,real_nvg*,!*_preprocessed_original",
+      "datasets": "coco,coco_nvg_*,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_*,real_nvg_dn_h10_w3,real_nvg_cl_c0p75_t2,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_white_dn_h10_w3,real_nvg_white_cl_c0p75_t2,real_nvg_white_dn_h10_w3_cl_c0p75_t2",
       "metrics": [
         "map50_95"
       ],
-      "describe": "every model on every dataset"
+      "describe": "every model on every dataset, the preprocessing at its selected settings only: denoise h 10, window 3/9; CLAHE 0.75/2; the two combined"
     },
     {
       "prefix": "finetune",
@@ -276,7 +623,7 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "one architecture trained three ways: the spread is the effect of fine-tuning"
+      "describe": "one architecture trained five ways: base, v1 clean and clean-noisy, v2 clean and clean-noisy; the spread is the effect of fine-tuning"
     },
     {
       "prefix": "pre-trained",
@@ -288,22 +635,44 @@
       "describe": "the pre-trained models on their own: the spread is the effect of the model"
     },
     {
-      "prefix": "preprocess_pre-trained",
-      "models": "yolo12x,rtdetr-x,rf-detr-large",
-      "datasets": "real_nvg,real_nvg_denoise,real_nvg_clahe,real_nvg_preprocessed,real_nvg_white,real_nvg_white_denoise,real_nvg_white_clahe,real_nvg_white_preprocessed",
+      "prefix": "preprocess_green",
+      "models": "*",
+      "datasets": "real_nvg,real_nvg_dn_h10_w1,real_nvg_dn_h10_w3,real_nvg_dn_h10_w5,real_nvg_dn_h5_w3,real_nvg_dn_h20_w3,real_nvg_cl_c0p375_t1,real_nvg_cl_c0p75_t2,real_nvg_cl_c1p5_t4,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_cl_c0p75_t2_dn_h10_w3,real_nvg_eq_cl_c3_t8_dn_h10_w7",
+      "describe": "every preprocessing configuration on the green real captures against every model, bars in the order listed: none; denoise window 1/3, 3/9 (selected), 5/15 at h 10; denoise h 5 and 20 at window 3/9; CLAHE 0.375/1, 0.75/2 (selected), 1.5/4; combined at the selected settings: denoise then CLAHE, CLAHE then denoise; the original pipeline",
+      "group": "model",
       "metrics": [
         "map50_95"
-      ],
-      "describe": "preprocessing ablation on the real captures, pre-trained models: none, denoise only, CLAHE only, denoise then CLAHE, green and white"
+      ]
     },
     {
-      "prefix": "preprocess_finetune",
-      "models": "yolo11s*",
-      "datasets": "real_nvg,real_nvg_denoise,real_nvg_clahe,real_nvg_preprocessed,real_nvg_white,real_nvg_white_denoise,real_nvg_white_clahe,real_nvg_white_preprocessed",
+      "prefix": "preprocess_white",
+      "models": "*",
+      "datasets": "real_nvg_white,real_nvg_white_dn_h10_w1,real_nvg_white_dn_h10_w3,real_nvg_white_dn_h10_w5,real_nvg_white_dn_h5_w3,real_nvg_white_dn_h20_w3,real_nvg_white_cl_c0p375_t1,real_nvg_white_cl_c0p75_t2,real_nvg_white_cl_c1p5_t4,real_nvg_white_dn_h10_w3_cl_c0p75_t2,real_nvg_white_cl_c0p75_t2_dn_h10_w3,real_nvg_white_eq_cl_c3_t8_dn_h10_w7",
+      "describe": "every preprocessing configuration on the white real captures against every model, bars in the order listed: none; denoise window 1/3, 3/9 (selected), 5/15 at h 10; denoise h 5 and 20 at window 3/9; CLAHE 0.375/1, 0.75/2 (selected), 1.5/4; combined at the selected settings: denoise then CLAHE, CLAHE then denoise; the original pipeline",
+      "group": "model",
+      "metrics": [
+        "map50_95"
+      ]
+    },
+    {
+      "prefix": "finetune_best",
+      "models": "yolo11s_clean*,yolo11s_nvg2_*,yolo12x,rf-detr-large",
+      "datasets": "real_nvg,real_nvg_dn_h10_w3,real_nvg_dn_h20_w3,real_nvg_dn_h40_w3,real_nvg_dn_h80_w3,real_nvg_dn_h20_w1,real_nvg_dn_h20_w3_cl_c0p75_t2,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_white,real_nvg_white_dn_h10_w3,real_nvg_white_dn_h20_w3,real_nvg_white_dn_h40_w3,real_nvg_white_dn_h80_w3,real_nvg_white_dn_h20_w1,real_nvg_white_dn_h20_w3_cl_c0p75_t2,real_nvg_white_dn_h10_w3_cl_c0p75_t2",
+      "group": "model",
       "metrics": [
         "map50_95"
       ],
-      "describe": "preprocessing ablation on the real captures, yolo11s trained three ways: none, denoise only, CLAHE only, denoise then CLAHE, green and white"
+      "describe": "search for the fine-tuned yolo11s's best preprocessing against the large models: none; denoise h 10, 20, 40, 80 at window 3/9; h 20 at window 1/3; h 20 then CLAHE 0.75/2; the selected combined, green and white"
+    },
+    {
+      "prefix": "pretrained_best",
+      "models": "yolo12x,rtdetr-x,rf-detr-large",
+      "datasets": "real_nvg,real_nvg_dn_h2p5_w3,real_nvg_dn_h5_w3,real_nvg_dn_h10_w3,real_nvg_dn_h5_w1,real_nvg_dn_h10_w1,real_nvg_dn_h20_w1,real_nvg_cl_c0p75_t2,real_nvg_cl_c1p5_t4,real_nvg_cl_c3_t8,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_cl_c0p75_t2_dn_h10_w3,real_nvg_dn_h5_w3_cl_c1p5_t4,real_nvg_cl_c1p5_t4_dn_h5_w3,real_nvg_white,real_nvg_white_dn_h2p5_w3,real_nvg_white_dn_h5_w3,real_nvg_white_dn_h10_w3,real_nvg_white_dn_h5_w1,real_nvg_white_dn_h10_w1,real_nvg_white_dn_h20_w1,real_nvg_white_cl_c0p75_t2,real_nvg_white_cl_c1p5_t4,real_nvg_white_cl_c3_t8,real_nvg_white_dn_h10_w3_cl_c0p75_t2,real_nvg_white_cl_c0p75_t2_dn_h10_w3,real_nvg_white_dn_h5_w3_cl_c1p5_t4,real_nvg_white_cl_c1p5_t4_dn_h5_w3",
+      "group": "model",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "search for the large pre-trained models' best preprocessing: none; denoise h 2.5, 5, 10 at window 3/9; h 5, 10, 20 at window 1/3; CLAHE 0.75/2, 1.5/4, 3.0/8; the selected combined both orders; denoise h 5 with CLAHE 1.5/4 both orders, green and white"
     }
   ]
 }

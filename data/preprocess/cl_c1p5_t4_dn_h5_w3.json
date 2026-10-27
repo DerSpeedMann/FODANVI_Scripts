@@ -1,0 +1,7 @@
+{
+  "note": "dn_h5_w3_cl_c1p5_t4.json in the other order: CLAHE (clip 1.5, tile 4), then denoise (h 5, window 3/9).",
+  "steps": [
+    {"module": "clahe", "clip": 1.5, "tile": 4},
+    {"module": "denoise", "h": 5.0, "h_color": 5.0, "template_window": 3, "search_window": 9}
+  ]
+}

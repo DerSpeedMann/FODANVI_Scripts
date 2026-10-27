@@ -1,7 +1,7 @@
-# real_nvg with: preprocessed with half-strength denoise (h 5), then CLAHE (clip 1.5, tile 4), data/preprocess/preprocess_gentle_soft.json.
+# real_nvg with: preprocessed with half-strength denoise (h 5), then CLAHE (clip 1.5, tile 4), data/preprocess/dn_h5_w7_cl_c1p5_t4.json.
 # Built by BuildDatasets.ps1 from sweep.json. Images and labels
-# both carry the _preprocessed_soft suffix, as the converted COCO sets do.
-path: real_nvg_preprocessed_soft
+# both carry the _dn_h5_w7_cl_c1p5_t4 suffix, as the converted COCO sets do.
+path: real_nvg_dn_h5_w7_cl_c1p5_t4
 train: images/train
 val: images/val
 test:

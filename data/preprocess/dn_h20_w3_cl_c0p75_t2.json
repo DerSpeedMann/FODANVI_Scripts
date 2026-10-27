@@ -1,0 +1,7 @@
+{
+  "note": "The fine-tuned yolo11s's best denoise so far combined with the selected CLAHE: denoise (h 20, window 3/9), then CLAHE (clip 0.75, tile 2).",
+  "steps": [
+    {"module": "denoise", "h": 20.0, "h_color": 20.0, "template_window": 3, "search_window": 9},
+    {"module": "clahe", "clip": 0.75, "tile": 2}
+  ]
+}

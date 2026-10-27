@@ -1,0 +1,6 @@
+{
+  "note": "Strength step below denoise h 10, window 1/3 (dn_h10_w1.json), the only denoise that helped rt-detr-x, and the window step below h 5, 3/9 for rf-detr-large: denoise only, h 5, window 1/3.",
+  "steps": [
+    {"module": "denoise", "h": 5.0, "h_color": 5.0, "template_window": 1, "search_window": 3}
+  ]
+}

@@ -1,7 +1,7 @@
-# real_nvg with: ablation: non-local means denoise only (h 10), data/preprocess/preprocess_denoise.json.
+# real_nvg with: ablation: non-local means denoise only (h 10), data/preprocess/dn_h10_w7.json.
 # Built by BuildDatasets.ps1 from sweep.json. Images and labels
-# both carry the _denoise suffix, as the converted COCO sets do.
-path: real_nvg_denoise
+# both carry the _dn_h10_w7 suffix, as the converted COCO sets do.
+path: real_nvg_dn_h10_w7
 train: images/train
 val: images/val
 test:

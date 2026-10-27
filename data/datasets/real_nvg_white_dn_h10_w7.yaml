@@ -1,7 +1,7 @@
-# real_nvg with: white phosphor tint from data/day2night/nvg_config_selected_white.json (R'=g*0.561, G'=g, B'=g*0.874, ~85% luma), then ablation: non-local means denoise only (h 10), data/preprocess/preprocess_denoise.json.
+# real_nvg with: white phosphor tint from data/day2night/nvg_config_selected_white.json (R'=g*0.561, G'=g, B'=g*0.874, ~85% luma), then ablation: non-local means denoise only (h 10), data/preprocess/dn_h10_w7.json.
 # Built by BuildDatasets.ps1 from sweep.json. Images and labels
-# both carry the _white_denoise suffix, as the converted COCO sets do.
-path: real_nvg_white_denoise
+# both carry the _white_dn_h10_w7 suffix, as the converted COCO sets do.
+path: real_nvg_white_dn_h10_w7
 train: images/train
 val: images/val
 test:

@@ -1,0 +1,6 @@
+{
+  "note": "Window step below the selected denoise (h 10, window 3/9, dn_h10_w3.json): denoise only, h 10, template 1, search 3. A template of one pixel compares single pixels rather than patches.",
+  "steps": [
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 1, "search_window": 3}
+  ]
+}

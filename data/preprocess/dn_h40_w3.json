@@ -1,0 +1,6 @@
+{
+  "note": "Strength step above denoise h 20, window 3/9 (dn_h20_w3.json), where the fine-tuned yolo11s peaked at the edge of the tested h: denoise only, h 40, window 3/9.",
+  "steps": [
+    {"module": "denoise", "h": 40.0, "h_color": 40.0, "template_window": 3, "search_window": 9}
+  ]
+}

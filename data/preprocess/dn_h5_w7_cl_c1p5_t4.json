@@ -1,5 +1,5 @@
 {
-  "note": "preprocess_gentle.json with half the denoise strength (h 5), to keep more fine detail.",
+  "note": "dn_h10_w7_cl_c1p5_t4.json with half the denoise strength (h 5), to keep more fine detail.",
   "steps": [
     {"module": "denoise", "h": 5.0, "h_color": 5.0, "template_window": 7, "search_window": 21},
     {"module": "clahe", "clip": 1.5, "tile": 4}

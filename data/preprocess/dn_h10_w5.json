@@ -1,0 +1,6 @@
+{
+  "note": "Step of dn_h10_w7.json: denoise only, h 10 as in eq_cl_c3_t8_dn_h10_w7.json, smaller windows (template 5, search 15, the 1:3 ratio of the 7/21 default).",
+  "steps": [
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 5, "search_window": 15}
+  ]
+}

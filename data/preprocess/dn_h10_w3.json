@@ -1,0 +1,6 @@
+{
+  "note": "The selected denoise: denoise only, h 10, template 3, search 9. Smaller windows scored better at every step on the pre-trained models (3/9, 5/15, 7/21, 9/27).",
+  "steps": [
+    {"module": "denoise", "h": 10.0, "h_color": 10.0, "template_window": 3, "search_window": 9}
+  ]
+}
