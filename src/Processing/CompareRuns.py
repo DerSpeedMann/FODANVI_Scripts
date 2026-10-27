@@ -356,6 +356,10 @@ def main() -> int:
             missing.append(run.name)
             continue
         model, dataset, weight = identify(run)
+        if dataset != "?" and not run.name.endswith("_" + dataset):
+            # Nothing depends on the folder name, but a log that disagrees
+            # with it means the run scored another set than its name says.
+            print(f"  {run.name}: log says {dataset}")
         file_mb, weights_mb, params = weight_sizes(weight, args.models,
                                                    sizes, unknown)
         rows.append({"model": model, "dataset": dataset,

@@ -1,4 +1,4 @@
-# real_nvg with: red channel swap (R'=g, G'=b, B'=r, ~30% luma).
+# real_nvg with: red channel rotation (R'=g, G'=b, B'=r, ~30% luma).
 # Built by BuildDatasets.ps1 from sweep.json. Images and labels
 # both carry the _red_swap suffix, as the converted COCO sets do.
 path: real_nvg_red_swap
