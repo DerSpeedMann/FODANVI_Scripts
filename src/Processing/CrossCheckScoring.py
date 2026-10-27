@@ -15,7 +15,8 @@ is run.
 Ultralytics writes category_id as class + 1 for a dataset it does not take
 for COCO itself, and the _gt.json files are 0-based, so one is subtracted.
 Images are matched by file name. A run that did not save predictions.json
-cannot be checked; the YOLO validators save it, the RT-DETR one does not.
+cannot be checked; the YOLO validators save it, and the RT-DETR one does
+for runs made after it was switched on.
 
 Compared, per class and as the mean over the classes in sweep.json's
 "classes" list, which is how CompareRuns.py reports a run:

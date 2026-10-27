@@ -70,7 +70,7 @@ with capture_console() as cap:
     model = RTDETR(model_path)
 
     print(f"Running validation on {data_yaml}...")
-    results = model.val(data=data_yaml, name=name)
+    results = model.val(data=data_yaml, name=name, save_json=True)
 
     print()
     print("="*80)
