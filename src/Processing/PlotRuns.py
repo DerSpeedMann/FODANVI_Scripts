@@ -19,7 +19,9 @@ sweep's weights. --all draws every run in the csv.
 
 Two figures per run:
 
-    bars_<metric>.png      one group per dataset, one bar per model
+    bars_<metric>.png      one group per dataset, one bar per model; with
+                           "group": "model" in a plot entry, one group per
+                           model, one bar per dataset
     models_<metric>.png    one point per model, ordered by parameter size,
                            one line per dataset
 
@@ -91,40 +93,66 @@ def in_sweep(rows: List[dict], sweep: Optional[Path]) -> List[dict]:
             if r["dataset"] in datasets and r["model"] in models]
 
 
-def axes(rows: List[dict]) -> Tuple[List[str], List[str], Dict[str, int]]:
-    """Models ordered by parameter size, datasets alphabetical."""
+def axes(rows: List[dict], patterns: str = "*"
+         ) -> Tuple[List[str], List[str], Dict[str, int]]:
+    """Models ordered by parameter size, datasets in the order of the
+    patterns that pick them, alphabetical among those one pattern picks.
+
+    A plot that names its datasets one by one so gets them in that order,
+    which keeps a set beside the ones it is compared with rather than
+    wherever its name sorts.
+    """
     sized = {r["model"]: int(r["weights_mb"]) for r in rows
              if r["weights_mb"] not in ("--", "")}
     models = sorted({r["model"] for r in rows},
                     key=lambda m: (sized.get(m, 1 << 30), m))
-    datasets = sorted({r["dataset"] for r in rows})
+    present = sorted({r["dataset"] for r in rows})
+    datasets = []
+    for p in [p.strip() for p in patterns.split(",")
+              if p.strip() and not p.strip().startswith("!")]:
+        datasets += [d for d in present
+                     if fnmatch.fnmatch(d, p) and d not in datasets]
+    datasets += [d for d in present if d not in datasets]
     return models, datasets, sized
 
 
-def plot_bars(rows: List[dict], metric: str, path: Path) -> None:
-    """One group per dataset, one bar per model."""
+def plot_bars(rows: List[dict], metric: str, path: Path,
+              group: str = "dataset", order: str = "*") -> None:
+    """One group per dataset, one bar per model, or the other way round
+    with group="model"."""
     import matplotlib
     matplotlib.use("Agg")
     from matplotlib import pyplot as plt
 
-    models, datasets, _ = axes(rows)
+    models, datasets, sized = axes(rows, order)
     by = {(r["model"], r["dataset"]): r[metric] for r in rows}
-    width = 0.8 / max(len(models), 1)
-    cmap = plt.get_cmap("tab10")
+    if group == "model":
+        groups, bars = models, datasets
+        value = lambda g, b: by.get((g, b), "")
+        ticks = [f"{m}\n{sized[m]} MB" if m in sized else m for m in models]
+    else:
+        groups, bars = datasets, models
+        value = lambda g, b: by.get((b, g), "")
+        ticks = datasets
+    width = 0.8 / max(len(bars), 1)
+    cmap = plt.get_cmap("tab10" if len(bars) <= 10 else "tab20")
 
-    fig, ax = plt.subplots(figsize=(max(7, 1.4 * len(datasets)), 4.5))
-    for i, m in enumerate(models):
+    fig, ax = plt.subplots(figsize=(max(7, 0.25 * len(groups) * len(bars) + 2), 4.5))
+    for i, b in enumerate(bars):
         xs, ys = [], []
-        for j, d in enumerate(datasets):
-            v = by.get((m, d), "")
+        for j, g in enumerate(groups):
+            v = value(g, b)
             if v == "":
                 continue        # a pair that was not run leaves a gap
             xs.append(j - 0.4 + width * (i + 0.5))
             ys.append(float(v))
-        ax.bar(xs, ys, width=width, label=m, color=cmap(i % 10))
+        ax.bar(xs, ys, width=width, label=b, color=cmap(i % cmap.N))
 
-    ax.set_xticks(range(len(datasets)))
-    ax.set_xticklabels(datasets, rotation=30, ha="right", fontsize=8)
+    ax.set_xticks(range(len(groups)))
+    if group == "model":
+        ax.set_xticklabels(ticks, fontsize=8)
+    else:
+        ax.set_xticklabels(ticks, rotation=30, ha="right", fontsize=8)
     ax.set_ylabel(HEADER[metric])
     ax.grid(axis="y", alpha=0.3)
     ax.set_axisbelow(True)
@@ -134,7 +162,8 @@ def plot_bars(rows: List[dict], metric: str, path: Path) -> None:
     plt.close(fig)
 
 
-def plot_by_model(rows: List[dict], metric: str, path: Path) -> None:
+def plot_by_model(rows: List[dict], metric: str, path: Path,
+                  order: str = "*") -> None:
     """One point per model, ordered by parameter size, a line per dataset.
 
     The axis is the model, not its size on a continuous scale, because
@@ -147,9 +176,9 @@ def plot_by_model(rows: List[dict], metric: str, path: Path) -> None:
     matplotlib.use("Agg")
     from matplotlib import pyplot as plt
 
-    models, datasets, sized = axes(rows)
+    models, datasets, sized = axes(rows, order)
     by = {(r["model"], r["dataset"]): r[metric] for r in rows}
-    cmap = plt.get_cmap("tab10")
+    cmap = plt.get_cmap("tab10" if len(datasets) <= 10 else "tab20")
 
     fig, ax = plt.subplots(figsize=(max(6, 1.4 * len(models)), 4.8))
     for i, d in enumerate(datasets):
@@ -161,7 +190,7 @@ def plot_by_model(rows: List[dict], metric: str, path: Path) -> None:
             xs.append(j)
             ys.append(float(v))
         if xs:
-            ax.plot(xs, ys, "o-", color=cmap(i % 10), lw=1, ms=5,
+            ax.plot(xs, ys, "o-", color=cmap(i % cmap.N), lw=1, ms=5,
                     label=d, alpha=0.85)
 
     ax.set_xticks(range(len(models)))
@@ -179,15 +208,16 @@ def plot_by_model(rows: List[dict], metric: str, path: Path) -> None:
 
 
 def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
-         sweep: Optional[Path] = Path("sweep.json")) -> List[Path]:
+         sweep: Optional[Path] = Path("sweep.json"),
+         group: str = "dataset", order: str = "*") -> List[Path]:
     """Both figures for a selection, limited to the sweep. Returns what was written."""
     rows = in_sweep(rows, sweep)
     out.mkdir(parents=True, exist_ok=True)
     tag = f"{prefix}_" if prefix else ""
     bars = out / f"{tag}bars_{metric}.png"
     models = out / f"{tag}models_{metric}.png"
-    plot_bars(rows, metric, bars)
-    plot_by_model(rows, metric, models)
+    plot_bars(rows, metric, bars, group, order)
+    plot_by_model(rows, metric, models, order)
     return [bars, models]
 
 
@@ -216,7 +246,8 @@ def draw_configured(rows: List[dict], out: Path,
             if metric not in METRICS:
                 raise ValueError(f"plot '{p.get('prefix', '')}' asks for "
                                  f"unknown metric '{metric}'")
-            written += draw(chosen, metric, out, p.get("prefix", ""), sweep)
+            written += draw(chosen, metric, out, p.get("prefix", ""), sweep,
+                            p.get("group", "dataset"), p.get("datasets", "*"))
     return written
 
 
