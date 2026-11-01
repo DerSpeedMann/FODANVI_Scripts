@@ -608,71 +608,92 @@
   ],
   "plots": [
     {
-      "prefix": "",
-      "models": "*",
-      "datasets": "coco,coco_nvg_*,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_*,real_nvg_dn_h10_w3,real_nvg_cl_c0p75_t2,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_white_dn_h10_w3,real_nvg_white_cl_c0p75_t2,real_nvg_white_dn_h10_w3_cl_c0p75_t2",
-      "metrics": [
-        "map50_95"
-      ],
-      "describe": "every model on every dataset, the preprocessing at its selected settings only: denoise h 10, window 3/9; CLAHE 0.75/2; the two combined"
-    },
-    {
-      "prefix": "finetune",
-      "models": "yolo11s*",
-      "datasets": "coco,coco_nvg_*,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_*",
-      "metrics": [
-        "map50_95"
-      ],
-      "describe": "one architecture trained five ways: base, v1 clean and clean-noisy, v2 clean and clean-noisy; the spread is the effect of fine-tuning"
-    },
-    {
       "prefix": "pre-trained",
-      "models": "yolo12x,rtdetr-x,rf-detr-large",
-      "datasets": "coco,coco_nvg_*,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_*",
+      "models": "rf-detr-large,rtdetr-x,yolo12x",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd"
+      ],
+      "datasets": "coco,coco_nvg_green_clean,coco_nvg_green_noisy,coco_nvg_white_clean,coco_nvg_white_noisy,coco_nvg2_green_clean,coco_nvg2_green_noisy,coco_nvg2_white_clean,coco_nvg2_white_noisy,coco_nvg_captures_green_clean,coco_nvg_captures_green_noisy,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_light,real_nvg_red_dark,real_nvg_red_swap",
       "metrics": [
         "map50_95"
       ],
-      "describe": "the pre-trained models on their own: the spread is the effect of the model"
+      "describe": "the pre-trained models on COCO, the synthetic conversions (v1, v2, evaluation-only) and the color variants of the captures"
+    },
+    {
+      "prefix": "finetune_v1v2",
+      "models": "yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#7f7f7f",
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "datasets": "coco,coco_nvg_green_clean,coco_nvg2_green_clean,coco_nvg_captures_green_clean,coco_nvg_white_clean,coco_nvg2_white_clean,coco_nvg_green_noisy,coco_nvg2_green_noisy,coco_nvg_captures_green_noisy,coco_nvg_white_noisy,coco_nvg2_white_noisy,real_nvg",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "hand-tuned (v1, orange) against measured (v2, green) conversion beside the yolo11s both started from (gray): clean stage dashed, clean-noisy stage solid; across COCO, the synthetic sets with each v1 set beside its v2 counterpart (green clean, white clean, green noisy, white noisy), the evaluation-only green set colored from the captures beside the other green sets, and the real captures",
+      "kind": "lines",
+      "styles": [
+        "-",
+        "--",
+        "-",
+        "--",
+        "-"
+      ]
+    },
+    {
+      "prefix": "color",
+      "kind": "lines",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd",
+        "#7f7f7f",
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "styles": [
+        "-",
+        "-",
+        "-",
+        "-",
+        "--",
+        "-",
+        "--",
+        "-"
+      ],
+      "datasets": "coco,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_light,real_nvg_red_dark,real_nvg_red_swap",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "all eight models on the color variants of the captures, each in the color and line style of the pre-trained and finetune_v1v2 plots"
     },
     {
       "prefix": "preprocess_green",
-      "models": "*",
-      "datasets": "real_nvg,real_nvg_dn_h10_w1,real_nvg_dn_h10_w3,real_nvg_dn_h10_w5,real_nvg_dn_h5_w3,real_nvg_dn_h20_w3,real_nvg_cl_c0p375_t1,real_nvg_cl_c0p75_t2,real_nvg_cl_c1p5_t4,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_cl_c0p75_t2_dn_h10_w3,real_nvg_eq_cl_c3_t8_dn_h10_w7",
-      "describe": "every preprocessing configuration on the green real captures against every model, bars in the order listed: none; denoise window 1/3, 3/9 (selected), 5/15 at h 10; denoise h 5 and 20 at window 3/9; CLAHE 0.375/1, 0.75/2 (selected), 1.5/4; combined at the selected settings: denoise then CLAHE, CLAHE then denoise; the original pipeline",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_nvg2_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean-noisy",
       "group": "model",
+      "datasets": "real_nvg,real_nvg_dn_h10_w7,real_nvg_cl_c1p5_t4,real_nvg_dn_h10_w7_cl_c1p5_t4,real_nvg_eq_cl_c3_t8_dn_h10_w7",
       "metrics": [
         "map50_95"
-      ]
+      ],
+      "describe": "the preprocessing reported in the thesis on the green captures, bars in the order listed: none; denoise h 10, window 7/21; CLAHE 1.5/4; the two combined; the original pipeline"
     },
     {
       "prefix": "preprocess_white",
-      "models": "*",
-      "datasets": "real_nvg_white,real_nvg_white_dn_h10_w1,real_nvg_white_dn_h10_w3,real_nvg_white_dn_h10_w5,real_nvg_white_dn_h5_w3,real_nvg_white_dn_h20_w3,real_nvg_white_cl_c0p375_t1,real_nvg_white_cl_c0p75_t2,real_nvg_white_cl_c1p5_t4,real_nvg_white_dn_h10_w3_cl_c0p75_t2,real_nvg_white_cl_c0p75_t2_dn_h10_w3,real_nvg_white_eq_cl_c3_t8_dn_h10_w7",
-      "describe": "every preprocessing configuration on the white real captures against every model, bars in the order listed: none; denoise window 1/3, 3/9 (selected), 5/15 at h 10; denoise h 5 and 20 at window 3/9; CLAHE 0.375/1, 0.75/2 (selected), 1.5/4; combined at the selected settings: denoise then CLAHE, CLAHE then denoise; the original pipeline",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_nvg2_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean-noisy",
       "group": "model",
-      "metrics": [
-        "map50_95"
-      ]
-    },
-    {
-      "prefix": "finetune_best",
-      "models": "yolo11s_clean*,yolo11s_nvg2_*,yolo12x,rf-detr-large",
-      "datasets": "real_nvg,real_nvg_dn_h10_w3,real_nvg_dn_h20_w3,real_nvg_dn_h40_w3,real_nvg_dn_h80_w3,real_nvg_dn_h20_w1,real_nvg_dn_h20_w3_cl_c0p75_t2,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_white,real_nvg_white_dn_h10_w3,real_nvg_white_dn_h20_w3,real_nvg_white_dn_h40_w3,real_nvg_white_dn_h80_w3,real_nvg_white_dn_h20_w1,real_nvg_white_dn_h20_w3_cl_c0p75_t2,real_nvg_white_dn_h10_w3_cl_c0p75_t2",
-      "group": "model",
+      "datasets": "real_nvg_white,real_nvg_white_dn_h10_w7,real_nvg_white_cl_c1p5_t4,real_nvg_white_dn_h10_w7_cl_c1p5_t4,real_nvg_white_eq_cl_c3_t8_dn_h10_w7",
       "metrics": [
         "map50_95"
       ],
-      "describe": "search for the fine-tuned yolo11s's best preprocessing against the large models: none; denoise h 10, 20, 40, 80 at window 3/9; h 20 at window 1/3; h 20 then CLAHE 0.75/2; the selected combined, green and white"
-    },
-    {
-      "prefix": "pretrained_best",
-      "models": "yolo12x,rtdetr-x,rf-detr-large",
-      "datasets": "real_nvg,real_nvg_dn_h2p5_w3,real_nvg_dn_h5_w3,real_nvg_dn_h10_w3,real_nvg_dn_h5_w1,real_nvg_dn_h10_w1,real_nvg_dn_h20_w1,real_nvg_cl_c0p75_t2,real_nvg_cl_c1p5_t4,real_nvg_cl_c3_t8,real_nvg_dn_h10_w3_cl_c0p75_t2,real_nvg_cl_c0p75_t2_dn_h10_w3,real_nvg_dn_h5_w3_cl_c1p5_t4,real_nvg_cl_c1p5_t4_dn_h5_w3,real_nvg_white,real_nvg_white_dn_h2p5_w3,real_nvg_white_dn_h5_w3,real_nvg_white_dn_h10_w3,real_nvg_white_dn_h5_w1,real_nvg_white_dn_h10_w1,real_nvg_white_dn_h20_w1,real_nvg_white_cl_c0p75_t2,real_nvg_white_cl_c1p5_t4,real_nvg_white_cl_c3_t8,real_nvg_white_dn_h10_w3_cl_c0p75_t2,real_nvg_white_cl_c0p75_t2_dn_h10_w3,real_nvg_white_dn_h5_w3_cl_c1p5_t4,real_nvg_white_cl_c1p5_t4_dn_h5_w3",
-      "group": "model",
-      "metrics": [
-        "map50_95"
-      ],
-      "describe": "search for the large pre-trained models' best preprocessing: none; denoise h 2.5, 5, 10 at window 3/9; h 5, 10, 20 at window 1/3; CLAHE 0.75/2, 1.5/4, 3.0/8; the selected combined both orders; denoise h 5 with CLAHE 1.5/4 both orders, green and white"
+      "describe": "as preprocess_green, on the white tint"
     }
   ]
 }

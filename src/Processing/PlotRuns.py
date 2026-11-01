@@ -17,13 +17,19 @@ dropped from the study. A figure shows only what sweep.json lists: a run is
 drawn when its dataset is among the sweep's datasets and its model among the
 sweep's weights. --all draws every run in the csv.
 
-Two figures per run:
+One figure per selection and metric:
 
     bars_<metric>.png      one group per dataset, one bar per model; with
                            "group": "model" in a plot entry, one group per
                            model, one bar per dataset
-    models_<metric>.png    one point per model, ordered by parameter size,
-                           one line per dataset
+    lines_<metric>.png     with "kind": "lines" instead, one line per model
+                           across the datasets in the order listed, with
+                           "styles" giving each line its dash pattern
+
+Models and datasets appear in the order of the patterns that pick them, so a
+plot that names them one by one sets the order, and "colors" in a plot entry
+gives the bars their colors in that order, which is how a comparison such as
+v1 against v2 of one stage gets one hue in two shades.
 
 The figures worth keeping are named in the "plots" block of sweep.json,
 each with a prefix, model and dataset globs and the metrics to draw, so
@@ -93,38 +99,43 @@ def in_sweep(rows: List[dict], sweep: Optional[Path]) -> List[dict]:
             if r["dataset"] in datasets and r["model"] in models]
 
 
-def axes(rows: List[dict], patterns: str = "*"
-         ) -> Tuple[List[str], List[str], Dict[str, int]]:
-    """Models ordered by parameter size, datasets in the order of the
-    patterns that pick them, alphabetical among those one pattern picks.
+def ordered(present: List[str], patterns: str) -> List[str]:
+    """present in the order of the patterns that pick them, in the order
+    given among those one pattern picks, the rest after."""
+    out: List[str] = []
+    for p in [p.strip() for p in patterns.split(",")
+              if p.strip() and not p.strip().startswith("!")]:
+        out += [v for v in present if fnmatch.fnmatch(v, p) and v not in out]
+    return out + [v for v in present if v not in out]
 
-    A plot that names its datasets one by one so gets them in that order,
-    which keeps a set beside the ones it is compared with rather than
-    wherever its name sorts.
+
+def axes(rows: List[dict], datasets: str = "*", models: str = "*"
+         ) -> Tuple[List[str], List[str], Dict[str, int]]:
+    """Models and datasets in the order of the patterns that pick them.
+
+    A plot that names them one by one so gets them in that order, which keeps
+    a set beside the ones it is compared with rather than wherever its name
+    sorts. Among the models one pattern picks, the smaller comes first.
     """
     sized = {r["model"]: int(r["weights_mb"]) for r in rows
              if r["weights_mb"] not in ("--", "")}
-    models = sorted({r["model"] for r in rows},
-                    key=lambda m: (sized.get(m, 1 << 30), m))
-    present = sorted({r["dataset"] for r in rows})
-    datasets = []
-    for p in [p.strip() for p in patterns.split(",")
-              if p.strip() and not p.strip().startswith("!")]:
-        datasets += [d for d in present
-                     if fnmatch.fnmatch(d, p) and d not in datasets]
-    datasets += [d for d in present if d not in datasets]
-    return models, datasets, sized
+    by_size = sorted({r["model"] for r in rows},
+                     key=lambda m: (sized.get(m, 1 << 30), m))
+    return (ordered(by_size, models),
+            ordered(sorted({r["dataset"] for r in rows}), datasets), sized)
 
 
 def plot_bars(rows: List[dict], metric: str, path: Path,
-              group: str = "dataset", order: str = "*") -> None:
+              group: str = "dataset", order: str = "*",
+              model_order: str = "*",
+              colors: Optional[List[str]] = None) -> None:
     """One group per dataset, one bar per model, or the other way round
-    with group="model"."""
+    with group="model". colors, when given, are the bars' in order."""
     import matplotlib
     matplotlib.use("Agg")
     from matplotlib import pyplot as plt
 
-    models, datasets, sized = axes(rows, order)
+    models, datasets, sized = axes(rows, order, model_order)
     by = {(r["model"], r["dataset"]): r[metric] for r in rows}
     if group == "model":
         groups, bars = models, datasets
@@ -146,7 +157,8 @@ def plot_bars(rows: List[dict], metric: str, path: Path,
                 continue        # a pair that was not run leaves a gap
             xs.append(j - 0.4 + width * (i + 0.5))
             ys.append(float(v))
-        ax.bar(xs, ys, width=width, label=b, color=cmap(i % cmap.N))
+        color = colors[i % len(colors)] if colors else cmap(i % cmap.N)
+        ax.bar(xs, ys, width=width, label=b, color=color)
 
     ax.set_xticks(range(len(groups)))
     if group == "model":
@@ -156,69 +168,80 @@ def plot_bars(rows: List[dict], metric: str, path: Path,
     ax.set_ylabel(HEADER[metric])
     ax.grid(axis="y", alpha=0.3)
     ax.set_axisbelow(True)
-    ax.legend(fontsize=8, ncol=2)
+    # Above the axes rather than inside: inside, it covers whichever bars
+    # happen to be tallest under it.
+    ax.legend(fontsize=8, ncol=min(len(bars), 6), loc="lower center",
+              bbox_to_anchor=(0.5, 1.0), frameon=False)
     fig.tight_layout()
-    fig.savefig(path, dpi=150)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
-def plot_by_model(rows: List[dict], metric: str, path: Path,
-                  order: str = "*") -> None:
-    """One point per model, ordered by parameter size, a line per dataset.
+def plot_lines(rows: List[dict], metric: str, path: Path,
+               order: str = "*", model_order: str = "*",
+               colors: Optional[List[str]] = None,
+               styles: Optional[List[str]] = None) -> None:
+    """One line per model across the datasets, in the order listed.
 
-    The axis is the model, not its size on a continuous scale, because
-    several models share a size: the fine-tuned weights are yolo11s
-    architecture and weigh exactly what yolo11s weighs. Plotted against
-    parameters they land on top of one another, and a line through them
-    reads as a size trend when the spread is the effect of training.
+    The datasets are categories, not a scale: the line only makes a model's
+    run easy to follow from one set to the next, which is what a comparison
+    of several models over the same sets needs.
     """
     import matplotlib
     matplotlib.use("Agg")
     from matplotlib import pyplot as plt
 
-    models, datasets, sized = axes(rows, order)
+    models, datasets, _ = axes(rows, order, model_order)
     by = {(r["model"], r["dataset"]): r[metric] for r in rows}
-    cmap = plt.get_cmap("tab10" if len(datasets) <= 10 else "tab20")
+    cmap = plt.get_cmap("tab10" if len(models) <= 10 else "tab20")
 
-    fig, ax = plt.subplots(figsize=(max(6, 1.4 * len(models)), 4.8))
-    for i, d in enumerate(datasets):
+    fig, ax = plt.subplots(figsize=(max(7, 0.7 * len(datasets) + 2), 4.5))
+    for i, m in enumerate(models):
         xs, ys = [], []
-        for j, m in enumerate(models):
+        for j, d in enumerate(datasets):
             v = by.get((m, d), "")
             if v == "":
-                continue
+                continue        # a pair that was not run leaves a gap
             xs.append(j)
             ys.append(float(v))
-        if xs:
-            ax.plot(xs, ys, "o-", color=cmap(i % cmap.N), lw=1, ms=5,
-                    label=d, alpha=0.85)
+        color = colors[i % len(colors)] if colors else cmap(i % cmap.N)
+        style = styles[i % len(styles)] if styles else "-"
+        # A dashed line also gets hollow markers, so the two still tell
+        # apart where the lines run on top of each other.
+        ax.plot(xs, ys, marker="o", ms=5, lw=1.5, ls=style, color=color,
+                mfc=color if style == "-" else "white", label=m)
 
-    ax.set_xticks(range(len(models)))
-    ax.set_xticklabels(
-        [f"{m}\n{sized[m]} MB" if m in sized else m for m in models],
-        fontsize=8)
-    ax.set_xlabel("model, ordered by parameter size")
+    ax.set_xticks(range(len(datasets)))
+    ax.set_xticklabels(datasets, rotation=30, ha="right", fontsize=8)
     ax.set_ylabel(HEADER[metric])
-    ax.grid(axis="y", alpha=0.3)
+    ax.grid(alpha=0.3)
     ax.set_axisbelow(True)
-    ax.legend(fontsize=8, ncol=2)
+    # As many columns as the width holds, about one per two datasets, so a
+    # narrow plot wraps its legend rather than overhanging it.
+    ax.legend(fontsize=8, ncol=min(len(models), max(2, len(datasets) // 2), 6),
+              loc="lower center", bbox_to_anchor=(0.5, 1.0), frameon=False)
     fig.tight_layout()
-    fig.savefig(path, dpi=150)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
 def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
          sweep: Optional[Path] = Path("sweep.json"),
-         group: str = "dataset", order: str = "*") -> List[Path]:
-    """Both figures for a selection, limited to the sweep. Returns what was written."""
+         group: str = "dataset", order: str = "*", model_order: str = "*",
+         colors: Optional[List[str]] = None, kind: str = "bars",
+         styles: Optional[List[str]] = None) -> List[Path]:
+    """The figure for a selection, limited to the sweep. Returns what was written."""
     rows = in_sweep(rows, sweep)
     out.mkdir(parents=True, exist_ok=True)
     tag = f"{prefix}_" if prefix else ""
-    bars = out / f"{tag}bars_{metric}.png"
-    models = out / f"{tag}models_{metric}.png"
-    plot_bars(rows, metric, bars, group, order)
-    plot_by_model(rows, metric, models, order)
-    return [bars, models]
+    path = out / f"{tag}{kind}_{metric}.png"
+    if kind == "lines":
+        plot_lines(rows, metric, path, order, model_order, colors, styles)
+    elif kind == "bars":
+        plot_bars(rows, metric, path, group, order, model_order, colors)
+    else:
+        raise ValueError(f"plot '{prefix}' asks for unknown kind '{kind}'")
+    return [path]
 
 
 def configured(sweep: Path) -> List[dict]:
@@ -247,7 +270,9 @@ def draw_configured(rows: List[dict], out: Path,
                 raise ValueError(f"plot '{p.get('prefix', '')}' asks for "
                                  f"unknown metric '{metric}'")
             written += draw(chosen, metric, out, p.get("prefix", ""), sweep,
-                            p.get("group", "dataset"), p.get("datasets", "*"))
+                            p.get("group", "dataset"), p.get("datasets", "*"),
+                            p.get("models", "*"), p.get("colors"),
+                            p.get("kind", "bars"), p.get("styles"))
     return written
 
 
@@ -292,7 +317,8 @@ def main() -> int:
 
     models, datasets, _ = axes(rows)
     print(f"{len(rows)} runs: {len(models)} model(s) x {len(datasets)} dataset(s)")
-    for p in draw(rows, args.metric, args.out, args.prefix, sweep):
+    for p in draw(rows, args.metric, args.out, args.prefix, sweep,
+                  "dataset", args.datasets, args.models):
         print(f"wrote {p}")
     return 0
 
