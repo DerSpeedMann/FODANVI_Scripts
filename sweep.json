@@ -62,7 +62,23 @@
     "real_nvg_white_dn_h2p5_w3",
     "real_nvg_white_dn_h5_w1",
     "real_nvg_white_dn_h5_w3_cl_c1p5_t4",
-    "real_nvg_white_cl_c1p5_t4_dn_h5_w3"
+    "real_nvg_white_cl_c1p5_t4_dn_h5_w3",
+    "real_nvg_dn_h5_w5",
+    "real_nvg_white_dn_h5_w5",
+    "real_nvg_dn_h5_w7",
+    "real_nvg_white_dn_h5_w7",
+    "real_nvg_dn_h10_w7",
+    "real_nvg_white_dn_h10_w7",
+    "real_nvg_dn_h10_w9",
+    "real_nvg_white_dn_h10_w9",
+    "real_nvg_dn_h20_w5",
+    "real_nvg_white_dn_h20_w5",
+    "real_nvg_dn_h5_w7_cl_c1p5_t4",
+    "real_nvg_white_dn_h5_w7_cl_c1p5_t4",
+    "real_nvg_dn_h10_w7_cl_c1p5_t4",
+    "real_nvg_white_dn_h10_w7_cl_c1p5_t4",
+    "real_nvg_cl_c1p5_t4_dn_h10_w7",
+    "real_nvg_white_cl_c1p5_t4_dn_h10_w7"
   ],
   "classes": [
     "backpack",
@@ -442,6 +458,110 @@
         "_cl_c3_t8"
       ],
       "describe": "step: CLAHE only, clip 3.0, tile 8 as in preprocessed_original, data/preprocess/cl_c3_t8.json"
+    },
+    "dn_h5_w5": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h5_w5",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h5_w5.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h5_w5"
+      ],
+      "describe": "denoise only, h 5, window 5/15, data/preprocess/dn_h5_w5.json"
+    },
+    "dn_h5_w7": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h5_w7",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h5_w7.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h5_w7"
+      ],
+      "describe": "denoise only, h 5, window 7/21, data/preprocess/dn_h5_w7.json"
+    },
+    "dn_h10_w7": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h10_w7",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h10_w7.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h10_w7"
+      ],
+      "describe": "denoise only, h 10, window 7/21, data/preprocess/dn_h10_w7.json"
+    },
+    "dn_h10_w9": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h10_w9",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h10_w9.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h10_w9"
+      ],
+      "describe": "denoise only, h 10, window 9/27, data/preprocess/dn_h10_w9.json"
+    },
+    "dn_h20_w5": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h20_w5",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h20_w5.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h20_w5"
+      ],
+      "describe": "denoise only, h 20, window 5/15, data/preprocess/dn_h20_w5.json"
+    },
+    "dn_h5_w7_cl_c1p5_t4": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h5_w7_cl_c1p5_t4",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h5_w7_cl_c1p5_t4.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h5_w7_cl_c1p5_t4"
+      ],
+      "describe": "denoise (h 5, window 7/21), then CLAHE (clip 1.5, tile 4), data/preprocess/dn_h5_w7_cl_c1p5_t4.json"
+    },
+    "dn_h10_w7_cl_c1p5_t4": {
+      "script": "Preprocess.py",
+      "suffix": "_dn_h10_w7_cl_c1p5_t4",
+      "args": [
+        "--config",
+        "data/preprocess/dn_h10_w7_cl_c1p5_t4.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_dn_h10_w7_cl_c1p5_t4"
+      ],
+      "describe": "denoise (h 10, window 7/21), then CLAHE (clip 1.5, tile 4), data/preprocess/dn_h10_w7_cl_c1p5_t4.json"
+    },
+    "cl_c1p5_t4_dn_h10_w7": {
+      "script": "Preprocess.py",
+      "suffix": "_cl_c1p5_t4_dn_h10_w7",
+      "args": [
+        "--config",
+        "data/preprocess/cl_c1p5_t4_dn_h10_w7.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_cl_c1p5_t4_dn_h10_w7"
+      ],
+      "describe": "CLAHE (clip 1.5, tile 4), then denoise (h 10, window 7/21), data/preprocess/cl_c1p5_t4_dn_h10_w7.json"
     }
   },
   "variants": [
@@ -602,6 +722,62 @@
         [
           "white",
           "cl_c3_t8"
+        ],
+        [
+          "dn_h5_w5"
+        ],
+        [
+          "white",
+          "dn_h5_w5"
+        ],
+        [
+          "dn_h5_w7"
+        ],
+        [
+          "white",
+          "dn_h5_w7"
+        ],
+        [
+          "dn_h10_w7"
+        ],
+        [
+          "white",
+          "dn_h10_w7"
+        ],
+        [
+          "dn_h10_w9"
+        ],
+        [
+          "white",
+          "dn_h10_w9"
+        ],
+        [
+          "dn_h20_w5"
+        ],
+        [
+          "white",
+          "dn_h20_w5"
+        ],
+        [
+          "dn_h5_w7_cl_c1p5_t4"
+        ],
+        [
+          "white",
+          "dn_h5_w7_cl_c1p5_t4"
+        ],
+        [
+          "dn_h10_w7_cl_c1p5_t4"
+        ],
+        [
+          "white",
+          "dn_h10_w7_cl_c1p5_t4"
+        ],
+        [
+          "cl_c1p5_t4_dn_h10_w7"
+        ],
+        [
+          "white",
+          "cl_c1p5_t4_dn_h10_w7"
         ]
       ]
     }
