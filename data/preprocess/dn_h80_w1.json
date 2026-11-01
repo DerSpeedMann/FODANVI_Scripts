@@ -1,0 +1,6 @@
+{
+  "note": "Strength step above denoise h 40, window 1/3 (dn_h40_w1.json), to bracket the rise for yolo11s_nvg2_clean-noisy: denoise only, h 80, window 1/3.",
+  "steps": [
+    {"module": "denoise", "h": 80.0, "h_color": 80.0, "template_window": 1, "search_window": 3}
+  ]
+}
