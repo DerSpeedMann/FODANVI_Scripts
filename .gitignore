@@ -253,6 +253,7 @@ data/datasets/coco/
 # of plots, sample images and predictions.json. What belongs in git is the
 # config that produced them, not the output.
 /data/runs/
+/data/runs_resampled/
 
 # Box annotations built from a dataset's own labels by
 # GenerateBoxAnnotations.py, so RF-DETR does not rebuild them across the

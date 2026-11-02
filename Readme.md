@@ -540,6 +540,37 @@ as a comma separated list. `preprocess_best` uses `columns` to put each
 model's best preprocessing beside its unprocessed figure, where the best
 configuration differs from model to model.
 
+## Resampled sets
+
+How far a score on a set as small as the 66 captures moves when the images
+are drawn differently is measured on resampled copies of the set:
+
+    python src\Processing\BuildResampledSets.py --runs 100
+    .\RunResampled.ps1
+    python src\Processing\CompareRuns.py --runs data/runs_resampled --out data/results_resampled --no-plots
+
+`BuildResampledSets.py` builds `--runs` sets of the same size as the source
+(`--source`, default `real_nvg`). `--unique-pct` of each set (default 66.7,
+44 of 66) is drawn without replacement, the rest are duplicates drawn from
+those; a duplicate is copied under its own name with its label, so the
+validator scores it as one more image. Set `r` is drawn with seed
+`--seed + r`, and `manifest.json` lists the files of every set, so any set
+can be rebuilt. The sets go to `data\datasets\resampled\`, each as
+`<source>_rs_u<pct>_r<NNN>` with its own yaml, outside the dataset folder
+proper so `RunSweep.ps1` neither sweeps nor reports them. `--out` has to stay
+inside `data\datasets`, since the yaml names the container path. Existing
+sets are skipped; `--force` rebuilds them.
+
+`RunResampled.ps1` runs one model (`-Model`, default `yolo12x`, YOLO
+validator only) against every set (`-Sets`, a glob) in a single container,
+since starting one per set would cost more than the validation. Each set
+still gets its own `yolo_val.py` process and run folder,
+`val_<model>_<set>`, written to `data\runs_resampled\` rather than
+`data\runs\`, so the resampled runs stay out of `comparison.csv` and the
+sweep figures. Existing runs are skipped, so an interrupted batch resumes;
+`-WhatIf` lists what would run. `CompareRuns.py` pointed at that folder
+collects them, scored on the `classes` of `sweep.json` like every other run.
+
 ## Fine-tuning
 
     .\RunTrain.ps1 -Stages nvg2_clean,nvg2_clean-noisy   the measured chain
