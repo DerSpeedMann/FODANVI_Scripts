@@ -437,11 +437,10 @@ Reads the `all` row of every run under `data\runs\` and writes into
 
     comparison.csv          one row per run
     matrix_map50_95.csv     dataset rows, model columns
-    bars_map50_95.png       grouped bars, one group per dataset
-    models_map50_95.png     one point per model, ordered by parameter size
 
 plus every figure the `plots` block of `sweep.json` names (below), so this
-one command redraws all of them after a sweep.
+one command redraws all of them after a sweep. Without a `plots` block it
+draws one `bars_map50_95.png`, grouped bars with one group per dataset.
 
 `--metric` switches all of them between `map50_95`, `map50`, `precision`
 and `recall`. `--no-plots` writes the tables only.
@@ -518,7 +517,28 @@ at the same parameter size.
 `models` and `datasets`, in the config or as `--models` and `--datasets`,
 take comma separated globs matched against the csv, the prefix keeps a
 selection from overwriting the default figures, and the metrics are the same
-four as above.
+four as above. Models and datasets are drawn in the order of the globs that
+pick them, so an entry that names them one by one sets the order.
+
+An entry can also carry:
+
+    "kind": "lines"        one line per model across the datasets, written as
+                           <prefix>_lines_<metric>.png; the default is "bars",
+                           <prefix>_bars_<metric>.png
+    "group": "model"       bars only: one group per model, one bar per dataset
+    "colors": [...]        one color per model, in the order of "models"
+    "styles": ["-", "--"]  lines only: one dash pattern per model, in the same
+                           order; a dashed line gets hollow markers
+    "columns": [           lines only: each point is a label and dataset globs,
+      {"label": "COCO", "datasets": "coco"},       and a model's point is its
+      {"label": "green best preprocessing",        highest figure over the sets
+       "datasets": "real_nvg_dn_*,real_nvg_cl_*"}  matched; which set that was
+    ]                                              is printed
+
+A label in `columns` must not contain a comma, since the order is passed on
+as a comma separated list. `preprocess_best` uses `columns` to put each
+model's best preprocessing beside its unprocessed figure, where the best
+configuration differs from model to model.
 
 ## Fine-tuning
 

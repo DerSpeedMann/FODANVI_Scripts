@@ -869,7 +869,8 @@
         "-",
         "--",
         "-"
-      ]
+      ],
+      "width": 6.5
     },
     {
       "prefix": "color",
@@ -902,6 +903,57 @@
       "describe": "all eight models on the color variants of the captures, each in the color and line style of the pre-trained and finetune_v1v2 plots"
     },
     {
+      "prefix": "preprocess_best",
+      "kind": "lines",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd",
+        "#7f7f7f",
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "styles": [
+        "-",
+        "-",
+        "-",
+        "-",
+        "--",
+        "-",
+        "--",
+        "-"
+      ],
+      "columns": [
+        {
+          "label": "COCO",
+          "datasets": "coco"
+        },
+        {
+          "label": "green unprocessed",
+          "datasets": "real_nvg"
+        },
+        {
+          "label": "green best preprocessing",
+          "datasets": "real_nvg_dn_*,real_nvg_cl_*,real_nvg_eq_*"
+        },
+        {
+          "label": "white tint unprocessed",
+          "datasets": "real_nvg_white"
+        },
+        {
+          "label": "white tint best preprocessing",
+          "datasets": "real_nvg_white_dn_*,real_nvg_white_cl_*,real_nvg_white_eq_*"
+        }
+      ],
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "each model on COCO and on the green captures and their white phosphor tint, unprocessed and at its highest-scoring preprocessing configuration of the sweep; models, colors and styles as in the color plot"
+    },
+    {
       "prefix": "preprocess_green",
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_nvg2_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean-noisy",
       "group": "model",
@@ -920,6 +972,66 @@
         "map50_95"
       ],
       "describe": "as preprocess_green, on the white tint"
+    },
+    {
+      "prefix": "denoise_synthetic",
+      "kind": "lines",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd",
+        "#7f7f7f",
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "styles": [
+        "-",
+        "-",
+        "-",
+        "-",
+        "--",
+        "-",
+        "--",
+        "-"
+      ],
+      "datasets": "coco_nvg2_green_clean,coco_nvg2_green_grain,coco_nvg2_green_grain_dn_h80_w3,real_nvg,real_nvg_dn_h80_w3,coco_nvg2_white_clean,coco_nvg2_white_grain,coco_nvg2_white_grain_dn_h80_w3,real_nvg_white,real_nvg_white_dn_h80_w3",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "denoising at h 80, window 3/9 on the measured-conversion grain-only sets against what it does on the captures: v2 clean, grain only, grain only denoised, then the captures unprocessed and denoised, green then white; models, colors and styles as in the color plot"
+    },
+    {
+      "prefix": "grain",
+      "kind": "lines",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd",
+        "#7f7f7f",
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "styles": [
+        "-",
+        "-",
+        "-",
+        "-",
+        "--",
+        "-",
+        "--",
+        "-"
+      ],
+      "datasets": "coco_nvg2_green_clean,coco_nvg2_green_grain,coco_nvg2_green_grain_dn_h80_w3,coco_nvg2_white_clean,coco_nvg2_white_grain,coco_nvg2_white_grain_dn_h80_w3",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "the measured-conversion sets: clean, grain only and grain only denoised at h 80, window 3/9, green then white; models, colors and styles as in the color plot"
     }
   ]
 }

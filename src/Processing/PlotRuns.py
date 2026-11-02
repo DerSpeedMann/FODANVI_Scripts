@@ -29,7 +29,8 @@ One figure per selection and metric:
 Models and datasets appear in the order of the patterns that pick them, so a
 plot that names them one by one sets the order, and "colors" in a plot entry
 gives the bars their colors in that order, which is how a comparison such as
-v1 against v2 of one stage gets one hue in two shades.
+v1 against v2 of one stage gets one hue in two shades. A lines plot also
+takes "width" in inches, so a figure meant for a page can be drawn narrow.
 
 The figures worth keeping are named in the "plots" block of sweep.json,
 each with a prefix, model and dataset globs and the metrics to draw, so
@@ -180,12 +181,17 @@ def plot_bars(rows: List[dict], metric: str, path: Path,
 def plot_lines(rows: List[dict], metric: str, path: Path,
                order: str = "*", model_order: str = "*",
                colors: Optional[List[str]] = None,
-               styles: Optional[List[str]] = None) -> None:
+               styles: Optional[List[str]] = None,
+               width: Optional[float] = None) -> None:
     """One line per model across the datasets, in the order listed.
 
     The datasets are categories, not a scale: the line only makes a model's
     run easy to follow from one set to the next, which is what a comparison
     of several models over the same sets needs.
+
+    width, when given, is the figure's in inches. The dataset names then
+    stand steeper, since at a narrow width a shallow slant runs each into
+    the next.
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -195,7 +201,8 @@ def plot_lines(rows: List[dict], metric: str, path: Path,
     by = {(r["model"], r["dataset"]): r[metric] for r in rows}
     cmap = plt.get_cmap("tab10" if len(models) <= 10 else "tab20")
 
-    fig, ax = plt.subplots(figsize=(max(7, 0.7 * len(datasets) + 2), 4.5))
+    fig, ax = plt.subplots(
+        figsize=(width or max(7, 0.7 * len(datasets) + 2), 4.5))
     for i, m in enumerate(models):
         xs, ys = [], []
         for j, d in enumerate(datasets):
@@ -212,13 +219,19 @@ def plot_lines(rows: List[dict], metric: str, path: Path,
                 mfc=color if style == "-" else "white", label=m)
 
     ax.set_xticks(range(len(datasets)))
-    ax.set_xticklabels(datasets, rotation=30, ha="right", fontsize=8)
+    if width:
+        ax.set_xticklabels(datasets, rotation=45, ha="right",
+                           rotation_mode="anchor", fontsize=8)
+    else:
+        ax.set_xticklabels(datasets, rotation=30, ha="right", fontsize=8)
     ax.set_ylabel(HEADER[metric])
     ax.grid(alpha=0.3)
     ax.set_axisbelow(True)
-    # As many columns as the width holds, about one per two datasets, so a
-    # narrow plot wraps its legend rather than overhanging it.
-    ax.legend(fontsize=8, ncol=min(len(models), max(2, len(datasets) // 2), 6),
+    # As many columns as the width holds, about one per two datasets or one
+    # per two inches of a set width, so a narrow plot wraps its legend
+    # rather than overhanging it.
+    cols = int(width // 2) if width else len(datasets) // 2
+    ax.legend(fontsize=8, ncol=min(len(models), max(2, cols), 6),
               loc="lower center", bbox_to_anchor=(0.5, 1.0), frameon=False)
     fig.tight_layout()
     fig.savefig(path, dpi=150, bbox_inches="tight")
@@ -229,14 +242,16 @@ def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
          sweep: Optional[Path] = Path("sweep.json"),
          group: str = "dataset", order: str = "*", model_order: str = "*",
          colors: Optional[List[str]] = None, kind: str = "bars",
-         styles: Optional[List[str]] = None) -> List[Path]:
+         styles: Optional[List[str]] = None,
+         width: Optional[float] = None) -> List[Path]:
     """The figure for a selection, limited to the sweep. Returns what was written."""
     rows = in_sweep(rows, sweep)
     out.mkdir(parents=True, exist_ok=True)
     tag = f"{prefix}_" if prefix else ""
     path = out / f"{tag}{kind}_{metric}.png"
     if kind == "lines":
-        plot_lines(rows, metric, path, order, model_order, colors, styles)
+        plot_lines(rows, metric, path, order, model_order, colors, styles,
+                   width)
     elif kind == "bars":
         plot_bars(rows, metric, path, group, order, model_order, colors)
     else:
@@ -251,6 +266,37 @@ def configured(sweep: Path) -> List[dict]:
     return json.loads(sweep.read_text(encoding="utf-8")).get("plots", [])
 
 
+def draw_columns(rows: List[dict], p: dict, out: Path,
+                 sweep: Path) -> List[Path]:
+    """A plot whose points are "columns": each a label and dataset patterns,
+    the point of a model being its highest figure over the matching sets.
+
+    This is how a model's best preprocessing goes beside its unprocessed
+    figure when the best configuration differs from model to model. Which
+    set gave each point is printed, so the text can name it.
+    """
+    written = []
+    models = p.get("models", "*")
+    for metric in p.get("metrics", ["map50_95"]):
+        built = []
+        for col in p["columns"]:
+            pool = in_sweep(select(rows, models, col["datasets"]), sweep)
+            best: Dict[str, dict] = {}
+            for r in pool:
+                if r["model"] not in best or \
+                        float(r[metric]) > float(best[r["model"]][metric]):
+                    best[r["model"]] = r
+            for m, r in best.items():
+                built.append({**r, "dataset": col["label"]})
+                print(f"  {p.get('prefix', '')}: {col['label']}, {m}: "
+                      f"{r['dataset']} {float(r[metric]):.3f}")
+        written += draw(built, metric, out, p.get("prefix", ""), None,
+                        "dataset", ",".join(c["label"] for c in p["columns"]),
+                        models, p.get("colors"), p.get("kind", "lines"),
+                        p.get("styles"))
+    return written
+
+
 def draw_configured(rows: List[dict], out: Path,
                     sweep: Path = Path("sweep.json")) -> List[Path]:
     """Every plot sweep.json names. Returns what was written.
@@ -261,6 +307,9 @@ def draw_configured(rows: List[dict], out: Path,
     """
     written = []
     for p in configured(sweep):
+        if "columns" in p:
+            written += draw_columns(rows, p, out, sweep)
+            continue
         chosen = select(rows, p.get("models", "*"), p.get("datasets", "*"))
         if not in_sweep(chosen, sweep):
             print(f"  plot '{p.get('prefix', '')}' matched nothing, skipped")
@@ -272,7 +321,8 @@ def draw_configured(rows: List[dict], out: Path,
             written += draw(chosen, metric, out, p.get("prefix", ""), sweep,
                             p.get("group", "dataset"), p.get("datasets", "*"),
                             p.get("models", "*"), p.get("colors"),
-                            p.get("kind", "bars"), p.get("styles"))
+                            p.get("kind", "bars"), p.get("styles"),
+                            p.get("width"))
     return written
 
 
