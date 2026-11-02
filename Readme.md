@@ -268,6 +268,31 @@ explaining why.
 The yaml it writes lands in `data/datasets/`, and that is what puts the
 variant into the sweep.
 
+An entry may name its `splits`; the default, `train` and `val`, is the layout
+of the captures. A converted COCO set is laid out as `train2017` and
+`val2017` and is given `["val2017"]` alone, since the sweep scores the val
+split and converting the 118k training images would take hours for nothing.
+Its yaml then points `train` at the val split, because the validator wants
+the key. The denoised measured-conversion sets are built that way, from the
+grain-only sets, which are the clean conversion with the grain left on
+(blur, bloom and vignette off), so they differ from the clean set in the
+grain alone:
+
+    { "source": "coco_nvg2_green_grain", "splits": ["val2017"], "chains": [["dn_h80_w3"]] }
+
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*_grain" --splits val2017
+    .\BuildDatasets.ps1 -Only "coco_nvg2_*_grain_dn_h80_w3"
+    .\RunSweep.ps1 -Datasets "coco_nvg2_*_grain*"
+
+They put the same denoising as the captures' `dn_h80_w3` on the synthetic
+grain, so the `denoise_synthetic` plot can set clean, grain only and denoised
+grain only beside the captures before and after it. The
+`coco_nvg2_*_noisy_dn_h80_w3` sets, denoised from the full noisy conversion,
+still carry blur, bloom and vignette and so do not compare with the clean
+set; they stay listed only because their runs exist. `dn_h80_w3` is the denoising
+setting with the highest mean mAP50-95 over all eight models on the green
+captures and their white tint (0.408, against 0.351 unprocessed).
+
 ## Running every validation
 
     .\RunSweep.ps1

@@ -17,6 +17,8 @@ command, so a fresh clone with COCO in place can regenerate all of them.
         coco_nvg2_white_clean           (the five white references)
         coco_nvg_captures_green_noisy   green from nvg_config_setup_green.json
         coco_nvg_captures_green_clean   (the 66 evaluation captures)
+        coco_nvg2_green_grain           as the clean sets, with the grain on
+        coco_nvg2_white_grain           (validation only, for the denoising)
 
 Named like the v1 sets: _noisy carries grain, blur, bloom and vignette,
 _clean has all four off.
@@ -31,7 +33,10 @@ data/day2night/README.md for how the configs were measured.
 
 Each clean variant disables grain, blur, bloom and vignette and nothing else,
 so it differs from its sibling only in those four. Histogram equalisation stays
-on in both: it is part of the tone mapping, not one of the effects. The v1
+on in both: it is part of the tone mapping, not one of the effects. Each grain
+variant disables blur, bloom and vignette only, so it differs from its clean
+sibling in the grain alone; denoising it and setting it beside the clean set
+measures the denoising on the grain without the other three in the way. The v1
 flags are those recorded in MA_Paper/supplementary/code/Readme.md.
 
 GenerateNVG.py is frozen. Regenerating the v1 sets with it gives
@@ -53,10 +58,11 @@ left alone, so an interrupted run continues where it stopped. Pass --force to
 rebuild one anyway. The validation split is all the sweep scores; train2017
 is only needed to fine-tune, and takes most of the time.
 
-    python BuildDay2NightDatasets.py                       all ten, both splits
-    python BuildDay2NightDatasets.py --splits val2017      all ten, val only
+    python BuildDay2NightDatasets.py                       all twelve, both splits
+    python BuildDay2NightDatasets.py --splits val2017      all twelve, val only
     python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 training four
     python BuildDay2NightDatasets.py --only "coco_nvg_captures_*" --splits val2017
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*_grain" --splits val2017
     python BuildDay2NightDatasets.py --dry-run
 """
 
@@ -83,6 +89,8 @@ V2 = "GenerateNVGv2.py"
 # skips the block rather than dividing by it.
 CLEAN = ["--noise-intensity", "0", "--blur-amount", "0",
          "--bloom-intensity", "0", "--vignette-intensity", "0"]
+# The same with the grain left on.
+GRAIN = CLEAN[2:]
 
 # name -> (generator, color, config or None, suffix the generator appends,
 #          extra arguments)
@@ -103,6 +111,10 @@ VARIANTS = {
                                       "_nvg2_green", []),
     "coco_nvg_captures_green_clean": (V2, "green", "nvg_config_setup_green.json",
                                       "_nvg2_green", CLEAN),
+    "coco_nvg2_green_grain": (V2, "green", "nvg_config_selected_green.json",
+                              "_nvg2_green", GRAIN),
+    "coco_nvg2_white_grain": (V2, "white", "nvg_config_selected_white.json",
+                              "_nvg2_white", GRAIN),
 }
 
 V1_HEADER = """# One conversion on its own, so a model can be scored against it
@@ -116,6 +128,9 @@ V2_HEADER = """# {source} converted with GenerateNVGv2.py and the config Analyze
 """
 
 CLEAN_NOTE = "\n# Grain, blur, bloom and vignette are disabled in this one."
+GRAIN_NOTE = "\n# Blur, bloom and vignette are disabled in this one, the grain is on."
+NOTES = {id(CLEAN): CLEAN_NOTE, id(GRAIN): GRAIN_NOTE}
+LABELS = {id(CLEAN): "clean", id(GRAIN): "grain only"}
 
 
 def count(folder: Path) -> int:
@@ -154,7 +169,7 @@ def write_yaml(name: str) -> None:
     else:
         header = V2_HEADER.format(source=SOURCE, config=config,
                                        suffix=suffix,
-                                       note=CLEAN_NOTE if extra else "")
+                                       note=NOTES.get(id(extra), ""))
     out = (header + body).replace("\n", "\r\n")      # CRLF, no BOM
     (DATASETS / f"{name}.yaml").write_bytes(out.encode("utf-8"))
     print(f"  wrote {name}.yaml")
@@ -169,7 +184,7 @@ def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
 
     print(f"\n=== {name}  ({script}, {color}"
           f"{', ' + config if config else ''}, "
-          f"{'clean' if extra else 'full'}) ===")
+          f"{LABELS.get(id(extra), 'full')}) ===")
     for split in splits:
         src_img = DATASETS / SOURCE / "images" / split
         if not src_img.is_dir():

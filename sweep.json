@@ -78,7 +78,13 @@
     "real_nvg_dn_h10_w7_cl_c1p5_t4",
     "real_nvg_white_dn_h10_w7_cl_c1p5_t4",
     "real_nvg_cl_c1p5_t4_dn_h10_w7",
-    "real_nvg_white_cl_c1p5_t4_dn_h10_w7"
+    "real_nvg_white_cl_c1p5_t4_dn_h10_w7",
+    "coco_nvg2_green_noisy_dn_h80_w3",
+    "coco_nvg2_white_noisy_dn_h80_w3",
+    "coco_nvg2_green_grain",
+    "coco_nvg2_white_grain",
+    "coco_nvg2_green_grain_dn_h80_w3",
+    "coco_nvg2_white_grain_dn_h80_w3"
   ],
   "classes": [
     "backpack",
@@ -778,6 +784,50 @@
         [
           "white",
           "cl_c1p5_t4_dn_h10_w7"
+        ]
+      ]
+    },
+    {
+      "source": "coco_nvg2_green_noisy",
+      "splits": [
+        "val2017"
+      ],
+      "chains": [
+        [
+          "dn_h80_w3"
+        ]
+      ]
+    },
+    {
+      "source": "coco_nvg2_white_noisy",
+      "splits": [
+        "val2017"
+      ],
+      "chains": [
+        [
+          "dn_h80_w3"
+        ]
+      ]
+    },
+    {
+      "source": "coco_nvg2_green_grain",
+      "splits": [
+        "val2017"
+      ],
+      "chains": [
+        [
+          "dn_h80_w3"
+        ]
+      ]
+    },
+    {
+      "source": "coco_nvg2_white_grain",
+      "splits": [
+        "val2017"
+      ],
+      "chains": [
+        [
+          "dn_h80_w3"
         ]
       ]
     }

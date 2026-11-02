@@ -25,6 +25,13 @@
     RunSweep.ps1 looks, so building a variant is enough to put it in the
     sweep.
 
+    An entry may name its "splits". The default, train and val, is the layout
+    of the captures; a converted COCO set is laid out as train2017 and
+    val2017, and is given ["val2017"] alone, since the sweep scores the val
+    split and converting the training split would cost hours for nothing.
+    A set built without a training split points its train key at the val
+    split, because the validator requires the key to be there.
+
         .\BuildDatasets.ps1                        build what is missing
         .\BuildDatasets.ps1 -Only real_nvg_white   one of them
         .\BuildDatasets.ps1 -Force                 rebuild even if present
@@ -68,12 +75,14 @@ foreach ($entry in $cfg.variants) {
         }
         $defs = @($steps | ForEach-Object { $gens.$_ })
         $suffix = -join ($defs | ForEach-Object { $_.suffix })
+        $splits = if ($entry.splits) { @($entry.splits) } else { @("train", "val") }
         $jobs += [pscustomobject]@{
             Name   = "$($entry.source)$suffix"
             Source = $entry.source
             Steps  = $steps
             Chain  = $defs
             Suffix = $suffix
+            Splits = $splits
         }
     }
 }
@@ -106,7 +115,7 @@ foreach ($job in $targets) {
 
     Write-Host "build $name  ($($job.Steps -join ' -> '))"
     $stage = Join-Path $dst ".stage"
-    foreach ($split in "train", "val") {
+    foreach ($split in $job.Splits) {
         $srcImg = Join-Path $src "images\$split"
         if (-not (Test-Path $srcImg)) { continue }
         if (-not (Get-ChildItem $srcImg -File -EA SilentlyContinue)) { continue }
@@ -132,12 +141,25 @@ foreach ($job in $targets) {
         if ($LASTEXITCODE -ne 0) { throw "CopyFilesWithSuffix.py failed on $split" }
 
         # A suffix on one side and not the other gives a dataset with no
-        # labels and a silent zero mAP, so the pairing is checked.
+        # labels and a silent zero mAP, so the pairing is checked. A label
+        # must always have its image. An image may lack a label only as often
+        # as in the source: COCO's val2017 holds 48 images with no annotated
+        # object and so no label file, which score as background, and every
+        # set converted from it inherits them.
         $imgs = @(Get-ChildItem $dstImg -File | ForEach-Object { $_.BaseName })
         $lbls = @(Get-ChildItem $dstLbl -File -Filter *.txt | ForEach-Object { $_.BaseName })
-        $unpaired = @(Compare-Object $imgs $lbls).Count
-        if ($unpaired) { throw "$name/$split : $unpaired file(s) unpaired" }
-        Write-Host ("  {0,-6} {1,4} images, {2,4} labels" -f $split, $imgs.Count, $lbls.Count)
+        $diff = @(Compare-Object $imgs $lbls)
+        $orphanLabels = @($diff | Where-Object SideIndicator -eq "=>").Count
+        $bareImages = @($diff | Where-Object SideIndicator -eq "<=").Count
+        $srcImgs = @(Get-ChildItem $srcImg -File).Count
+        $srcLbls = @(Get-ChildItem (Join-Path $src "labels\$split") -File -Filter *.txt).Count
+        $srcBare = $srcImgs - $srcLbls
+        if ($orphanLabels) { throw "$name/$split : $orphanLabels label(s) without an image" }
+        if ($bareImages -ne $srcBare) {
+            throw "$name/$split : $bareImages image(s) without a label, the source has $srcBare"
+        }
+        $note = if ($bareImages) { ", $bareImages without objects as in the source" } else { "" }
+        Write-Host ("  {0,-6} {1,4} images, {2,4} labels{3}" -f $split, $imgs.Count, $lbls.Count, $note)
     }
     if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
 
@@ -152,13 +174,17 @@ foreach ($job in $targets) {
     }
     $names = $raw.Substring($at)
     $describe = ($chain | ForEach-Object { $_.describe }) -join ", then "
+    $valSplit = @($job.Splits | Where-Object { $_ -like "val*" })[0]
+    $trainSplit = @($job.Splits | Where-Object { $_ -like "train*" })[0]
+    if (-not $valSplit) { throw "$name builds no val split" }
+    if (-not $trainSplit) { $trainSplit = $valSplit }
     $header = @(
         "# $($job.Source) with: $describe."
         "# Built by BuildDatasets.ps1 from sweep.json. Images and labels"
         "# both carry the $suffix suffix, as the converted COCO sets do."
         "path: $name"
-        "train: images/train"
-        "val: images/val"
+        "train: images/$trainSplit"
+        "val: images/$valSplit"
         "test:"
         ""
         ""
