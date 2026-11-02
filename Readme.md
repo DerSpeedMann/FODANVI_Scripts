@@ -298,7 +298,9 @@ captures and their white tint (0.408, against 0.351 unprocessed).
     .\RunSweep.ps1
 
 Every model in `sweep.json` against every dataset in it, one container
-per pair. Seven models and seven datasets is 49 runs.
+per pair. Seven models and seven datasets is 49 runs. For images without
+labels, `-Predict` runs the same models over an image folder instead; see
+Predicting on images with no labels.
 
     .\RunSweep.ps1 -WhatIf                list the runs without making them
     .\RunSweep.ps1 -Datasets real_nvg*    only the real captures, 21 runs
@@ -373,13 +375,49 @@ One script per model family, named for the validator beside it:
 | RT-DETR | `rtdetr_predict.py` | carries the same `scale_boxes` patch as its validator |
 | RF-DETR | `rfdetr_predict.py` | needs the pip install |
 
-`data\images\` holds the images in two folders, neither of them versioned:
+`data\images\` holds the images in these folders, none of them versioned:
 
-    raw\       what the cameras wrote: D500 .NEF files and recorder captures,
-               each also kept under Captures\
-    predict\   what the models see: the cropped frames through the NVD, and
-               the D500 frames without an intensified field as converted by
-               ConvertRaw.py
+    raw\         what the cameras wrote: D500 .NEF files and recorder captures,
+                 each also kept under Captures\
+    predict\     what the models see: the cropped frames through the NVD, and
+                 the D500 frames without an intensified field as converted by
+                 ConvertRaw.py
+    vignetting\  phone photographs through the eyepieces, each beside its
+                 cropped version, for what the black surround does to detection
+
+### Every model at once
+
+`RunSweep.ps1` runs every model in `sweep.json` over a folder under
+`data\images\` with `-Predict`, one container and one run per model, through
+the predict script beside each validator:
+
+    .\RunSweep.ps1 -Predict vignetting
+    .\RunSweep.ps1 -Predict predict -Models yolo12x    one model
+    .\RunSweep.ps1 -Predict vignetting -Conf 0.05      lower threshold
+    .\RunSweep.ps1 -Predict vignetting -WhatIf         list the runs
+
+Runs are named `predict_<model>_<folder>`, so `data\runs\
+predict_yolo12x_vignetting` is yolo12x on `data\images\vignetting\`. Existing
+runs are skipped and `-Force` redoes them, as for validation. The folder is
+read flat by the YOLO and RT-DETR scripts but recursively by RF-DETR, so keep
+the images of one run in one folder without subfolders.
+
+### The vignetting images
+
+Ten phone photographs taken by hand through the eyepieces, the nine of
+2025-10-26 (eight through the green device, `IMG_20251026_204827` through the
+white one) and `IMG_20251029_201745`, each kept whole and cropped to the
+intensified field beside it. The crops are made with the same script as every
+capture, which skips anything already carrying `_cropped`, so it can be run
+on the folder itself:
+
+    python src\Processing\GenerateCrops.py data\images\vignetting data\images\vignetting
+
+Then every model over both versions in one run each:
+
+    .\RunSweep.ps1 -Predict vignetting
+
+### One model at a time
 
 The commands below mount `predict\` at `/data`. Each writes annotated images, a per-image `.txt` of the detections,
 and `logs/console.log`, into `data\runs\<name>\`.

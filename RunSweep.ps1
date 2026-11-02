@@ -12,17 +12,29 @@
     A run whose folder already exists is skipped, so an interrupted sweep
     resumes by being started again.
 
+    With -Predict, the same models are run over folders of unlabeled images
+    under data/images instead, through the predict script beside each
+    validator (yolo_val.py -> yolo_predict.py), at confidence -Conf. Nothing
+    is scored; each run keeps the annotated images, a .txt per image and its
+    console log. Run names are predict_<model>_<folder>, with the slashes of
+    the folder turned into underscores, so data/runs/
+    predict_yolo12x_vignetting_raw is yolo12x on data/images/vignetting/raw.
+
         .\RunSweep.ps1                      everything in the config
         .\RunSweep.ps1 -Datasets real*      only the real captures
         .\RunSweep.ps1 -Models yolo12x      one model
         .\RunSweep.ps1 -WhatIf              list what would run
         .\RunSweep.ps1 -Force               redo runs that already exist
+        .\RunSweep.ps1 -Predict vignetting  every model on one image folder
 #>
 [CmdletBinding()]
 param(
     [string]   $Config   = "sweep.json",
     [string[]] $Models   = "*",
     [string[]] $Datasets = "*",
+    [string[]] $Predict,
+    [double]   $Conf     = 0.25,
+    [string]   $Images   = "data/images",
     [string]   $Image    = "ultralytics/ultralytics:8.4.41",
     [string]   $ShmSize  = "18g",
     [switch]   $Force,
@@ -48,26 +60,46 @@ if (-not $pickedModels) { throw "no model matched: $($Models -join ', ')" }
 # whose val split is the union of two single-conversion configs beside them,
 # and sweeping those would score the same images three times and report it
 # as three results.
-$named = @($cfg.datasets)
-if (-not $named) { throw "$Config lists no datasets" }
-
-# Filtered before the existence check, so a listed set that is not built yet
-# only stops a sweep that actually asks for it.
-$pickedSets = @($named |
-    Where-Object { $n = $_; $Datasets | Where-Object { $n -like $_ } } |
-    ForEach-Object {
-        $f = Join-Path $cfg.paths.datasets "$_.yaml"
-        if (-not (Test-Path $f)) { throw "$Config lists '$_', but $f does not exist" }
-        Get-Item $f
+if ($Predict) {
+    # Image folders rather than datasets: named on the command line, since
+    # they are not part of the scored sweep. BaseName is what the run is
+    # named for and Data the path inside the container, as for a dataset.
+    $pickedSets = @($Predict | ForEach-Object {
+        $rel = $_.Trim('/\') -replace '\\', '/'
+        $f = Join-Path $Images $rel
+        if (-not (Test-Path $f -PathType Container)) { throw "no image folder $f" }
+        [pscustomobject]@{ BaseName = ($rel -replace '/', '_'); Data = "/images/$rel" }
     })
-if (-not $pickedSets) { throw "no dataset matched: $($Datasets -join ', ')" }
+} else {
+    $named = @($cfg.datasets)
+    if (-not $named) { throw "$Config lists no datasets" }
 
-# A variant built but never added to the list would otherwise be missing
-# from the results with nothing to show for it.
-$unlisted = @(Get-ChildItem (Join-Path $cfg.paths.datasets "*.yaml") -File |
-    Where-Object { $named -notcontains $_.BaseName } | ForEach-Object BaseName)
-if ($unlisted) {
-    Write-Host "not in $Config, not swept: $($unlisted -join ', ')`n"
+    # Filtered before the existence check, so a listed set that is not built
+    # yet only stops a sweep that actually asks for it.
+    $pickedSets = @($named |
+        Where-Object { $n = $_; $Datasets | Where-Object { $n -like $_ } } |
+        ForEach-Object {
+            $f = Join-Path $cfg.paths.datasets "$_.yaml"
+            if (-not (Test-Path $f)) { throw "$Config lists '$_', but $f does not exist" }
+            $i = Get-Item $f
+            [pscustomobject]@{ BaseName = $i.BaseName; Data = "/datasets/" + $i.Name;
+                               FullName = $i.FullName }
+        })
+    if (-not $pickedSets) { throw "no dataset matched: $($Datasets -join ', ')" }
+
+    # A variant built but never added to the list would otherwise be missing
+    # from the results with nothing to show for it.
+    $unlisted = @(Get-ChildItem (Join-Path $cfg.paths.datasets "*.yaml") -File |
+        Where-Object { $named -notcontains $_.BaseName } | ForEach-Object BaseName)
+    if ($unlisted) {
+        Write-Host "not in $Config, not swept: $($unlisted -join ', ')`n"
+    }
+}
+
+# The script a model runs: its validator, or the predict script beside it.
+function Get-RunScript($v) {
+    if ($Predict) { return ($v.script -replace '_val\.py$', '_predict.py') }
+    return $v.script
 }
 
 # Fail before the first container rather than part way through a long sweep.
@@ -77,6 +109,8 @@ if (-not $WhatIf) {
         if (-not (Test-Path $p)) {
             throw "missing weight: $p (see $($cfg.paths.models)\README.md)"
         }
+        $s = Join-Path $cfg.paths.processing (Get-RunScript $cfg.validators.($m.Value.validator))
+        if (-not (Test-Path $s)) { throw "missing script: $s" }
     }
 }
 
@@ -112,8 +146,9 @@ public static extern uint SetThreadExecutionState(uint esFlags);
 # file per image across the bind mount, which is hours per 5000 image split
 # against under a minute here, and it is the same file on every run.
 # rfdetr_val.py itself refuses to build one, so a gap cannot turn into a
-# silent four hour rebuild inside a run.
-if (-not $WhatIf) {
+# silent four hour rebuild inside a run. A prediction scores nothing and
+# needs none.
+if (-not $WhatIf -and -not $Predict) {
     $needGt = @()
     foreach ($m in $pickedModels) {
         if (-not $cfg.validators.($m.Value.validator).needs_box_annotations) { continue }
@@ -137,7 +172,8 @@ if (-not $WhatIf) {
 }
 
 $planned = $pickedModels.Count * $pickedSets.Count
-Write-Host "$planned run(s): $($pickedModels.Count) model(s) x $($pickedSets.Count) dataset(s)`n"
+$what = if ($Predict) { "image folder(s), predict at conf $Conf" } else { "dataset(s)" }
+Write-Host "$planned run(s): $($pickedModels.Count) model(s) x $($pickedSets.Count) $what`n"
 
 $done = 0; $skipped = 0; $failed = @()
 foreach ($m in $pickedModels) {
@@ -145,7 +181,8 @@ foreach ($m in $pickedModels) {
     if (-not $v) { throw "$($m.Name) names validator '$($m.Value.validator)', which the config does not define" }
 
     foreach ($d in $pickedSets) {
-        $name = "val_$($m.Name)_$($d.BaseName)"
+        $prefix = if ($Predict) { "predict" } else { "val" }
+        $name = "${prefix}_$($m.Name)_$($d.BaseName)"
         $out = Join-Path $cfg.paths.runs $name
 
         if ((Test-Path $out) -and -not $Force) {
@@ -159,22 +196,26 @@ foreach ($m in $pickedModels) {
         if (Test-Path $out) { Remove-Item $out -Recurse -Force }
 
         $weight = "/models/" + $m.Value.weight
-        $data = "/datasets/" + $d.Name
-        $script = "/workspace/" + $v.script
+        $data = $d.Data
+        $script = "/workspace/" + (Get-RunScript $v)
+        # The predict scripts take the confidence threshold where a
+        # validator takes the box annotations.
+        $confArg = if ($Predict) { " $Conf" } else { "" }
 
         # A validator needing packages the image lacks installs them first,
         # inside the same container, so nothing is left behind.
         if ($v.PSObject.Properties.Name -contains "pip") {
             # Checked above, so it is there.
-            $gtArg = if ($v.needs_box_annotations) { " /datasets/$($d.BaseName)_gt.json" } else { "" }
+            $gtArg = if ($v.needs_box_annotations -and -not $Predict) { " /datasets/$($d.BaseName)_gt.json" } else { "" }
             # The image sets PIP_NO_CACHE_DIR, and pip disables its cache
             # whatever value that holds, so it is removed for this one
             # command. Otherwise nothing reaches the mounted cache below and
             # every run downloads the packages again.
             $cmd = @("bash", "-c",
-                     "env -u PIP_NO_CACHE_DIR pip install --quiet --root-user-action=ignore $($v.pip) && python $script $weight $data $name$gtArg")
+                     "env -u PIP_NO_CACHE_DIR pip install --quiet --root-user-action=ignore $($v.pip) && python $script $weight $data $name$gtArg$confArg")
         } else {
             $cmd = @("python", $script, $weight, $data, $name)
+            if ($Predict) { $cmd += "$Conf" }
         }
 
         Write-Host "run   $name"
@@ -191,6 +232,7 @@ foreach ($m in $pickedModels) {
         New-Item -ItemType Directory -Force $cache | Out-Null
         docker run --gpus all --rm --shm-size=$ShmSize `
             -v "${cache}:/root/.cache" `
+            -v "${PWD}\$($Images -replace '/','\'):/images" `
             -v "${PWD}\$($cfg.paths.datasets -replace '/','\'):/datasets" `
             -v "${PWD}\$($cfg.paths.models   -replace '/','\'):/models" `
             -v "${PWD}\$($cfg.paths.runs -replace '/','\\'):/ultralytics/runs/detect" `
