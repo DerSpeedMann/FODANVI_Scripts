@@ -1,0 +1,36 @@
+{
+  "version": "6.0.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "car",
+      "points": [
+        [
+          1183.8848167539265,
+          653.6230366492147
+        ],
+        [
+          1095.9267015706805,
+          637.3926701570681
+        ],
+        [
+          1093.3089005235602,
+          728.4921465968587
+        ],
+        [
+          1184.0,
+          748.8721689511149
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "capture_20251226_025551_165_cropped.jpg",
+  "imageData": null,
+  "imageHeight": 924,
+  "imageWidth": 1184
+}

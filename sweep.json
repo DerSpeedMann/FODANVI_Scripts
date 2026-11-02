@@ -84,7 +84,9 @@
     "coco_nvg2_green_grain",
     "coco_nvg2_white_grain",
     "coco_nvg2_green_grain_dn_h80_w3",
-    "coco_nvg2_white_grain_dn_h80_w3"
+    "coco_nvg2_white_grain_dn_h80_w3",
+    "phone_ref",
+    "moving_car"
   ],
   "classes": [
     "backpack",

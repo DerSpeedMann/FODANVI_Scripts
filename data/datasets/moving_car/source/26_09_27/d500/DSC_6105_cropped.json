@@ -1,0 +1,40 @@
+{
+  "version": "6.0.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "car",
+      "points": [
+        [
+          1835.886075949367,
+          1081.4556962025315
+        ],
+        [
+          1727.0253164556962,
+          1166.26582278481
+        ],
+        [
+          1761.2025316455695,
+          1372.5949367088606
+        ],
+        [
+          2330.0,
+          1362.6596097507047
+        ],
+        [
+          2330.0,
+          1140.9493670886075
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "DSC_6105_cropped.jpg",
+  "imageData": null,
+  "imageHeight": 2330,
+  "imageWidth": 2330
+}
