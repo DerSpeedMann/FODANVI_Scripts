@@ -1,0 +1,325 @@
+run,dataset,class,metric,ultralytics,pycocotools,delta
+val_yolo12x_coco,coco,airplane,precision,0.883,0.8784,-0.0046
+val_yolo12x_coco,coco,airplane,recall,0.896,0.9091,0.0131
+val_yolo12x_coco,coco,airplane,map50,0.933,0.9283,-0.0047
+val_yolo12x_coco,coco,airplane,map50_95,0.795,0.7918,-0.0032
+val_yolo12x_coco,coco,apple,precision,0.601,0.578,-0.023
+val_yolo12x_coco,coco,apple,recall,0.39,0.4237,0.0337
+val_yolo12x_coco,coco,apple,map50,0.429,0.4295,0.0005
+val_yolo12x_coco,coco,apple,map50_95,0.312,0.3136,0.0016
+val_yolo12x_coco,coco,backpack,precision,0.559,0.5044,-0.0546
+val_yolo12x_coco,coco,backpack,recall,0.388,0.4636,0.0756
+val_yolo12x_coco,coco,backpack,map50,0.399,0.4003,0.0013
+val_yolo12x_coco,coco,backpack,map50_95,0.245,0.2455,0.0005
+val_yolo12x_coco,coco,banana,precision,0.598,0.497,-0.101
+val_yolo12x_coco,coco,banana,recall,0.351,0.4541,0.1031
+val_yolo12x_coco,coco,banana,map50,0.458,0.4575,-0.0005
+val_yolo12x_coco,coco,banana,map50_95,0.31,0.3114,0.0014
+val_yolo12x_coco,coco,baseball bat,precision,0.742,0.8319,0.0899
+val_yolo12x_coco,coco,baseball bat,recall,0.697,0.6483,-0.0487
+val_yolo12x_coco,coco,baseball bat,map50,0.775,0.7745,-0.0005
+val_yolo12x_coco,coco,baseball bat,map50_95,0.541,0.5413,0.0003
+val_yolo12x_coco,coco,baseball glove,precision,0.856,0.9252,0.0692
+val_yolo12x_coco,coco,baseball glove,recall,0.689,0.6689,-0.0201
+val_yolo12x_coco,coco,baseball glove,map50,0.769,0.7664,-0.0026
+val_yolo12x_coco,coco,baseball glove,map50_95,0.509,0.5093,0.0003
+val_yolo12x_coco,coco,bear,precision,0.945,0.9701,0.0251
+val_yolo12x_coco,coco,bear,recall,0.915,0.9155,0.0005
+val_yolo12x_coco,coco,bear,map50,0.964,0.9596,-0.0044
+val_yolo12x_coco,coco,bear,map50_95,0.813,0.8097,-0.0033
+val_yolo12x_coco,coco,bed,precision,0.731,0.7312,0.0002
+val_yolo12x_coco,coco,bed,recall,0.716,0.7178,0.0018
+val_yolo12x_coco,coco,bed,map50,0.752,0.7521,0.0001
+val_yolo12x_coco,coco,bed,map50_95,0.59,0.5899,-0.0001
+val_yolo12x_coco,coco,bench,precision,0.674,0.6655,-0.0085
+val_yolo12x_coco,coco,bench,recall,0.44,0.4599,0.0199
+val_yolo12x_coco,coco,bench,map50,0.494,0.495,0.001
+val_yolo12x_coco,coco,bench,map50_95,0.368,0.3697,0.0017
+val_yolo12x_coco,coco,bicycle,precision,0.773,0.7289,-0.0441
+val_yolo12x_coco,coco,bicycle,recall,0.605,0.6592,0.0542
+val_yolo12x_coco,coco,bicycle,map50,0.692,0.6926,0.0006
+val_yolo12x_coco,coco,bicycle,map50_95,0.441,0.4419,0.0009
+val_yolo12x_coco,coco,bird,precision,0.756,0.8231,0.0671
+val_yolo12x_coco,coco,bird,recall,0.515,0.5012,-0.0138
+val_yolo12x_coco,coco,bird,map50,0.617,0.6118,-0.0052
+val_yolo12x_coco,coco,bird,map50_95,0.437,0.4362,-0.0008
+val_yolo12x_coco,coco,boat,precision,0.731,0.7221,-0.0089
+val_yolo12x_coco,coco,boat,recall,0.571,0.5943,0.0233
+val_yolo12x_coco,coco,boat,map50,0.642,0.6403,-0.0017
+val_yolo12x_coco,coco,boat,map50_95,0.384,0.3851,0.0011
+val_yolo12x_coco,coco,book,precision,0.595,0.3828,-0.2122
+val_yolo12x_coco,coco,book,recall,0.185,0.4269,0.2419
+val_yolo12x_coco,coco,book,map50,0.332,0.3345,0.0025
+val_yolo12x_coco,coco,book,map50_95,0.199,0.2025,0.0035
+val_yolo12x_coco,coco,bottle,precision,0.725,0.6681,-0.0569
+val_yolo12x_coco,coco,bottle,recall,0.571,0.6239,0.0529
+val_yolo12x_coco,coco,bottle,map50,0.659,0.6583,-0.0007
+val_yolo12x_coco,coco,bottle,map50_95,0.481,0.4803,-0.0007
+val_yolo12x_coco,coco,bowl,precision,0.68,0.7073,0.0273
+val_yolo12x_coco,coco,bowl,recall,0.616,0.6051,-0.0109
+val_yolo12x_coco,coco,bowl,map50,0.673,0.673,0.0
+val_yolo12x_coco,coco,bowl,map50_95,0.536,0.5367,0.0007
+val_yolo12x_coco,coco,broccoli,precision,0.562,0.5379,-0.0241
+val_yolo12x_coco,coco,broccoli,recall,0.465,0.5,0.035
+val_yolo12x_coco,coco,broccoli,map50,0.469,0.4688,-0.0002
+val_yolo12x_coco,coco,broccoli,map50_95,0.294,0.2948,0.0008
+val_yolo12x_coco,coco,bus,precision,0.833,0.9402,0.1072
+val_yolo12x_coco,coco,bus,recall,0.848,0.7774,-0.0706
+val_yolo12x_coco,coco,bus,map50,0.905,0.9015,-0.0035
+val_yolo12x_coco,coco,bus,map50_95,0.79,0.7873,-0.0027
+val_yolo12x_coco,coco,cake,precision,0.697,0.7259,0.0289
+val_yolo12x_coco,coco,cake,recall,0.616,0.6065,-0.0095
+val_yolo12x_coco,coco,cake,map50,0.681,0.6792,-0.0018
+val_yolo12x_coco,coco,cake,map50_95,0.481,0.4813,0.0003
+val_yolo12x_coco,coco,car,precision,0.773,0.81,0.037
+val_yolo12x_coco,coco,car,recall,0.697,0.6736,-0.0234
+val_yolo12x_coco,coco,car,map50,0.762,0.7597,-0.0023
+val_yolo12x_coco,coco,car,map50_95,0.544,0.5419,-0.0021
+val_yolo12x_coco,coco,carrot,precision,0.57,0.5061,-0.0639
+val_yolo12x_coco,coco,carrot,recall,0.375,0.4575,0.0825
+val_yolo12x_coco,coco,carrot,map50,0.445,0.445,0.0
+val_yolo12x_coco,coco,carrot,map50_95,0.294,0.2955,0.0015
+val_yolo12x_coco,coco,cat,precision,0.938,0.936,-0.002
+val_yolo12x_coco,coco,cat,recall,0.936,0.9406,0.0046
+val_yolo12x_coco,coco,cat,map50,0.964,0.9594,-0.0046
+val_yolo12x_coco,coco,cat,map50_95,0.808,0.8055,-0.0025
+val_yolo12x_coco,coco,cell phone,precision,0.655,0.7209,0.0659
+val_yolo12x_coco,coco,cell phone,recall,0.615,0.5916,-0.0234
+val_yolo12x_coco,coco,cell phone,map50,0.665,0.6638,-0.0012
+val_yolo12x_coco,coco,cell phone,map50_95,0.483,0.483,-0.0
+val_yolo12x_coco,coco,chair,precision,0.721,0.7027,-0.0183
+val_yolo12x_coco,coco,chair,recall,0.554,0.5686,0.0146
+val_yolo12x_coco,coco,chair,map50,0.64,0.6386,-0.0014
+val_yolo12x_coco,coco,chair,map50_95,0.455,0.4549,-0.0001
+val_yolo12x_coco,coco,clock,precision,0.823,0.9064,0.0834
+val_yolo12x_coco,coco,clock,recall,0.712,0.6891,-0.0229
+val_yolo12x_coco,coco,clock,map50,0.777,0.7739,-0.0031
+val_yolo12x_coco,coco,clock,map50_95,0.566,0.5655,-0.0005
+val_yolo12x_coco,coco,couch,precision,0.657,0.7105,0.0535
+val_yolo12x_coco,coco,couch,recall,0.64,0.6207,-0.0193
+val_yolo12x_coco,coco,couch,map50,0.698,0.6963,-0.0017
+val_yolo12x_coco,coco,couch,map50_95,0.57,0.5676,-0.0024
+val_yolo12x_coco,coco,cow,precision,0.862,0.8692,0.0072
+val_yolo12x_coco,coco,cow,recall,0.805,0.8038,-0.0012
+val_yolo12x_coco,coco,cow,map50,0.884,0.8808,-0.0032
+val_yolo12x_coco,coco,cow,map50_95,0.693,0.6912,-0.0018
+val_yolo12x_coco,coco,cup,precision,0.733,0.6967,-0.0363
+val_yolo12x_coco,coco,cup,recall,0.608,0.657,0.049
+val_yolo12x_coco,coco,cup,map50,0.699,0.6973,-0.0017
+val_yolo12x_coco,coco,cup,map50_95,0.546,0.5459,-0.0001
+val_yolo12x_coco,coco,dining table,precision,0.603,0.5095,-0.0935
+val_yolo12x_coco,coco,dining table,recall,0.494,0.6187,0.1247
+val_yolo12x_coco,coco,dining table,map50,0.548,0.5479,-0.0001
+val_yolo12x_coco,coco,dining table,map50_95,0.408,0.409,0.001
+val_yolo12x_coco,coco,dog,precision,0.868,0.9104,0.0424
+val_yolo12x_coco,coco,dog,recall,0.858,0.8394,-0.0186
+val_yolo12x_coco,coco,dog,map50,0.89,0.8859,-0.0041
+val_yolo12x_coco,coco,dog,map50_95,0.777,0.7739,-0.0031
+val_yolo12x_coco,coco,donut,precision,0.738,0.7264,-0.0116
+val_yolo12x_coco,coco,donut,recall,0.617,0.6555,0.0385
+val_yolo12x_coco,coco,donut,map50,0.72,0.7165,-0.0035
+val_yolo12x_coco,coco,donut,map50_95,0.58,0.5784,-0.0016
+val_yolo12x_coco,coco,elephant,precision,0.81,0.878,0.068
+val_yolo12x_coco,coco,elephant,recall,0.925,0.8849,-0.0401
+val_yolo12x_coco,coco,elephant,map50,0.91,0.9061,-0.0039
+val_yolo12x_coco,coco,elephant,map50_95,0.758,0.755,-0.003
+val_yolo12x_coco,coco,fire hydrant,precision,0.966,0.9659,-0.0001
+val_yolo12x_coco,coco,fire hydrant,recall,0.832,0.8416,0.0096
+val_yolo12x_coco,coco,fire hydrant,map50,0.923,0.9193,-0.0037
+val_yolo12x_coco,coco,fire hydrant,map50_95,0.787,0.7806,-0.0064
+val_yolo12x_coco,coco,fork,precision,0.72,0.8693,0.1493
+val_yolo12x_coco,coco,fork,recall,0.66,0.6186,-0.0414
+val_yolo12x_coco,coco,fork,map50,0.734,0.7323,-0.0017
+val_yolo12x_coco,coco,fork,map50_95,0.558,0.5573,-0.0007
+val_yolo12x_coco,coco,frisbee,precision,0.913,0.9286,0.0156
+val_yolo12x_coco,coco,frisbee,recall,0.911,0.9043,-0.0067
+val_yolo12x_coco,coco,frisbee,map50,0.926,0.9215,-0.0045
+val_yolo12x_coco,coco,frisbee,map50_95,0.756,0.7503,-0.0057
+val_yolo12x_coco,coco,giraffe,precision,0.923,0.9636,0.0406
+val_yolo12x_coco,coco,giraffe,recall,0.931,0.9138,-0.0172
+val_yolo12x_coco,coco,giraffe,map50,0.95,0.9458,-0.0042
+val_yolo12x_coco,coco,giraffe,map50_95,0.807,0.8039,-0.0031
+val_yolo12x_coco,coco,hair drier,precision,0.546,0.5,-0.046
+val_yolo12x_coco,coco,hair drier,recall,0.224,0.4545,0.2305
+val_yolo12x_coco,coco,hair drier,map50,0.375,0.3761,0.0011
+val_yolo12x_coco,coco,hair drier,map50_95,0.226,0.2275,0.0015
+val_yolo12x_coco,coco,handbag,precision,0.61,0.5366,-0.0734
+val_yolo12x_coco,coco,handbag,recall,0.367,0.4204,0.0534
+val_yolo12x_coco,coco,handbag,map50,0.427,0.4278,0.0008
+val_yolo12x_coco,coco,handbag,map50_95,0.269,0.2712,0.0022
+val_yolo12x_coco,coco,horse,precision,0.864,0.906,0.042
+val_yolo12x_coco,coco,horse,recall,0.893,0.886,-0.007
+val_yolo12x_coco,coco,horse,map50,0.933,0.9288,-0.0042
+val_yolo12x_coco,coco,horse,map50_95,0.755,0.7527,-0.0023
+val_yolo12x_coco,coco,hot dog,precision,0.893,0.7935,-0.0995
+val_yolo12x_coco,coco,hot dog,recall,0.52,0.584,0.064
+val_yolo12x_coco,coco,hot dog,map50,0.66,0.6599,-0.0001
+val_yolo12x_coco,coco,hot dog,map50_95,0.524,0.5261,0.0021
+val_yolo12x_coco,coco,keyboard,precision,0.76,0.7041,-0.0559
+val_yolo12x_coco,coco,keyboard,recall,0.699,0.7778,0.0788
+val_yolo12x_coco,coco,keyboard,map50,0.803,0.7997,-0.0033
+val_yolo12x_coco,coco,keyboard,map50_95,0.641,0.6393,-0.0017
+val_yolo12x_coco,coco,kite,precision,0.731,0.7152,-0.0158
+val_yolo12x_coco,coco,kite,recall,0.631,0.6606,0.0296
+val_yolo12x_coco,coco,kite,map50,0.704,0.7011,-0.0029
+val_yolo12x_coco,coco,kite,map50_95,0.508,0.5056,-0.0024
+val_yolo12x_coco,coco,knife,precision,0.703,0.6742,-0.0288
+val_yolo12x_coco,coco,knife,recall,0.418,0.4585,0.0405
+val_yolo12x_coco,coco,knife,map50,0.504,0.5055,0.0015
+val_yolo12x_coco,coco,knife,map50_95,0.337,0.3393,0.0023
+val_yolo12x_coco,coco,laptop,precision,0.818,0.9286,0.1106
+val_yolo12x_coco,coco,laptop,recall,0.823,0.7879,-0.0351
+val_yolo12x_coco,coco,laptop,map50,0.884,0.8806,-0.0034
+val_yolo12x_coco,coco,laptop,map50_95,0.771,0.7683,-0.0027
+val_yolo12x_coco,coco,microwave,precision,0.84,0.902,0.062
+val_yolo12x_coco,coco,microwave,recall,0.836,0.8364,0.0004
+val_yolo12x_coco,coco,microwave,map50,0.885,0.8814,-0.0036
+val_yolo12x_coco,coco,microwave,map50_95,0.738,0.7364,-0.0016
+val_yolo12x_coco,coco,motorcycle,precision,0.801,0.8558,0.0548
+val_yolo12x_coco,coco,motorcycle,recall,0.757,0.7275,-0.0295
+val_yolo12x_coco,coco,motorcycle,map50,0.817,0.8206,0.0036
+val_yolo12x_coco,coco,motorcycle,map50_95,0.587,0.5868,-0.0002
+val_yolo12x_coco,coco,mouse,precision,0.81,0.8598,0.0498
+val_yolo12x_coco,coco,mouse,recall,0.868,0.8679,-0.0001
+val_yolo12x_coco,coco,mouse,map50,0.853,0.8498,-0.0032
+val_yolo12x_coco,coco,mouse,map50_95,0.689,0.6859,-0.0031
+val_yolo12x_coco,coco,orange,precision,0.609,0.5816,-0.0274
+val_yolo12x_coco,coco,orange,recall,0.453,0.4877,0.0347
+val_yolo12x_coco,coco,orange,map50,0.509,0.508,-0.001
+val_yolo12x_coco,coco,orange,map50_95,0.407,0.4067,-0.0003
+val_yolo12x_coco,coco,oven,precision,0.657,0.6875,0.0305
+val_yolo12x_coco,coco,oven,recall,0.622,0.6154,-0.0066
+val_yolo12x_coco,coco,oven,map50,0.641,0.6401,-0.0009
+val_yolo12x_coco,coco,oven,map50_95,0.471,0.4714,0.0004
+val_yolo12x_coco,coco,parking meter,precision,0.772,0.907,0.135
+val_yolo12x_coco,coco,parking meter,recall,0.667,0.65,-0.017
+val_yolo12x_coco,coco,parking meter,map50,0.698,0.6998,0.0018
+val_yolo12x_coco,coco,parking meter,map50_95,0.558,0.5605,0.0025
+val_yolo12x_coco,coco,person,precision,0.837,0.8456,0.0086
+val_yolo12x_coco,coco,person,recall,0.766,0.762,-0.004
+val_yolo12x_coco,coco,person,map50,0.854,0.8489,-0.0051
+val_yolo12x_coco,coco,person,map50_95,0.647,0.6451,-0.0019
+val_yolo12x_coco,coco,pizza,precision,0.764,0.8512,0.0872
+val_yolo12x_coco,coco,pizza,recall,0.782,0.7254,-0.0566
+val_yolo12x_coco,coco,pizza,map50,0.813,0.8097,-0.0033
+val_yolo12x_coco,coco,pizza,map50_95,0.646,0.6448,-0.0012
+val_yolo12x_coco,coco,potted plant,precision,0.605,0.6818,0.0768
+val_yolo12x_coco,coco,potted plant,recall,0.579,0.5263,-0.0527
+val_yolo12x_coco,coco,potted plant,map50,0.581,0.5807,-0.0003
+val_yolo12x_coco,coco,potted plant,map50_95,0.384,0.3851,0.0011
+val_yolo12x_coco,coco,refrigerator,precision,0.831,0.887,0.056
+val_yolo12x_coco,coco,refrigerator,recall,0.821,0.8095,-0.0115
+val_yolo12x_coco,coco,refrigerator,map50,0.866,0.8628,-0.0032
+val_yolo12x_coco,coco,refrigerator,map50_95,0.757,0.7535,-0.0035
+val_yolo12x_coco,coco,remote,precision,0.716,0.7019,-0.0141
+val_yolo12x_coco,coco,remote,recall,0.632,0.6572,0.0252
+val_yolo12x_coco,coco,remote,map50,0.685,0.6834,-0.0016
+val_yolo12x_coco,coco,remote,map50_95,0.49,0.4888,-0.0012
+val_yolo12x_coco,coco,sandwich,precision,0.643,0.7183,0.0753
+val_yolo12x_coco,coco,sandwich,recall,0.605,0.5763,-0.0287
+val_yolo12x_coco,coco,sandwich,map50,0.644,0.6428,-0.0012
+val_yolo12x_coco,coco,sandwich,map50_95,0.511,0.5112,0.0002
+val_yolo12x_coco,coco,scissors,precision,0.694,0.8824,0.1884
+val_yolo12x_coco,coco,scissors,recall,0.444,0.4167,-0.0273
+val_yolo12x_coco,coco,scissors,map50,0.53,0.5296,-0.0004
+val_yolo12x_coco,coco,scissors,map50_95,0.43,0.4323,0.0023
+val_yolo12x_coco,coco,sheep,precision,0.787,0.8549,0.0679
+val_yolo12x_coco,coco,sheep,recall,0.811,0.7655,-0.0455
+val_yolo12x_coco,coco,sheep,map50,0.853,0.8512,-0.0018
+val_yolo12x_coco,coco,sheep,map50_95,0.665,0.6639,-0.0011
+val_yolo12x_coco,coco,sink,precision,0.715,0.7184,0.0034
+val_yolo12x_coco,coco,sink,recall,0.658,0.6578,-0.0002
+val_yolo12x_coco,coco,sink,map50,0.672,0.6715,-0.0005
+val_yolo12x_coco,coco,sink,map50_95,0.465,0.4668,0.0018
+val_yolo12x_coco,coco,skateboard,precision,0.858,0.8982,0.0402
+val_yolo12x_coco,coco,skateboard,recall,0.845,0.838,-0.007
+val_yolo12x_coco,coco,skateboard,map50,0.859,0.8555,-0.0035
+val_yolo12x_coco,coco,skateboard,map50_95,0.672,0.6712,-0.0008
+val_yolo12x_coco,coco,skis,precision,0.739,0.7866,0.0476
+val_yolo12x_coco,coco,skis,recall,0.544,0.5353,-0.0087
+val_yolo12x_coco,coco,skis,map50,0.62,0.619,-0.001
+val_yolo12x_coco,coco,skis,map50_95,0.39,0.3924,0.0024
+val_yolo12x_coco,coco,snowboard,precision,0.698,0.6471,-0.0509
+val_yolo12x_coco,coco,snowboard,recall,0.537,0.6377,0.1007
+val_yolo12x_coco,coco,snowboard,map50,0.668,0.6661,-0.0019
+val_yolo12x_coco,coco,snowboard,map50_95,0.504,0.5017,-0.0023
+val_yolo12x_coco,coco,spoon,precision,0.586,0.6211,0.0351
+val_yolo12x_coco,coco,spoon,recall,0.478,0.4664,-0.0116
+val_yolo12x_coco,coco,spoon,map50,0.488,0.4885,0.0005
+val_yolo12x_coco,coco,spoon,map50_95,0.357,0.3588,0.0018
+val_yolo12x_coco,coco,sports ball,precision,0.859,0.8808,0.0218
+val_yolo12x_coco,coco,sports ball,recall,0.658,0.6538,-0.0042
+val_yolo12x_coco,coco,sports ball,map50,0.72,0.718,-0.002
+val_yolo12x_coco,coco,sports ball,map50_95,0.528,0.5281,0.0001
+val_yolo12x_coco,coco,stop sign,precision,0.842,0.8358,-0.0062
+val_yolo12x_coco,coco,stop sign,recall,0.72,0.7467,0.0267
+val_yolo12x_coco,coco,stop sign,map50,0.804,0.8002,-0.0038
+val_yolo12x_coco,coco,stop sign,map50_95,0.738,0.7368,-0.0012
+val_yolo12x_coco,coco,suitcase,precision,0.711,0.8206,0.1096
+val_yolo12x_coco,coco,suitcase,recall,0.682,0.612,-0.07
+val_yolo12x_coco,coco,suitcase,map50,0.749,0.7466,-0.0024
+val_yolo12x_coco,coco,suitcase,map50_95,0.561,0.5583,-0.0027
+val_yolo12x_coco,coco,surfboard,precision,0.831,0.9,0.069
+val_yolo12x_coco,coco,surfboard,recall,0.685,0.6742,-0.0108
+val_yolo12x_coco,coco,surfboard,map50,0.768,0.7656,-0.0024
+val_yolo12x_coco,coco,surfboard,map50_95,0.545,0.5452,0.0002
+val_yolo12x_coco,coco,teddy bear,precision,0.755,0.8312,0.0762
+val_yolo12x_coco,coco,teddy bear,recall,0.714,0.6737,-0.0403
+val_yolo12x_coco,coco,teddy bear,map50,0.771,0.7686,-0.0024
+val_yolo12x_coco,coco,teddy bear,map50_95,0.641,0.6395,-0.0015
+val_yolo12x_coco,coco,tennis racket,precision,0.87,0.9598,0.0898
+val_yolo12x_coco,coco,tennis racket,recall,0.884,0.8489,-0.0351
+val_yolo12x_coco,coco,tennis racket,map50,0.909,0.9053,-0.0037
+val_yolo12x_coco,coco,tennis racket,map50_95,0.698,0.6966,-0.0014
+val_yolo12x_coco,coco,tie,precision,0.792,0.7225,-0.0695
+val_yolo12x_coco,coco,tie,recall,0.579,0.6508,0.0718
+val_yolo12x_coco,coco,tie,map50,0.682,0.6805,-0.0015
+val_yolo12x_coco,coco,tie,map50_95,0.493,0.4929,-0.0001
+val_yolo12x_coco,coco,toaster,precision,0.5,0.6,0.1
+val_yolo12x_coco,coco,toaster,recall,0.778,0.6667,-0.1113
+val_yolo12x_coco,coco,toaster,map50,0.576,0.5748,-0.0012
+val_yolo12x_coco,coco,toaster,map50_95,0.47,0.47,0.0
+val_yolo12x_coco,coco,toilet,precision,0.824,0.9,0.076
+val_yolo12x_coco,coco,toilet,recall,0.838,0.8045,-0.0335
+val_yolo12x_coco,coco,toilet,map50,0.894,0.8903,-0.0037
+val_yolo12x_coco,coco,toilet,map50_95,0.742,0.7402,-0.0018
+val_yolo12x_coco,coco,toothbrush,precision,0.624,0.775,0.151
+val_yolo12x_coco,coco,toothbrush,recall,0.554,0.5439,-0.0101
+val_yolo12x_coco,coco,toothbrush,map50,0.563,0.5628,-0.0002
+val_yolo12x_coco,coco,toothbrush,map50_95,0.431,0.4316,0.0006
+val_yolo12x_coco,coco,traffic light,precision,0.741,0.6495,-0.0915
+val_yolo12x_coco,coco,traffic light,recall,0.492,0.5962,0.1042
+val_yolo12x_coco,coco,traffic light,map50,0.593,0.5938,0.0008
+val_yolo12x_coco,coco,traffic light,map50_95,0.332,0.332,-0.0
+val_yolo12x_coco,coco,train,precision,0.898,0.9489,0.0509
+val_yolo12x_coco,coco,train,recall,0.895,0.8789,-0.0161
+val_yolo12x_coco,coco,train,map50,0.954,0.9491,-0.0049
+val_yolo12x_coco,coco,train,map50_95,0.79,0.787,-0.003
+val_yolo12x_coco,coco,truck,precision,0.651,0.6574,0.0064
+val_yolo12x_coco,coco,truck,recall,0.57,0.57,0.0
+val_yolo12x_coco,coco,truck,map50,0.66,0.659,-0.001
+val_yolo12x_coco,coco,truck,map50_95,0.497,0.4969,-0.0001
+val_yolo12x_coco,coco,tv,precision,0.832,0.8352,0.0032
+val_yolo12x_coco,coco,tv,recall,0.756,0.7743,0.0183
+val_yolo12x_coco,coco,tv,map50,0.855,0.8516,-0.0034
+val_yolo12x_coco,coco,tv,map50_95,0.681,0.6781,-0.0029
+val_yolo12x_coco,coco,umbrella,precision,0.679,0.6547,-0.0243
+val_yolo12x_coco,coco,umbrella,recall,0.678,0.7174,0.0394
+val_yolo12x_coco,coco,umbrella,map50,0.71,0.7075,-0.0025
+val_yolo12x_coco,coco,umbrella,map50_95,0.52,0.5199,-0.0001
+val_yolo12x_coco,coco,vase,precision,0.709,0.6951,-0.0139
+val_yolo12x_coco,coco,vase,recall,0.599,0.6241,0.0251
+val_yolo12x_coco,coco,vase,map50,0.645,0.6438,-0.0012
+val_yolo12x_coco,coco,vase,map50_95,0.48,0.4794,-0.0006
+val_yolo12x_coco,coco,wine glass,precision,0.793,0.7165,-0.0765
+val_yolo12x_coco,coco,wine glass,recall,0.607,0.6745,0.0675
+val_yolo12x_coco,coco,wine glass,map50,0.703,0.7013,-0.0017
+val_yolo12x_coco,coco,wine glass,map50_95,0.499,0.498,-0.001
+val_yolo12x_coco,coco,zebra,precision,0.878,0.918,0.04
+val_yolo12x_coco,coco,zebra,recall,0.898,0.8835,-0.0145
+val_yolo12x_coco,coco,zebra,map50,0.947,0.9467,-0.0003
+val_yolo12x_coco,coco,zebra,map50_95,0.788,0.7859,-0.0021
+val_yolo12x_coco,coco,mean,precision,0.7486,0.7672,0.0186
+val_yolo12x_coco,coco,mean,recall,0.6564,0.6677,0.0113
+val_yolo12x_coco,coco,mean,map50,0.7138,0.7121,-0.0017
+val_yolo12x_coco,coco,mean,map50_95,0.5469,0.5462,-0.0006
