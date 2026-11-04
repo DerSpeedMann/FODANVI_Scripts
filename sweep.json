@@ -850,6 +850,27 @@
       "describe": "the pre-trained models on COCO, the synthetic conversions (v1, v2, evaluation-only) and the color variants of the captures"
     },
     {
+      "prefix": "domainshift",
+      "kind": "lines",
+      "models": "rf-detr-large,rtdetr-x,yolo12x",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd"
+      ],
+      "styles": [
+        "-",
+        "-",
+        "-"
+      ],
+      "datasets": "coco,coco_nvg_green_clean,coco_nvg2_green_clean,coco_nvg_captures_green_clean,coco_nvg_white_clean,coco_nvg2_white_clean,coco_nvg_green_noisy,coco_nvg2_green_noisy,coco_nvg_captures_green_noisy,coco_nvg_white_noisy,coco_nvg2_white_noisy,real_nvg",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "the pre-trained models on COCO, the synthetic sets and the captures as captured, datasets in the order of finetune_v1v2; models, colors and styles as in the color plot",
+      "width": 6.5
+    },
+    {
       "prefix": "finetune_v1v2",
       "models": "yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
@@ -872,6 +893,30 @@
         "--",
         "-"
       ],
+      "width": 6.5
+    },
+    {
+      "prefix": "finetune_gain",
+      "kind": "lines",
+      "baseline": "yolo11s",
+      "models": "yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "styles": [
+        "--",
+        "-",
+        "--",
+        "-"
+      ],
+      "datasets": "coco,coco_nvg_green_clean,coco_nvg2_green_clean,coco_nvg_captures_green_clean,coco_nvg_white_clean,coco_nvg2_white_clean,coco_nvg_green_noisy,coco_nvg2_green_noisy,coco_nvg_captures_green_noisy,coco_nvg_white_noisy,coco_nvg2_white_noisy,real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_light,real_nvg_red_dark,real_nvg_red_swap",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "gain in mAP50-95 of the four fine-tuned models over the yolo11s they started from, on the datasets of finetune_v1v2 followed by the color variants of the captures; colors and styles as in finetune_v1v2 without its gray yolo11s",
       "width": 6.5
     },
     {
@@ -1004,6 +1049,45 @@
         "map50_95"
       ],
       "describe": "denoising at h 80, window 3/9 on the measured-conversion grain-only sets against what it does on the captures: v2 clean, grain only, grain only denoised, then the captures unprocessed and denoised, green then white; models, colors and styles as in the color plot"
+    },
+    {
+      "prefix": "denoise_change",
+      "kind": "lines",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd",
+        "#7f7f7f",
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "styles": [
+        "-",
+        "-",
+        "-",
+        "-",
+        "--",
+        "-",
+        "--",
+        "-"
+      ],
+      "pairs": [
+        {"label": "green grain only", "dataset": "coco_nvg2_green_grain_dn_h80_w3", "minus": "coco_nvg2_green_grain"},
+        {"label": "green noisy", "dataset": "coco_nvg2_green_noisy_dn_h80_w3", "minus": "coco_nvg2_green_noisy"},
+        {"label": "green captures", "dataset": "real_nvg_dn_h80_w3", "minus": "real_nvg"},
+        {"label": "white grain only", "dataset": "coco_nvg2_white_grain_dn_h80_w3", "minus": "coco_nvg2_white_grain"},
+        {"label": "white noisy", "dataset": "coco_nvg2_white_noisy_dn_h80_w3", "minus": "coco_nvg2_white_noisy"},
+        {"label": "white phosphor tint", "dataset": "real_nvg_white_dn_h80_w3", "minus": "real_nvg_white"}
+      ],
+      "change": "change from denoising",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "change denoising at h 80, window 3/9 brings on the measured-conversion grain-only and noisy sets against the change it brings on the captures, green then white; models, colors and styles as in the color plot",
+      "width": 6.5
     },
     {
       "prefix": "grain",

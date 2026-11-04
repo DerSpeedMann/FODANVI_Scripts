@@ -30,7 +30,13 @@ Models and datasets appear in the order of the patterns that pick them, so a
 plot that names them one by one sets the order, and "colors" in a plot entry
 gives the bars their colors in that order, which is how a comparison such as
 v1 against v2 of one stage gets one hue in two shades. A lines plot also
-takes "width" in inches, so a figure meant for a page can be drawn narrow.
+takes "width" in inches, so a figure meant for a page can be drawn narrow,
+and "baseline", a model whose figure is subtracted from every other model's
+on the same dataset, so the lines show the gain over it; the baseline must
+be among the plot's models and is not drawn itself. A plot with "pairs"
+instead of "datasets" draws, per pair of a label, a "dataset" and the dataset
+it is taken against ("minus"), each model's difference between the two, with
+"change" naming it on the axis.
 
 The figures worth keeping are named in the "plots" block of sweep.json,
 each with a prefix, model and dataset globs and the metrics to draw, so
@@ -178,11 +184,26 @@ def plot_bars(rows: List[dict], metric: str, path: Path,
     plt.close(fig)
 
 
+def against(rows: List[dict], baseline: str, metric: str) -> List[dict]:
+    """Each model's figure minus the baseline model's on the same dataset.
+
+    The baseline itself is dropped, and a dataset it was not run on drops
+    out, since there is nothing to subtract.
+    """
+    base = {r["dataset"]: float(r[metric]) for r in rows
+            if r["model"] == baseline and r[metric] not in ("--", "")}
+    return [{**r, metric: f"{float(r[metric]) - base[r['dataset']]:.4f}"}
+            for r in rows
+            if r["model"] != baseline and r["dataset"] in base
+            and r[metric] not in ("--", "")]
+
+
 def plot_lines(rows: List[dict], metric: str, path: Path,
                order: str = "*", model_order: str = "*",
                colors: Optional[List[str]] = None,
                styles: Optional[List[str]] = None,
-               width: Optional[float] = None) -> None:
+               width: Optional[float] = None,
+               change: Optional[str] = None) -> None:
     """One line per model across the datasets, in the order listed.
 
     The datasets are categories, not a scale: the line only makes a model's
@@ -192,6 +213,10 @@ def plot_lines(rows: List[dict], metric: str, path: Path,
     width, when given, is the figure's in inches. The dataset names then
     stand steeper, since at a narrow width a shallow slant runs each into
     the next.
+
+    change, when given, says what the figures are a change of, such as
+    "gain over yolo11s" (see against) or "change from denoising" (see
+    draw_pairs): the axis says so and a line marks zero.
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -224,7 +249,11 @@ def plot_lines(rows: List[dict], metric: str, path: Path,
                            rotation_mode="anchor", fontsize=8)
     else:
         ax.set_xticklabels(datasets, rotation=30, ha="right", fontsize=8)
-    ax.set_ylabel(HEADER[metric])
+    if change:
+        ax.set_ylabel(f"{HEADER[metric]} {change}")
+        ax.axhline(0, color="black", lw=0.8)
+    else:
+        ax.set_ylabel(HEADER[metric])
     ax.grid(alpha=0.3)
     ax.set_axisbelow(True)
     # As many columns as the width holds, about one per two datasets or one
@@ -243,15 +272,22 @@ def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
          group: str = "dataset", order: str = "*", model_order: str = "*",
          colors: Optional[List[str]] = None, kind: str = "bars",
          styles: Optional[List[str]] = None,
-         width: Optional[float] = None) -> List[Path]:
-    """The figure for a selection, limited to the sweep. Returns what was written."""
+         width: Optional[float] = None,
+         baseline: Optional[str] = None,
+         change: Optional[str] = None) -> List[Path]:
+    """The figure for a selection, limited to the sweep. Returns what was
+    written. With a baseline, each model is drawn as its gain over it;
+    change labels rows that already hold a change (see draw_pairs)."""
     rows = in_sweep(rows, sweep)
+    if baseline:
+        rows = against(rows, baseline, metric)
+        change = f"gain over {baseline}"
     out.mkdir(parents=True, exist_ok=True)
     tag = f"{prefix}_" if prefix else ""
     path = out / f"{tag}{kind}_{metric}.png"
     if kind == "lines":
         plot_lines(rows, metric, path, order, model_order, colors, styles,
-                   width)
+                   width, change)
     elif kind == "bars":
         plot_bars(rows, metric, path, group, order, model_order, colors)
     else:
@@ -297,6 +333,40 @@ def draw_columns(rows: List[dict], p: dict, out: Path,
     return written
 
 
+def draw_pairs(rows: List[dict], p: dict, out: Path,
+               sweep: Path) -> List[Path]:
+    """A plot whose points are "pairs": each a label, a dataset and the
+    dataset it is taken against ("minus"), the point of a model being the
+    difference of its two figures.
+
+    This is how the change a preprocessing step brings goes beside the
+    change it brings on another set, when the sets it starts from differ.
+    A model that lacks either run of a pair leaves a gap.
+    """
+    written = []
+    models = p.get("models", "*")
+    pool = in_sweep(select(rows, models, "*"), sweep)
+    for metric in p.get("metrics", ["map50_95"]):
+        by = {(r["model"], r["dataset"]): r for r in pool
+              if r[metric] not in ("--", "")}
+        built = []
+        for pair in p["pairs"]:
+            for m in {r["model"] for r in pool}:
+                a = by.get((m, pair["dataset"]))
+                b = by.get((m, pair["minus"]))
+                if a is None or b is None:
+                    continue
+                diff = float(a[metric]) - float(b[metric])
+                built.append({**a, "dataset": pair["label"],
+                              metric: f"{diff:.4f}"})
+        written += draw(built, metric, out, p.get("prefix", ""), None,
+                        "dataset", ",".join(c["label"] for c in p["pairs"]),
+                        models, p.get("colors"), p.get("kind", "lines"),
+                        p.get("styles"), p.get("width"), None,
+                        p.get("change", "change"))
+    return written
+
+
 def draw_configured(rows: List[dict], out: Path,
                     sweep: Path = Path("sweep.json")) -> List[Path]:
     """Every plot sweep.json names. Returns what was written.
@@ -310,6 +380,9 @@ def draw_configured(rows: List[dict], out: Path,
         if "columns" in p:
             written += draw_columns(rows, p, out, sweep)
             continue
+        if "pairs" in p:
+            written += draw_pairs(rows, p, out, sweep)
+            continue
         chosen = select(rows, p.get("models", "*"), p.get("datasets", "*"))
         if not in_sweep(chosen, sweep):
             print(f"  plot '{p.get('prefix', '')}' matched nothing, skipped")
@@ -322,7 +395,7 @@ def draw_configured(rows: List[dict], out: Path,
                             p.get("group", "dataset"), p.get("datasets", "*"),
                             p.get("models", "*"), p.get("colors"),
                             p.get("kind", "bars"), p.get("styles"),
-                            p.get("width"))
+                            p.get("width"), p.get("baseline"))
     return written
 
 
