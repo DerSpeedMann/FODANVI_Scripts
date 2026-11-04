@@ -1,0 +1,65 @@
+model,image,position,sleeve,kind,best_score,best_iou,best_category
+rf-detr-large,capture_20251225_220740_674,front,sleeve,bottle,,,
+rf-detr-large,capture_20251225_220740_674,front,sleeve,other,,,
+rf-detr-large,capture_20251225_220828_343,front,no sleeve,bottle,,,
+rf-detr-large,capture_20251225_220828_343,front,no sleeve,other,,,
+rf-detr-large,capture_20251225_220928_237,beside,sleeve,bottle,0.73,0.92,bottle
+rf-detr-large,capture_20251225_220928_237,beside,sleeve,other,0.069,0.91,cup
+rf-detr-large,capture_20251225_220850_606,beside,no sleeve,bottle,0.42,0.55,bottle
+rf-detr-large,capture_20251225_220850_606,beside,no sleeve,other,0.112,0.55,person
+rtdetr-x,capture_20251225_220740_674,front,sleeve,bottle,0.072,0.81,bottle
+rtdetr-x,capture_20251225_220740_674,front,sleeve,other,0.099,0.66,cup
+rtdetr-x,capture_20251225_220828_343,front,no sleeve,bottle,,,
+rtdetr-x,capture_20251225_220828_343,front,no sleeve,other,,,
+rtdetr-x,capture_20251225_220928_237,beside,sleeve,bottle,0.551,0.97,bottle
+rtdetr-x,capture_20251225_220928_237,beside,sleeve,other,0.1,0.94,vase
+rtdetr-x,capture_20251225_220850_606,beside,no sleeve,bottle,,,
+rtdetr-x,capture_20251225_220850_606,beside,no sleeve,other,0.549,0.51,fire hydrant
+yolo11s_clean-noisy,capture_20251225_220740_674,front,sleeve,bottle,,,
+yolo11s_clean-noisy,capture_20251225_220740_674,front,sleeve,other,,,
+yolo11s_clean-noisy,capture_20251225_220828_343,front,no sleeve,bottle,,,
+yolo11s_clean-noisy,capture_20251225_220828_343,front,no sleeve,other,,,
+yolo11s_clean-noisy,capture_20251225_220928_237,beside,sleeve,bottle,0.352,0.91,bottle
+yolo11s_clean-noisy,capture_20251225_220928_237,beside,sleeve,other,0.014,0.94,person
+yolo11s_clean-noisy,capture_20251225_220850_606,beside,no sleeve,bottle,0.52,0.54,bottle
+yolo11s_clean-noisy,capture_20251225_220850_606,beside,no sleeve,other,0.096,0.55,person
+yolo11s_clean,capture_20251225_220740_674,front,sleeve,bottle,,,
+yolo11s_clean,capture_20251225_220740_674,front,sleeve,other,,,
+yolo11s_clean,capture_20251225_220828_343,front,no sleeve,bottle,,,
+yolo11s_clean,capture_20251225_220828_343,front,no sleeve,other,,,
+yolo11s_clean,capture_20251225_220928_237,beside,sleeve,bottle,0.279,0.84,bottle
+yolo11s_clean,capture_20251225_220928_237,beside,sleeve,other,0.009,0.84,cup
+yolo11s_clean,capture_20251225_220850_606,beside,no sleeve,bottle,0.489,0.58,bottle
+yolo11s_clean,capture_20251225_220850_606,beside,no sleeve,other,0.037,0.62,person
+yolo11s_nvg2_clean-noisy,capture_20251225_220740_674,front,sleeve,bottle,0.003,0.85,bottle
+yolo11s_nvg2_clean-noisy,capture_20251225_220740_674,front,sleeve,other,0.001,0.82,skateboard
+yolo11s_nvg2_clean-noisy,capture_20251225_220828_343,front,no sleeve,bottle,,,
+yolo11s_nvg2_clean-noisy,capture_20251225_220828_343,front,no sleeve,other,,,
+yolo11s_nvg2_clean-noisy,capture_20251225_220928_237,beside,sleeve,bottle,0.357,0.94,bottle
+yolo11s_nvg2_clean-noisy,capture_20251225_220928_237,beside,sleeve,other,0.004,0.9,cup
+yolo11s_nvg2_clean-noisy,capture_20251225_220850_606,beside,no sleeve,bottle,0.561,0.5,bottle
+yolo11s_nvg2_clean-noisy,capture_20251225_220850_606,beside,no sleeve,other,0.038,0.54,vase
+yolo11s_nvg2_clean,capture_20251225_220740_674,front,sleeve,bottle,,,
+yolo11s_nvg2_clean,capture_20251225_220740_674,front,sleeve,other,,,
+yolo11s_nvg2_clean,capture_20251225_220828_343,front,no sleeve,bottle,,,
+yolo11s_nvg2_clean,capture_20251225_220828_343,front,no sleeve,other,,,
+yolo11s_nvg2_clean,capture_20251225_220928_237,beside,sleeve,bottle,0.193,0.89,bottle
+yolo11s_nvg2_clean,capture_20251225_220928_237,beside,sleeve,other,0.01,0.89,cup
+yolo11s_nvg2_clean,capture_20251225_220850_606,beside,no sleeve,bottle,0.48,0.61,bottle
+yolo11s_nvg2_clean,capture_20251225_220850_606,beside,no sleeve,other,0.112,0.63,person
+yolo11s,capture_20251225_220740_674,front,sleeve,bottle,,,
+yolo11s,capture_20251225_220740_674,front,sleeve,other,,,
+yolo11s,capture_20251225_220828_343,front,no sleeve,bottle,,,
+yolo11s,capture_20251225_220828_343,front,no sleeve,other,,,
+yolo11s,capture_20251225_220928_237,beside,sleeve,bottle,0.453,0.87,bottle
+yolo11s,capture_20251225_220928_237,beside,sleeve,other,0.017,0.87,bird
+yolo11s,capture_20251225_220850_606,beside,no sleeve,bottle,0.052,0.57,bottle
+yolo11s,capture_20251225_220850_606,beside,no sleeve,other,0.277,0.58,dog
+yolo12x,capture_20251225_220740_674,front,sleeve,bottle,,,
+yolo12x,capture_20251225_220740_674,front,sleeve,other,,,
+yolo12x,capture_20251225_220828_343,front,no sleeve,bottle,,,
+yolo12x,capture_20251225_220828_343,front,no sleeve,other,,,
+yolo12x,capture_20251225_220928_237,beside,sleeve,bottle,0.095,0.93,bottle
+yolo12x,capture_20251225_220928_237,beside,sleeve,other,0.045,0.91,person
+yolo12x,capture_20251225_220850_606,beside,no sleeve,bottle,0.141,0.73,bottle
+yolo12x,capture_20251225_220850_606,beside,no sleeve,other,0.061,0.5,person
