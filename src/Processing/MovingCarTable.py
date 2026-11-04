@@ -96,7 +96,7 @@ def main() -> int:
         boxes[a["image_id"]].append(a["bbox"])
     with open(args.datasets / DATASET / "groups.csv", newline="",
               encoding="utf-8") as fh:
-        group = {r["file"]: f"{r['session']}/{r['device']}"
+        group = {r["file"]: r.get("group") or f"{r['session']}/{r['device']}"
                  for r in csv.DictReader(fh)}
     order = sorted(set(group.values()))
 

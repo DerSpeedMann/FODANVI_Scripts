@@ -233,6 +233,53 @@ They set `path: /datasets`, which is the mount target inside the container,
 not a host path. The `real_nvg` configs use `path: real_nvg...` with splits
 relative to it, a different style that resolves the same way.
 
+## Converting the annotations
+
+The real captures (`real_nvg`) and the frames of the moving car
+(`moving_car`) were annotated in labelme as polygons; their `source/` folders
+hold the frames with the labelme `.json` beside them. `ConvertAnnotations.ps1`
+turns a source folder into a YOLO dataset with every frame in `images/val`
+and `labels/val`, through labelme2yolo, which reduces each polygon to its
+enclosing box:
+
+    .\ConvertAnnotations.ps1 -Source .\data\datasets\real_nvg\source `
+      -Output .\data\datasets\real_nvg
+    .\ConvertAnnotations.ps1 -Source .\data\datasets\moving_car\source `
+      -Output .\data\datasets\moving_car -Background
+
+It needs labelme2yolo 0.3.3 on the PATH and stops before touching anything
+if it is missing:
+
+    pip install labelme2yolo==0.3.3
+
+What it does beyond calling the converter:
+
+- **Category indices.** The names are read from `data/coco_labels.txt` in
+  its order (`-Labels` for another list), so each label gets its COCO index.
+- **One folder at a time.** labelme2yolo empties its output folder on every
+  run, so every folder under `-Source` holding images or `.json` is converted
+  into a temporary folder and merged into the dataset from there.
+- **`groups.csv`.** The folder each image came from, relative to `-Source`,
+  is written beside the dataset, so one run can be scored per group. For
+  `moving_car` that is `<session>/<device>`, which `MovingCarTable.py`
+  reads.
+- **`-Background`** keeps frames without a label as background images with
+  an empty label file. `moving_car` needs it; `real_nvg` has a label on
+  every frame.
+- **The yaml.** labelme2yolo writes an absolute host path into its
+  `dataset.yaml`, which does not exist in the container. The script writes
+  `<dataset>.yaml` beside the dataset folder instead, with `path` set to the
+  folder name, where `RunSweep.ps1` looks.
+
+`images/val` and `labels/val` are emptied first, so a rerun rebuilds the set;
+`source/` is left alone.
+
+The images have to lie beside their `.json`: the annotations reference them
+by file name and carry no image data. labelme2yolo skips an annotation whose
+image is missing and still exits 0, so the script counts the images that come
+out of each folder against its `.json` files and stops with the folder if any
+are missing, as it does when the converter itself fails.
+
 ## Creating the dataset variants
 
 `sweep.json` at the repository root drives this and the sweep below. Its
