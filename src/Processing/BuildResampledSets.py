@@ -12,7 +12,13 @@ label, so the validator scores it as one more image.
 
 Every set gets its own folder and its own yaml under --out, named
 <source>_rs_u<pct>_r<NNN>, and manifest.json lists the files each set was
-drawn from, so a set can be rebuilt or traced back. The yaml points at the
+drawn from, so a set can be rebuilt or traced back. With --reuse, the sets
+are not drawn but rebuilt from the sets of another source already in the
+manifest, image for image: a preprocessed variant of the captures then holds
+the same captures in the same multiplicity as the corresponding set of the
+source, so two figures on the same images can be compared set by set. The
+variant's files are found by the source's file name, which every preprocessing
+step keeps as the start of its own. The yaml points at the
 container path the sweep mounts the datasets at, /datasets, so the sets are
 run as they are by RunResampled.ps1. They are kept out of the dataset folder
 proper so RunSweep.ps1 neither reports nor sweeps them.
@@ -20,6 +26,7 @@ proper so RunSweep.ps1 neither reports nor sweeps them.
 Usage:
     python BuildResampledSets.py --runs 100
     python BuildResampledSets.py --source real_nvg_white --unique-pct 66.7 --runs 50 --seed 7
+    python BuildResampledSets.py --source real_nvg_dn_h20_w5 --reuse real_nvg --runs 100
 """
 
 from __future__ import annotations
@@ -57,6 +64,9 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=0,
                     help="set r is drawn with seed + r, so a set can be rebuilt")
     ap.add_argument("--out", type=Path, default=DATASETS / "resampled")
+    ap.add_argument("--reuse", metavar="SOURCE",
+                    help="rebuild the manifest's sets of SOURCE from --source "
+                         "instead of drawing new ones")
     ap.add_argument("--force", action="store_true",
                     help="rebuild sets whose folder already exists")
     args = ap.parse_args()
@@ -90,6 +100,18 @@ def main() -> int:
     manifest = (json.loads(manifest_path.read_text(encoding="utf-8"))
                 if manifest_path.exists() else {})
 
+    # With --reuse: the source's file stem -> the variant's file starting with it
+    by_source: dict[str, Path] = {}
+    if args.reuse:
+        stems = {Path(f).stem for e in manifest.values()
+                 if e["source"] == args.reuse for f in e["files"]}
+        for p in images:
+            hits = [s for s in stems if p.stem == s or p.stem.startswith(s + "_")]
+            if len(hits) > 1:
+                raise SystemExit(f"{p.name} matches {len(hits)} files of {args.reuse}")
+            if hits:
+                by_source[hits[0]] = p
+
     print(f"{args.source}: {size} images, {unique} unique and "
           f"{size - unique} duplicate per set, {args.runs} set(s)")
     built = skipped = 0
@@ -102,9 +124,21 @@ def main() -> int:
         if dst.exists():
             shutil.rmtree(dst)
 
-        rng = random.Random(args.seed + r)
-        picked = rng.sample(images, unique)
-        drawn = picked + [rng.choice(picked) for _ in range(size - unique)]
+        if args.reuse:
+            ref = manifest.get(f"{args.reuse}_rs_u{pct_tag}_r{r:03d}")
+            if ref is None:
+                raise SystemExit(f"manifest has no set r{r:03d} of {args.reuse} "
+                                 f"at {args.unique_pct:g} %")
+            gone = [f for f in ref["files"] if Path(f).stem not in by_source]
+            if gone:
+                raise SystemExit(f"{args.source} has no file for {gone[0]}")
+            seed = ref["seed"]
+            drawn = [by_source[Path(f).stem] for f in ref["files"]]
+        else:
+            seed = args.seed + r
+            rng = random.Random(seed)
+            picked = rng.sample(images, unique)
+            drawn = picked + [rng.choice(picked) for _ in range(size - unique)]
 
         out_img = dst / "images" / "val"
         out_lab = dst / "labels" / "val"
@@ -122,11 +156,13 @@ def main() -> int:
             f"# {size} images resampled from {args.source} by "
             f"BuildResampledSets.py:\n"
             f"# {unique} drawn without replacement, {size - unique} duplicated "
-            f"from those, seed {args.seed + r}.\n"
+            f"from those, seed {seed}"
+            f"{f', as drawn for {args.reuse}' if args.reuse else ''}.\n"
             f"path: /datasets/{args.out.relative_to(DATASETS.resolve()).as_posix()}/{name}\n"
             f"train: images/val\nval: images/val\ntest:\n\n{names}",
             encoding="utf-8")
-        manifest[name] = {"source": args.source, "seed": args.seed + r,
+        manifest[name] = {"source": args.source, "seed": seed,
+                          **({"reused_from": args.reuse} if args.reuse else {}),
                           "unique": unique, "size": size,
                           "files": [p.name for p in drawn]}
         built += 1

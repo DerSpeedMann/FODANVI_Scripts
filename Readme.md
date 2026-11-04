@@ -640,7 +640,16 @@ are drawn differently is measured on resampled copies of the set:
 those; a duplicate is copied under its own name with its label, so the
 validator scores it as one more image. Set `r` is drawn with seed
 `--seed + r`, and `manifest.json` lists the files of every set, so any set
-can be rebuilt. The sets go to `data\datasets\resampled\`, each as
+can be rebuilt. `--reuse <source>` draws nothing but rebuilds the manifest's
+sets of that source from `--source`, image for image, so a preprocessed variant
+holds the same captures as each set of the captures as captured and two figures
+can be compared set by set (the variant's files are matched by the source's
+file name, which every preprocessing step keeps as the start of its own):
+
+    python src\Processing\BuildResampledSets.py --source real_nvg_dn_h20_w5 --reuse real_nvg --runs 100
+    .\RunResampled.ps1 -Sets "real_nvg_dn_h20_w5_rs_*"
+
+The sets go to `data\datasets\resampled\`, each as
 `<source>_rs_u<pct>_r<NNN>` with its own yaml, outside the dataset folder
 proper so `RunSweep.ps1` neither sweeps nor reports them. `--out` has to stay
 inside `data\datasets`, since the yaml names the container path. Existing
@@ -655,6 +664,17 @@ still gets its own `yolo_val.py` process and run folder,
 sweep figures. Existing runs are skipped, so an interrupted batch resumes;
 `-WhatIf` lists what would run. `CompareRuns.py` pointed at that folder
 collects them, scored on the `classes` of `sweep.json` like every other run.
+
+    python src\Processing\ResampledStats.py --variant real_nvg_dn_h20_w5
+
+`ResampledStats.py` summarizes the resampled runs of one model (`--model`,
+default `yolo12x`) per category from each run's `per_class_metrics.csv`:
+`data\results\resampled_variability.csv` for how far a single score on
+`--source` moves (standard deviation, 1.96 of them, range, how many sets lie
+within that band, and the standard deviation over the first 25, 50 and 75
+sets), and with `--variant` `data\results\resampled_paired_<variant>.csv` for
+how far the difference between the variant and the source moves when both are
+scored on the same images, set by set.
 
 ## Fine-tuning
 
