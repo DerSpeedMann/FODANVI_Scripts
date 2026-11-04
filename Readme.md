@@ -271,14 +271,21 @@ What it does beyond calling the converter:
   `<dataset>.yaml` beside the dataset folder instead, with `path` set to the
   folder name, where `RunSweep.ps1` looks.
 
-`images/val` and `labels/val` are emptied first, so a rerun rebuilds the set;
-`source/` is left alone.
+The converted frames are added to `images/val` and `labels/val`: frames
+already in the set stay, and one converted again under the same name is
+replaced, as is its row in `groups.csv`. `source/` is left alone.
 
 The images have to lie beside their `.json`: the annotations reference them
 by file name and carry no image data. labelme2yolo skips an annotation whose
 image is missing and still exits 0, so the script counts the images that come
 out of each folder against its `.json` files and stops with the folder if any
-are missing, as it does when the converter itself fails.
+are missing, as it does when the converter itself fails. Nothing is added
+until every folder has passed, so a failed run leaves the set as it was.
+
+`real_nvg/source/` holds only the `.json` files; their images are in
+`images/val`, byte for byte. To convert it again, copy the images back beside the `.json`
+under their original names, without the suffix labelme2yolo appends
+(`capture_..._cropped_a4cf5093.jpg` becomes `capture_..._cropped.jpg`).
 
 ## Creating the dataset variants
 

@@ -5,14 +5,14 @@
     frame in the one validation split.
 
     Every folder under -Source that holds images or labelme .json files is
-    converted on its own, since labelme2yolo empties its output folder on every run: each
-    goes into a temporary folder, and its images and labels are moved from
-    there into images/val and labels/val of -Output. The folder each image
-    came from, relative to -Source, is written to groups.csv beside them, so
-    that the frames can be scored per group from a single run; for the moving
-    car that is <session>/<device>. -Background takes the frames without a
-    label in as background images with an empty label file
-    (--include_background).
+    converted on its own, since labelme2yolo empties its output folder on
+    every run: each goes into its own staging folder, and its images and
+    labels are moved from there into images/val and labels/val of -Output.
+    The folder each image came from, relative to -Source, is written to
+    groups.csv beside them, so that the frames can be scored per group from a
+    single run; for the moving car that is <session>/<device>. -Background
+    takes the frames without a label in as background images with an empty
+    label file (--include_background).
 
     The category names are read from -Labels, with any leading index number,
     surrounding whitespace and empty lines removed, and passed to labelme2yolo
@@ -25,8 +25,15 @@
     written beside the dataset folder as <dataset>.yaml, where RunSweep.ps1
     looks, with its path reduced to the folder name.
 
-    images/val and labels/val of -Output are emptied first, so a rerun
-    rebuilds the set; anything else in -Output, such as the source, is kept.
+    The annotations reference their images by file name, so the images have
+    to lie beside the .json files. labelme2yolo skips an annotation whose
+    image is missing and still exits 0, so every folder is checked to have
+    come out with an image per .json. The converted frames are added to
+    images/val and labels/val of -Output only once every folder has passed
+    that check, so a failed run leaves the set as it was. Frames already in
+    the set stay, and one converted again under the same name is replaced,
+    as is its row in groups.csv. Anything else in -Output, such as the
+    source, is kept.
 
         .\ConvertAnnotations.ps1 -Source .\data\datasets\real_nvg\source `
           -Output .\data\datasets\real_nvg
@@ -56,9 +63,12 @@ if ($Background) { $flags += "--include_background" }
 $Source = (Resolve-Path $Source).Path.TrimEnd('\')
 $name   = Split-Path -Leaf $Output
 $yaml   = Join-Path (Split-Path -Parent $Output) "$name.yaml"
-foreach ($sub in "images\val", "labels\val") {
-    Remove-Item -Recurse -Force "$Output\$sub" -ErrorAction SilentlyContinue
-    New-Item -ItemType Directory -Force "$Output\$sub" | Out-Null
+$stage  = Join-Path $Output "convert_staging"
+Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
+
+function Stop-Conversion([string] $Message) {
+    Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
+    throw $Message
 }
 
 $folders = @(Get-Item $Source) + @(Get-ChildItem -Directory -Recurse $Source) |
@@ -67,7 +77,7 @@ $folders = @(Get-Item $Source) + @(Get-ChildItem -Directory -Recurse $Source) |
   }
 $rows = foreach ($d in $folders) {
     $group = $d.FullName.Substring($Source.Length).TrimStart('\') -replace '\\', '/'
-    $tmp = Join-Path $Output ("convert_" + ($group -replace '/', '_'))
+    $tmp = Join-Path $stage ("folder_" + ($group -replace '/', '_'))
     # labelme2yolo logs to stderr, which Windows PowerShell turns into
     # errors once redirected; "Stop" would abort on the first log line, so
     # its exit code is checked instead.
@@ -76,24 +86,43 @@ $rows = foreach ($d in $folders) {
       Out-Null
     $ErrorActionPreference = "Stop"
     if ($LASTEXITCODE -ne 0) {
-        throw "labelme2yolo failed on $($d.FullName) (exit code $LASTEXITCODE)"
+        Stop-Conversion "labelme2yolo failed on $($d.FullName) (exit code $LASTEXITCODE)"
     }
-    # It exits 0 even when it skips an annotation whose image is missing, so
-    # check that every .json came out as an image.
     $json = @(Get-ChildItem -File -Filter *.json $d.FullName).Count
     $out  = @(Get-ChildItem -File "$tmp\images\val" -ErrorAction SilentlyContinue).Count
     if ($out -lt $json) {
-        throw "labelme2yolo converted $out of $json annotations in " +
-              "$($d.FullName); are the images beside the .json files?"
+        Stop-Conversion ("labelme2yolo converted $out of $json annotations in " +
+                         "$($d.FullName); are the images beside the .json files?")
     }
     foreach ($img in Get-ChildItem "$tmp\images\val") {
         [pscustomobject]@{ file = $img.BaseName; group = $group }
     }
-    Move-Item "$tmp\images\val\*" "$Output\images\val\"
-    Move-Item "$tmp\labels\val\*" "$Output\labels\val\"
-    (Get-Content "$tmp\dataset.yaml") -replace '^path: .*$', "path: $name" |
-      Set-Content -Encoding ascii $yaml
-    Remove-Item -Recurse $tmp
 }
-$rows | Sort-Object group, file |
-  Export-Csv "$Output\groups.csv" -NoTypeInformation -Encoding ascii
+
+# Every folder converted: only now add them to the set.
+foreach ($sub in "images\val", "labels\val") {
+    New-Item -ItemType Directory -Force "$Output\$sub" | Out-Null
+    foreach ($tmp in Get-ChildItem -Directory $stage) {
+        Get-ChildItem -File "$($tmp.FullName)\$sub" |
+          Move-Item -Force -Destination "$Output\$sub"
+    }
+}
+$first = Get-ChildItem -Directory $stage | Select-Object -First 1
+(Get-Content "$($first.FullName)\dataset.yaml") -replace '^path: .*$', "path: $name" |
+  Set-Content -Encoding ascii $yaml
+Remove-Item -Recurse -Force $stage
+
+# Keep the groups of images already in the set; a reconverted one takes its
+# new group.
+$csv = "$Output\groups.csv"
+$new = @{}; foreach ($r in $rows) { $new[$r.file] = $true }
+$old = if (Test-Path $csv) {
+    Import-Csv $csv | Where-Object { -not $new.ContainsKey($_.file) } |
+      ForEach-Object {
+          $g = if ($_.PSObject.Properties["group"]) { $_.group }
+               else { "$($_.session)/$($_.device)" }
+          [pscustomobject]@{ file = $_.file; group = $g }
+      }
+}
+@($old) + @($rows) | Where-Object { $_ } | Sort-Object group, file |
+  Export-Csv $csv -NoTypeInformation -Encoding ascii
