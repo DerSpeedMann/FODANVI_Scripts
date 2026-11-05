@@ -53,6 +53,21 @@ Modules:
               search_window    area searched, odd (recommended 21); runtime
                                grows roughly with its square
 
+  resize    Scale the image down so its longer side is long_side, keeping the
+            aspect ratio. The size is computed as the Ultralytics dataset
+            loader computes it (ceil of side * ratio, capped at long_side), so
+            an image scaled to the model's input size here is not scaled again
+            by the Ultralytics validators. Never enlarges: an image already
+            within long_side is passed through. Put it before denoise to apply
+            the filter at the scale the model sees.
+              long_side      target length of the longer side in pixels,
+                             e.g. 640, the input size of the Ultralytics models
+              interpolation  area, linear or cubic. linear is what the
+                             Ultralytics 8.4.41 loader uses
+                             (BaseDataset.load_image), so it reproduces the
+                             model's input; area averages over each output
+                             pixel's whole footprint and smooths grain more
+
 Only the top level of the input folder is scanned. Inputs whose stem contains
 the suffix are skipped, as are existing outputs unless --overwrite is given.
 
@@ -72,6 +87,7 @@ Usage:
 import argparse
 import inspect
 import json
+import math
 import os
 from PIL import Image, ImageOps
 from pathlib import Path
@@ -125,10 +141,31 @@ def denoise(img_array: np.ndarray, h: float, h_color: float,
                                               searchWindowSize=search_window)
     return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
+INTERPOLATIONS: Dict[str, int] = {
+    "area": cv2.INTER_AREA,
+    "linear": cv2.INTER_LINEAR,
+    "cubic": cv2.INTER_CUBIC,
+}
+
+def resize(img_array: np.ndarray, long_side: int, interpolation: str) -> np.ndarray:
+    """Scale down so the longer side is long_side, sized as the Ultralytics loader"""
+    if not isinstance(long_side, int) or long_side < 1:
+        raise ValueError(f"resize: long_side must be a positive integer, got {long_side}")
+    if interpolation not in INTERPOLATIONS:
+        raise ValueError(f"resize: interpolation must be one of "
+                         f"{', '.join(INTERPOLATIONS)}, got {interpolation!r}")
+    h0, w0 = img_array.shape[:2]
+    r = long_side / max(h0, w0)
+    if r >= 1:
+        return img_array
+    size = (min(math.ceil(w0 * r), long_side), min(math.ceil(h0 * r), long_side))
+    return cv2.resize(img_array, size, interpolation=INTERPOLATIONS[interpolation])
+
 MODULES: Dict[str, Callable[..., np.ndarray]] = {
     "equalize": equalize,
     "clahe": clahe,
     "denoise": denoise,
+    "resize": resize,
 }
 
 def module_params(fn: Callable[..., np.ndarray]) -> List[str]:
@@ -241,7 +278,7 @@ def process_images_for_detection(input_folder: str, output_folder: str | None,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Preprocess NVG images with a configurable pipeline "
-                    "(equalize, CLAHE, denoise in any order)."
+                    "(equalize, CLAHE, denoise, resize in any order)."
     )
     parser.add_argument("input_folder", help="Folder of source images")
     parser.add_argument("output_folder", nargs="?", default=None,

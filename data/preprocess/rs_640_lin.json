@@ -1,0 +1,6 @@
+{
+  "note": "Scale check: the captures scaled to the 640-pixel input of the Ultralytics models as their loader scales them (linear, Ultralytics 8.4.41), so the validator does not scale them again and the input matches the unprocessed run up to JPEG re-encoding. Resize only, the reference at that scale.",
+  "steps": [
+    {"module": "resize", "long_side": 640, "interpolation": "linear"}
+  ]
+}

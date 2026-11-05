@@ -79,6 +79,10 @@
     "real_nvg_white_dn_h10_w7_cl_c1p5_t4",
     "real_nvg_cl_c1p5_t4_dn_h10_w7",
     "real_nvg_white_cl_c1p5_t4_dn_h10_w7",
+    "real_nvg_rs_640_lin",
+    "real_nvg_white_rs_640_lin",
+    "real_nvg_rs_640_lin_dn_h80_w3",
+    "real_nvg_white_rs_640_lin_dn_h80_w3",
     "coco_nvg2_green_noisy_dn_h80_w3",
     "coco_nvg2_white_noisy_dn_h80_w3",
     "coco_nvg2_green_grain",
@@ -570,6 +574,32 @@
         "_cl_c1p5_t4_dn_h10_w7"
       ],
       "describe": "CLAHE (clip 1.5, tile 4), then denoise (h 10, window 7/21), data/preprocess/cl_c1p5_t4_dn_h10_w7.json"
+    },
+    "rs_640_lin": {
+      "script": "Preprocess.py",
+      "suffix": "_rs_640_lin",
+      "args": [
+        "--config",
+        "data/preprocess/rs_640_lin.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_rs_640_lin"
+      ],
+      "describe": "scale check: resized to 640 on the longer side as the Ultralytics loader scales (linear), the reference at the model's scale, data/preprocess/rs_640_lin.json"
+    },
+    "rs_640_lin_dn_h80_w3": {
+      "script": "Preprocess.py",
+      "suffix": "_rs_640_lin_dn_h80_w3",
+      "args": [
+        "--config",
+        "data/preprocess/rs_640_lin_dn_h80_w3.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_rs_640_lin_dn_h80_w3"
+      ],
+      "describe": "scale check: resized to 640 (linear), then denoise (h 80, window 3/9), data/preprocess/rs_640_lin_dn_h80_w3.json"
     }
   },
   "variants": [
@@ -786,6 +816,20 @@
         [
           "white",
           "cl_c1p5_t4_dn_h10_w7"
+        ],
+        [
+          "rs_640_lin"
+        ],
+        [
+          "white",
+          "rs_640_lin"
+        ],
+        [
+          "rs_640_lin_dn_h80_w3"
+        ],
+        [
+          "white",
+          "rs_640_lin_dn_h80_w3"
         ]
       ]
     },
@@ -1087,6 +1131,45 @@
         "map50_95"
       ],
       "describe": "change denoising at h 80, window 3/9 brings on the measured-conversion grain-only and noisy sets against the change it brings on the captures, green then white; models, colors and styles as in the color plot",
+      "width": 6.5
+    },
+    {
+      "prefix": "denoise_scale",
+      "kind": "lines",
+      "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
+      "colors": [
+        "#1f77b4",
+        "#d62728",
+        "#9467bd",
+        "#7f7f7f",
+        "#ff7f0e",
+        "#ff7f0e",
+        "#2ca02c",
+        "#2ca02c"
+      ],
+      "styles": [
+        "-",
+        "-",
+        "-",
+        "-",
+        "--",
+        "-",
+        "--",
+        "-"
+      ],
+      "pairs": [
+        {"label": "green denoised full size", "dataset": "real_nvg_dn_h80_w3", "minus": "real_nvg"},
+        {"label": "green denoised at 640", "dataset": "real_nvg_rs_640_lin_dn_h80_w3", "minus": "real_nvg_rs_640_lin"},
+        {"label": "green 640 linear", "dataset": "real_nvg_rs_640_lin", "minus": "real_nvg"},
+        {"label": "white denoised full size", "dataset": "real_nvg_white_dn_h80_w3", "minus": "real_nvg_white"},
+        {"label": "white denoised at 640", "dataset": "real_nvg_white_rs_640_lin_dn_h80_w3", "minus": "real_nvg_white_rs_640_lin"},
+        {"label": "white 640 linear", "dataset": "real_nvg_white_rs_640_lin", "minus": "real_nvg_white"}
+      ],
+      "change": "change",
+      "metrics": [
+        "map50_95"
+      ],
+      "describe": "scale check: change denoising at h 80, window 3/9 brings on the captures at full size and after scaling them to 640 as the Ultralytics loader does (linear), and the change the scaling alone brings, green then white; models, colors and styles as in denoise_change",
       "width": 6.5
     },
     {

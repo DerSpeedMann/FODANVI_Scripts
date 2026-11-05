@@ -1,0 +1,7 @@
+{
+  "note": "Scale check: resize to 640 as in rs_640_lin.json, then the denoising of dn_h80_w3.json (h 80, window 3/9), so the filter window covers the same share of the image as on the 640-pixel synthetic sets.",
+  "steps": [
+    {"module": "resize", "long_side": 640, "interpolation": "linear"},
+    {"module": "denoise", "h": 80.0, "h_color": 80.0, "template_window": 3, "search_window": 9}
+  ]
+}

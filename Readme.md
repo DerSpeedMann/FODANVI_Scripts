@@ -347,6 +347,21 @@ set; they stay listed only because their runs exist. `dn_h80_w3` is the denoisin
 setting with the highest mean mAP50-95 over all eight models on the green
 captures and their white tint (0.408, against 0.351 unprocessed).
 
+The captures reach the model scaled down to 640 pixels, while the synthetic
+sets already are 640 pixels, so `dn_h80_w3` covers more of the image on the
+synthetic sets. The `rs_640_lin` generators move the scaling in front of the
+filter: `real_nvg*_rs_640_lin` is the captures resized as the Ultralytics
+8.4.41 loader resizes them (linear), the reference at that scale, and
+`real_nvg*_rs_640_lin_dn_h80_w3` denoises after the resize. The Ultralytics
+validators do not scale them again; RF-DETR still scales to its 560 pixels, as
+for every other set. The resize is linear because area averaging would smooth
+the grain on top, so the reference would no longer be the model's input. The
+`denoise_scale` plot sets the denoising at 640 against the denoising at full
+size.
+
+    .\BuildDatasets.ps1 -Only "real_nvg*rs_640_lin*"
+    .\RunSweep.ps1 -Datasets "real_nvg*rs_640_lin*"
+
 ## Running every validation
 
     .\RunSweep.ps1
