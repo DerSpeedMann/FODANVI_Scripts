@@ -192,6 +192,45 @@ The rest map onto the other `NVGConfig` fields:
 | `grain_px` | `grain_size` |
 | `edge_over_center` | `vignette_intensity` |
 
+## Grain of the built sets
+
+The grain the `nvg2` sets carry falls short of the profile they were built
+with. Measured the way the profile itself is, by writing a config from the
+built set, on a random 200 images of each (`--sample 200`, seed 0), and read
+off its `grain_profile`:
+
+    cd data
+    $A = "../src/Processing/AnalyzeNVG.py"
+    python $A "datasets/coco_nvg_captures_green_noisy/images/val2017/*.jpg" --label captures_green_noisy `
+        --sample 200 --no-plot --config $env:TEMP/captures_green_noisy.json --config-color green
+    python $A "datasets/coco_nvg2_green_noisy/images/val2017/*.jpg" --label nvg2_green_noisy `
+        --sample 200 --no-plot --config $env:TEMP/nvg2_green_noisy.json --config-color green
+    python $A "datasets/coco_nvg2_white_noisy/images/val2017/*.jpg" --label nvg2_white_noisy `
+        --sample 200 --no-plot --config $env:TEMP/nvg2_white_noisy.json --config-color white
+
+The configs go to a temporary folder so the three in this folder stay as
+they are; the clean sets are measured the same way. Grain per band, band
+centers in brackets:
+
+| set | built | profile it was given |
+| --- | --- | --- |
+| `coco_nvg_captures_green_noisy` | 0.90, 0.99, 0.75 (0.15 to 0.35) | setup green: 1.38, 1.20, 1.05 |
+| `coco_nvg2_green_noisy` | 0.50, 0.64, 0.54 (0.15 to 0.35) | selected green: 0.97 at 0.25, 1.06 at 0.35 |
+| `coco_nvg2_white_noisy` | 2.59, 3.28, 3.05, 2.54, 1.51 (0.35 to 0.75) | selected white: 3.60, 3.32, 2.88, 2.50, 2.32 |
+| `coco_nvg2_green_clean` | 1.43, 1.65, 1.64 (0.15 to 0.35) | no grain |
+| `coco_nvg2_white_clean` | 4.12, 4.30, 4.27, 3.91 (0.35 to 0.65) | no grain |
+
+The clean sets read higher than the noisy ones although they carry no grain:
+on COCO images the residual also takes in image detail, which the noisy sets
+lose to their blur, so the figure of a noisy set is not its grain alone. The
+grain step itself loses most of the configured strength where `grain_size` is
+above 1, as in both green configs: `GenerateNVGv2.py` blurs the unit noise with
+a Gaussian kernel of that size and does not rescale it, which leaves 0.375 of
+its standard deviation at size 3 (0.274 at 5). The scaled noise is then
+truncated to whole gray levels (`astype(np.int16)`) before it is added.
+
+    python -I -c "import numpy as np, cv2; n = np.random.default_rng(0).normal(0, 1, (2000, 2000)).astype(np.float32); print(cv2.GaussianBlur(n, (3, 3), 0).std())"
+
 ## Files
 
 | File | Written by |
