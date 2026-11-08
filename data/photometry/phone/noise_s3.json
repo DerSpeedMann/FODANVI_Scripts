@@ -1,0 +1,745 @@
+{
+  "generated_utc": "2026-11-07T21:33:35+00:00",
+  "region": {
+    "rois_normalised": {
+      "q_ul": [
+        0.51355,
+        0.4927,
+        0.015,
+        0.02
+      ],
+      "q_ur": [
+        0.6185,
+        0.4927,
+        0.015,
+        0.02
+      ],
+      "q_ll": [
+        0.51355,
+        0.6327,
+        0.015,
+        0.02
+      ],
+      "q_lr": [
+        0.6185,
+        0.6327,
+        0.015,
+        0.02
+      ]
+    }
+  },
+  "captures": [
+    {
+      "file": "s3_02_lensCOV_30s_060702.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:07:02"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014042405283281195,
+          "sd_over_mean": 0.7813925587999584,
+          "lineness": 3.0,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013811696211331248,
+          "sd_over_mean": 0.7706641413997639,
+          "lineness": 2.75,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.01422575599582899,
+          "sd_over_mean": 0.6887046735566149,
+          "lineness": 2.833333333333333,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014217066388599235,
+          "sd_over_mean": 0.8341819188061954,
+          "lineness": 3.0,
+          "clean": false
+        }
+      },
+      "y_card": 0.014074230969760166,
+      "y_card_spread": 0.029419709353028917,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0005067733080121267
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_02_lensCOV_30s_060735.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:07:35"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013774186073456146,
+          "sd_over_mean": 0.8675613810221104,
+          "lineness": 2.916666666666667,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013631386861313868,
+          "sd_over_mean": 0.8008619790403085,
+          "lineness": 2.8341666666666847,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013660786699107866,
+          "sd_over_mean": 0.740299621557687,
+          "lineness": 3.0008333333333517,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.01355202178194879,
+          "sd_over_mean": 0.8969988610166444,
+          "lineness": 2.917500000000018,
+          "clean": false
+        }
+      },
+      "y_card": 0.013654595353956666,
+      "y_card_spread": 0.01627029477977029,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0004916634146447828
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_02_lensCOV_30s_060810.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:08:10"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014105404935696906,
+          "sd_over_mean": 0.81142425717066,
+          "lineness": 3.1666666666666665,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013858620090371917,
+          "sd_over_mean": 0.8186407725756462,
+          "lineness": 3.0,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013900475031861894,
+          "sd_over_mean": 0.7282181141364107,
+          "lineness": 2.916666666666667,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013885123392422663,
+          "sd_over_mean": 0.7428316928882868,
+          "lineness": 2.833333333333333,
+          "clean": false
+        }
+      },
+      "y_card": 0.013937405862588344,
+      "y_card_spread": 0.017706655582688025,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0005018466223317823
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_02_lensCOV_30s_060841.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:08:41"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013782296373537251,
+          "sd_over_mean": 0.7910815927688075,
+          "lineness": 2.75,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013859778704669215,
+          "sd_over_mean": 0.7869392805319705,
+          "lineness": 2.916666666666667,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.01373001390337157,
+          "sd_over_mean": 0.731889539696162,
+          "lineness": 2.916666666666667,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013848627042057698,
+          "sd_over_mean": 0.834309572276918,
+          "lineness": 2.833333333333333,
+          "clean": false
+        }
+      },
+      "y_card": 0.013805179005908934,
+      "y_card_spread": 0.009399718847694999,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0004970855066650403
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_02_lensCOV_30s_060916.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:09:16"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.01434147259877187,
+          "sd_over_mean": 0.7939662131069659,
+          "lineness": 3.0841666666666847,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014434306569343065,
+          "sd_over_mean": 0.7947076832281162,
+          "lineness": 2.5392307692307856,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014418085969180861,
+          "sd_over_mean": 0.7118162944284142,
+          "lineness": 2.7692307692307687,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.01436594832580234,
+          "sd_over_mean": 0.7288171382898091,
+          "lineness": 3.0833333333333335,
+          "clean": false
+        }
+      },
+      "y_card": 0.014389953365774534,
+      "y_card_spread": 0.006451304476913316,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0005181415798122337
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_02_lensCOV_30s_060946.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:09:46"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014388396477812536,
+          "sd_over_mean": 0.789478166901395,
+          "lineness": 3.0841666666666847,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014466023635731665,
+          "sd_over_mean": 0.7808854267930271,
+          "lineness": 2.7692307692307687,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014257328235430425,
+          "sd_over_mean": 0.697806814198428,
+          "lineness": 3.0833333333333335,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.0145269957131271,
+          "sd_over_mean": 0.7854375073581102,
+          "lineness": 2.615384615384615,
+          "clean": false
+        }
+      },
+      "y_card": 0.014409686015525431,
+      "y_card_spread": 0.018714320173675345,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0005188520967997402
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_02_lensCOV_30s_061017.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:10:17"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014547705943691345,
+          "sd_over_mean": 0.7389922104353429,
+          "lineness": 2.6161538461538627,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014664581160931525,
+          "sd_over_mean": 0.8329778063403385,
+          "lineness": 2.7692307692307687,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014551036959796084,
+          "sd_over_mean": 0.717393012337136,
+          "lineness": 2.770000000000016,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014494409686015525,
+          "sd_over_mean": 0.7101243306695183,
+          "lineness": 2.6161538461538627,
+          "clean": false
+        }
+      },
+      "y_card": 0.014564433437608621,
+      "y_card_spread": 0.011684043574024536,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.000524424114422866
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_02_lensCOV_30s_061051.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:10:51"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.01503012397172981,
+          "sd_over_mean": 0.7444809346129257,
+          "lineness": 3.0007692307692477,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.015101668404588113,
+          "sd_over_mean": 0.7560068892093589,
+          "lineness": 2.692307692307692,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014962489862124898,
+          "sd_over_mean": 0.7042128583890628,
+          "lineness": 3.0000000000000004,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014871828293361141,
+          "sd_over_mean": 0.7105319127461097,
+          "lineness": 2.7692307692307687,
+          "clean": false
+        }
+      },
+      "y_card": 0.014991527632950991,
+      "y_card_spread": 0.015331333594168862,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0005398025701744785
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    }
+  ]
+}

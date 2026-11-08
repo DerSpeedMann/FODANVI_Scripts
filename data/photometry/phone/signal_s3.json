@@ -1,0 +1,656 @@
+{
+  "generated_utc": "2026-11-07T21:33:40+00:00",
+  "region": {
+    "rois_normalised": {
+      "q_ul": [
+        0.51355,
+        0.4927,
+        0.015,
+        0.02
+      ],
+      "q_ur": [
+        0.6185,
+        0.4927,
+        0.015,
+        0.02
+      ],
+      "q_ll": [
+        0.51355,
+        0.6327,
+        0.015,
+        0.02
+      ],
+      "q_lr": [
+        0.6185,
+        0.6327,
+        0.015,
+        0.02
+      ]
+    }
+  },
+  "captures": [
+    {
+      "file": "s3_01_lensCLEAR_lapON_30s_060223.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:02:23"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.012628751013787512,
+          "sd_over_mean": 0.770637728279559,
+          "lineness": 2.9100000000000197,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.01264062681033484,
+          "sd_over_mean": 0.7793578233112977,
+          "lineness": 2.6363636363636362,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013045707334028501,
+          "sd_over_mean": 0.7125133973624267,
+          "lineness": 2.8181818181818183,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.01285728768393002,
+          "sd_over_mean": 0.9429879825115216,
+          "lineness": 3.182727272727292,
+          "clean": false
+        }
+      },
+      "y_card": 0.012793093210520218,
+      "y_card_spread": 0.032592299092928635,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.00046064315556086736
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_01_lensCLEAR_lapON_30s_060338.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:03:38"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013217906383964778,
+          "sd_over_mean": 0.787016646334194,
+          "lineness": 3.090909090909091,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013148824006488239,
+          "sd_over_mean": 0.8100075342392303,
+          "lineness": 2.909090909090909,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013291188738269032,
+          "sd_over_mean": 0.7189216846664115,
+          "lineness": 2.6666666666666665,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.01309205190592052,
+          "sd_over_mean": 0.750353669322294,
+          "lineness": 3.090909090909091,
+          "clean": false
+        }
+      },
+      "y_card": 0.013187492758660642,
+      "y_card_spread": 0.015100431597790464,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0004748443694047394
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_01_lensCLEAR_lapON_30s_060411.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:04:11"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.01323789248059321,
+          "sd_over_mean": 0.7961452480567603,
+          "lineness": 2.7508333333333512,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.01292086664349438,
+          "sd_over_mean": 0.7821328974188718,
+          "lineness": 2.7272727272727275,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013094948441663772,
+          "sd_over_mean": 0.7331380973405995,
+          "lineness": 3.0,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013177499710346425,
+          "sd_over_mean": 0.7808215690632998,
+          "lineness": 2.833333333333333,
+          "clean": false
+        }
+      },
+      "y_card": 0.013107801819024446,
+      "y_card_spread": 0.024186041372604807,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.000471974923735928
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_01_lensCLEAR_lapON_30s_060443.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:04:43"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013387498551732128,
+          "sd_over_mean": 0.8609446263628919,
+          "lineness": 3.1818181818181817,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013149258486849728,
+          "sd_over_mean": 0.8020547034705597,
+          "lineness": 2.6666666666666665,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.01337402966052601,
+          "sd_over_mean": 0.7101224011400715,
+          "lineness": 2.75,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013280471556019,
+          "sd_over_mean": 0.7685460245848911,
+          "lineness": 3.090909090909091,
+          "clean": false
+        }
+      },
+      "y_card": 0.013297814563781717,
+      "y_card_spread": 0.01791573071948811,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0004788167460303043
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_01_lensCLEAR_lapON_30s_060514.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:05:14"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013349119453134052,
+          "sd_over_mean": 0.7489444170401367,
+          "lineness": 2.5833333333333335,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013538697717529836,
+          "sd_over_mean": 0.8241378996657339,
+          "lineness": 2.833333333333333,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013756662032209476,
+          "sd_over_mean": 0.744839193802891,
+          "lineness": 3.0833333333333335,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013423705248522768,
+          "sd_over_mean": 0.7766574183732018,
+          "lineness": 2.6666666666666665,
+          "clean": false
+        }
+      },
+      "y_card": 0.013517046112849032,
+      "y_card_spread": 0.030150269198831955,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0004867106549465482
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_01_lensCLEAR_lapON_30s_060545.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:05:45"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013637324759587533,
+          "sd_over_mean": 0.8077168941067281,
+          "lineness": 2.917500000000018,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.013516684045881126,
+          "sd_over_mean": 0.7709254978931224,
+          "lineness": 2.667500000000018,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013626173096976018,
+          "sd_over_mean": 0.719515530339549,
+          "lineness": 3.0833333333333335,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.013416319082377478,
+          "sd_over_mean": 0.8723499170858056,
+          "lineness": 2.6666666666666665,
+          "clean": false
+        }
+      },
+      "y_card": 0.013549125246205537,
+      "y_card_spread": 0.016311435106996914,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.00048786573393908196
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    },
+    {
+      "file": "s3_01_lensCLEAR_lapON_30s_060631.dng",
+      "exif": {
+        "exposure_time": 30.0,
+        "f_number": 1.65,
+        "iso": 3193,
+        "focal_length": 4.75,
+        "datetime": "2026:09:18 06:06:31"
+      },
+      "black_level": 64.0,
+      "white_level": 1023.0,
+      "shape": [
+        3000,
+        4000
+      ],
+      "rois": {
+        "q_ul": {
+          "rect_px": [
+            1994,
+            1418,
+            2114,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014701801645232304,
+          "sd_over_mean": 0.7637925931977608,
+          "lineness": 2.692307692307692,
+          "clean": false
+        },
+        "q_ur": {
+          "rect_px": [
+            2414,
+            1418,
+            2534,
+            1538
+          ],
+          "pixels": 7200,
+          "mean": 0.014528588807785889,
+          "sd_over_mean": 0.7766009651570047,
+          "lineness": 2.7692307692307687,
+          "clean": false
+        },
+        "q_ll": {
+          "rect_px": [
+            1994,
+            1838,
+            2114,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014533657745336577,
+          "sd_over_mean": 0.6795796748557216,
+          "lineness": 2.615384615384615,
+          "clean": false
+        },
+        "q_lr": {
+          "rect_px": [
+            2414,
+            1838,
+            2534,
+            1958
+          ],
+          "pixels": 7200,
+          "mean": 0.014452699571312712,
+          "sd_over_mean": 0.7487038540411738,
+          "lineness": 2.615384615384615,
+          "clean": false
+        }
+      },
+      "y_card": 0.01455418694241687,
+      "y_card_spread": 0.01711549225698114,
+      "rois_used": [
+        "q_ul",
+        "q_ur",
+        "q_ll",
+        "q_lr"
+      ],
+      "result": {
+        "constant": 1.0802152723675866,
+        "lux": 0.0005240551670697204
+      },
+      "calibration": {
+        "K": 12.5,
+        "rho_ref": 0.178,
+        "y_mid": 0.17414,
+        "channel": "green",
+        "standard": "ISO 2720:1974"
+      }
+    }
+  ]
+}
