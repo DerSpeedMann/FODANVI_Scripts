@@ -5,9 +5,12 @@ Grain of a night vision device against its gain setting, per frame, from raw
 captures of its eyepiece over the regions SceneLux measured the card in, set
 against the noise the camera adds on its own.
 
-    SceneLuxGrain.py trough_nvg\\s05_0*.NEF --rois rois\\rois_nvg.json \\
+    SceneLuxGrain.py --rois rois\\rois_nvg.json \\
+        --series g1_max trough_nvg\\s05_01_*.NEF \\
+        --series g2 trough_nvg\\s05_02_*.NEF ... \\
         --pairs direct_screen_light\\s18_03_*.NEF direct_screen_light\\s18_04_*.NEF \\
-        --dark direct_screen_light\\s18_01_*.NEF --csv grain_table.csv
+        --dark direct_screen_light\\s18_01_*.NEF --csv grain_table.csv \\
+        --summary grain_series.csv
 
 Each frame is reduced to one of its two green photosite planes, black
 subtracted and scaled to the white level, so that neighbouring values come
@@ -40,11 +43,18 @@ The camera's expected residual at a level is the shot and the corner variance
 passed through the same residual filter, whose effect on independent noise is
 measured on simulated white noise rather than derived. What is left of the
 measured residual after removing it in quadrature is the part the camera does
-not explain.
+not explain. The camera share is the same comparison as a ratio, the camera
+variance over the measured variance, capped at one, where the camera alone
+could produce all of the residual.
 
-Frames are reported one by one, in capture order, and the four regions are
-averaged per frame. Which frames share a setting is not in the files, as in
-SceneLuxGain.
+Frames are reported one by one, in the order given, and the four regions are
+averaged per frame. The pairs, too, are taken in the order given, so no file
+name has to sort in capture order. With --summary the frames are also averaged per series,
+the frames shot at one setting in one go. Which frames those are is a fact
+about how they were shot, as in SceneLuxGain, so the script does not read it
+from the files: each --series names a label and its frames. Grouping by
+series rather than by setting keeps a setting returned to later as a row of
+its own.
 """
 
 import argparse
@@ -155,7 +165,11 @@ def conversion(pairs: Sequence[Path], dark: Sequence[Path]) -> float:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[1])
-    parser.add_argument("frames", type=Path, nargs="+", help="raw captures")
+    parser.add_argument("frames", type=Path, nargs="*", help="raw captures")
+    parser.add_argument("--series", nargs="+", action="append", default=[],
+                        metavar=("LABEL", "FRAME"),
+                        help="a label and the raw captures of one series; "
+                             "repeat per series")
     parser.add_argument("--rois", type=Path, required=True,
                         help="normalised regions, as SceneLux reads them")
     parser.add_argument("--pairs", type=Path, nargs="+", required=True,
@@ -163,15 +177,26 @@ def main() -> int:
     parser.add_argument("--dark", type=Path, nargs=2, required=True,
                         help="a dark pair at the same settings")
     parser.add_argument("--csv", type=Path, help="write the per-frame table here")
+    parser.add_argument("--summary", type=Path,
+                        help="write the table averaged per series here")
     args = parser.parse_args()
+    if any(len(s) < 2 for s in args.series):
+        raise SystemExit("--series takes a label and at least one frame")
+    series = {s[0]: [Path(p) for p in s[1:]] for s in args.series}
+    frames = list(dict.fromkeys(
+        args.frames + [p for paths in series.values() for p in paths]))
+    if not frames:
+        raise SystemExit("no frames given")
+    if args.summary and not series:
+        raise SystemExit("--summary needs the frames grouped with --series")
 
-    k = conversion(sorted(args.pairs), sorted(args.dark))
+    k = conversion(args.pairs, args.dark)
     f = filter_factor()
     print(f"conversion {k:.2f} DN per photoelectron, residual filter factor {f:.3f}")
 
     rois = json.loads(args.rois.read_text())
-    rows = []
-    for path in sorted(args.frames):
+    rows = {}
+    for path in frames:
         plane, span = green_plane(path)
         card = averaged(plane, rois.values())
         floor = averaged(plane, CORNERS.values())
@@ -184,19 +209,38 @@ def main() -> int:
                "noise_sd": card["noise_sd"], "corner_sd": floor["noise_sd"],
                "camera_sd": camera, "unexplained_sd": left,
                "noise_rel": card["noise_sd"] / card["mean"],
-               "camera_rel": camera / card["mean"], "lag1": card["lag1"]}
-        rows.append(row)
+               "camera_rel": camera / card["mean"],
+               "camera_share": min(camera ** 2 / card["noise_sd"] ** 2, 1.0),
+               "lag1": card["lag1"]}
+        rows[path] = row
         print(f"{path.name:34s} level {row['level']:.5f}  e- {electrons:6.1f}  "
               f"sd {row['noise_sd'] * 1e3:.3f}  corner {row['corner_sd'] * 1e3:.3f}  "
               f"camera {camera * 1e3:.3f}  left {left * 1e3:.3f}  "
               f"lag1 {row['lag1']:+.3f}")
 
     if args.csv:
-        with args.csv.open("w", newline="") as fh:
-            writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
-            writer.writeheader()
-            writer.writerows(rows)
+        write_csv(args.csv, list(rows.values()))
+    if args.summary:
+        write_csv(args.summary, per_series(rows, series))
     return 0
+
+
+def per_series(rows: dict, series: dict) -> List[dict]:
+    """Rows averaged over the frames of each series, in the order given."""
+    out = []
+    for label, paths in series.items():
+        group = [rows[p] for p in paths]
+        mean = {k: float(np.mean([r[k] for r in group]))
+                for k in group[0] if k != "file"}
+        out.append({"series": label, "frames": len(group), **mean})
+    return out
+
+
+def write_csv(path: Path, rows: List[dict]) -> None:
+    with path.open("w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 if __name__ == "__main__":
