@@ -138,14 +138,16 @@ The frames are not versioned. Fetch them and place them here:
     direct_screen_light/     34 frames, the color references and the targets
     trough_nvg/              11 frames, the gain sweep
 
-Set the variable every command below uses:
+Every command below runs from the repository root, with these two variables
+set:
 
-    $S = "..\..\..\src\Processing"
+    $S = "src\Processing"
+    $N = "data\photometry\nikon"
 
 Then check the set is complete and unmodified:
 
-    Import-Csv MANIFEST.csv | ForEach-Object {
-        $p = Join-Path $_.folder $_.file
+    Import-Csv $N\MANIFEST.csv | ForEach-Object {
+        $p = Join-Path $N (Join-Path $_.folder $_.file)
         if (-not (Test-Path $p)) { "missing: $p" }
         elseif ((Get-FileHash $p -Algorithm SHA256).Hash -ne $_.sha256.ToUpper()) {
             "changed: $p" }
@@ -168,7 +170,7 @@ Python will not parse, so step 7 formats with `InvariantCulture`.
 Rebuild only if the frame set changes. Everything in it is read from the
 frames, so it is safe to regenerate at any time.
 
-    python $S\BuildManifest.py .
+    python $S\BuildManifest.py $N
 
     reads    */*.NEF
     writes   MANIFEST.csv
@@ -181,13 +183,13 @@ own color. This derives that color from the scene rather than choosing it by
 eye.
 
     python $S\SceneLuxColor.py estimate `
-        --signal dark_card\s02_*.NEF --noise bg_noise\s02_*.NEF `
-        --red   direct_screen_light\s1[89]_*_calibRED_*.NEF `
-        --green direct_screen_light\s1[89]_*_calibGREEN_*.NEF `
-        --blue  direct_screen_light\s1[89]_*_calibBLUE_*.NEF `
-        --white direct_screen_light\s1[89]_*_calibWHITE_*.NEF `
-        --black direct_screen_light\s1[89]_*_calibBLACK_*.NEF `
-        --record color_static.json
+        --signal $N\dark_card\s02_*.NEF --noise $N\bg_noise\s02_*.NEF `
+        --red   $N\direct_screen_light\s1[89]_*_calibRED_*.NEF `
+        --green $N\direct_screen_light\s1[89]_*_calibGREEN_*.NEF `
+        --blue  $N\direct_screen_light\s1[89]_*_calibBLUE_*.NEF `
+        --white $N\direct_screen_light\s1[89]_*_calibWHITE_*.NEF `
+        --black $N\direct_screen_light\s1[89]_*_calibBLACK_*.NEF `
+        --record $N\color_static.json
 
     reads    2 scene frames, 7 dark frames, 20 display reference frames,
              four per color across the two sessions
@@ -229,8 +231,8 @@ argument for the capture.
 Display the color, shoot the card under it, and check what the camera
 actually sees against the target:
 
-    python $S\SceneLuxColor.py refine --record color_static.json `
-        --verify direct_screen_light\s20_01_calibSTATIC_*.NEF `
+    python $S\SceneLuxColor.py refine --record $N\color_static.json `
+        --verify $N\direct_screen_light\s20_01_calibSTATIC_*.NEF `
         --shot-at 161 79 255
 
     reads    2 frames shot under the displayed color
@@ -255,9 +257,9 @@ Only the target calibration is kept, because it is the only one the result
 reads. Every frame is 80 mm f/4 ISO 3200 in aperture priority, matching the
 measurement.
 
-    $files = (Get-ChildItem direct_screen_light\s20_01_calibSTATIC_*.NEF).FullName
+    $files = (Get-ChildItem $N\direct_screen_light\s20_01_calibSTATIC_*.NEF).FullName
     python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
-        --record calibration_static.json --overlay-dir overlay
+        --record $N\calibration_static.json --overlay-dir $N\overlay
 
 The `--y-mid` passed here only scales the reported lux, and the `y_card`
 values are what the step exists to produce.
@@ -277,9 +279,9 @@ is the `y_mid` column of that table, which is written down there. Anyone who
 wants the records back can run:
 
     foreach ($c in "RED", "GREEN", "BLUE", "WHITE") {
-        $files = (Get-ChildItem "direct_screen_light\s1?_*_calib$($c)_*.NEF").FullName
+        $files = (Get-ChildItem "$N\direct_screen_light\s1?_*_calib$($c)_*.NEF").FullName
         python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
-            --record "calibration_ref_$($c.ToLower()).json" --overlay-dir overlay
+            --record "$N\calibration_ref_$($c.ToLower()).json" --overlay-dir $N\overlay
     }
 
     reads    4 frames per color, 16 in total
@@ -299,21 +301,21 @@ which does set the result, is kept to one sitting.
 
 Run against the target calibration only.
 
-    $c = (Get-Content calibration_static.json | ConvertFrom-Json).captures
+    $c = (Get-Content $N\calibration_static.json | ConvertFrom-Json).captures
     $yMid = ($c.y_card | Measure-Object -Average).Average
 
-    $cov = (Get-ChildItem bg_noise\s02_*.NEF).FullName
+    $cov = (Get-ChildItem $N\bg_noise\s02_*.NEF).FullName
     python $S\SceneLux.py --rois --y-mid $yMid $cov `
-        --record noise_static.json --overlay-dir overlay
+        --record $N\noise_static.json --overlay-dir $N\overlay
 
-    $clr = (Get-ChildItem dark_card\s02_*.NEF).FullName
+    $clr = (Get-ChildItem $N\dark_card\s02_*.NEF).FullName
     python $S\SceneLux.py --rois --y-mid $yMid $clr `
-        --record signal_static.json --overlay-dir overlay
+        --record $N\signal_static.json --overlay-dir $N\overlay
 
-    python $S\SceneLuxResult.py --dark noise_static.json `
-        --measure signal_static.json --label static `
-        --csv result_table_static.csv --out result_static.json `
-        --plot noise_model_static.png
+    python $S\SceneLuxResult.py --dark $N\noise_static.json `
+        --measure $N\signal_static.json --label static `
+        --csv $N\result_table_static.csv --out $N\result_static.json `
+        --plot $N\noise_model_static.png
 
     reads    7 lens-covered and 2 lens-clear frames
     writes   noise_static.json, signal_static.json, result_static.json,
@@ -340,9 +342,9 @@ The subtraction itself is independent of the calibration. It returns the same
 The gain control was stepped from its maximum down to its minimum and back,
 which the naming records as g1 to g4 and then g1 again.
 
-    $files = (Get-ChildItem trough_nvg\s05_0*.NEF).FullName
-    python $S\SceneLux.py --rois rois\rois_nvg.json --y-mid $yMid `
-        $files --overlay-dir overlay --record nvg_s05_record.json
+    $files = (Get-ChildItem $N\trough_nvg\s05_0*.NEF).FullName
+    python $S\SceneLux.py --rois $N\rois\rois_nvg.json --y-mid $yMid `
+        $files --overlay-dir $N\overlay --record $N\nvg_s05_record.json
 
 This `y_mid` and the scene luminance in step 7 have to come from the same
 calibration. They cancel only as a pair, and mismatching them returns a wrong
@@ -360,11 +362,11 @@ from it cancels rho, so the assumed reflectance does not affect the gain. The
 script does that per frame and divides by the scene luminance measured without
 the device.
 
-    $lux = (Get-Content result_static.json | ConvertFrom-Json).result.lux_mean
+    $lux = (Get-Content $N\result_static.json | ConvertFrom-Json).result.lux_mean
     $L = ($lux * 0.178 / [Math]::PI).ToString("E4", [cultureinfo]::InvariantCulture)
 
-    python $S\SceneLuxGain.py nvg_s05_record.json `
-        --scene-luminance $L --csv gain_table.csv --plot gain_model.png
+    python $S\SceneLuxGain.py $N\nvg_s05_record.json `
+        --scene-luminance $L --csv $N\gain_table.csv --plot $N\gain_model.png
 
     reads    nvg_s05_record.json
     writes   gain_table.csv, one row per frame
@@ -386,7 +388,7 @@ cancels:
 
 leaving only the f-numbers, the exposure times and the two measured levels.
 `y_mid`, rho, K, the ISO and pi all drop out. Running the red calibration
-through the scripts instead, where `y_mid` is 2.8 times smaller and the scene
+through the scripts instead, where `y_mid` is 2.53 times smaller and the scene
 comes out at a different lux entirely, returns the same 7007 down to 196 and
 the same factor of 35.8.
 
@@ -479,13 +481,13 @@ matrix was not solved for it, because this display does not mix additively
 enough for the solve to be worth anything.
 
     python $S\SceneLuxColor.py estimate `
-        --signal dark_card\s21_*.NEF --noise bg_noise\s21_*.NEF `
-        --red   direct_screen_light\s21_07_calibRED_*.NEF `
-        --green direct_screen_light\s21_06_calibGREEN_*.NEF `
-        --blue  direct_screen_light\s21_04_calibBLUE_*.NEF `
-        --white direct_screen_light\s21_08_calibWHITE_*.NEF `
-        --black direct_screen_light\s21_05_calibBLACK_*.NEF `
-        --record color_moving.json
+        --signal $N\dark_card\s21_*.NEF --noise $N\bg_noise\s21_*.NEF `
+        --red   $N\direct_screen_light\s21_07_calibRED_*.NEF `
+        --green $N\direct_screen_light\s21_06_calibGREEN_*.NEF `
+        --blue  $N\direct_screen_light\s21_04_calibBLUE_*.NEF `
+        --white $N\direct_screen_light\s21_08_calibWHITE_*.NEF `
+        --black $N\direct_screen_light\s21_05_calibBLACK_*.NEF `
+        --record $N\color_moving.json
 
     reads    4 scene frames, 32 dark frames, 10 display reference frames
     writes   color_moving.json
@@ -497,8 +499,8 @@ That 3.9 % is the measurement behind the sentence above, and it is the one
 place the two scenes differ in kind rather than in numbers: the static
 display passes the same check under 2 %.
 
-    python $S\SceneLuxColor.py refine --record color_moving.json `
-        --verify direct_screen_light\s23_02_calibMOVING_*.NEF `
+    python $S\SceneLuxColor.py refine --record $N\color_moving.json `
+        --verify $N\direct_screen_light\s23_02_calibMOVING_*.NEF `
         --shot-at 203 201 207
 
     reads    2 frames shot under the displayed color
@@ -515,24 +517,24 @@ the run on the defaults.
 Then the calibration, the two scene records and the result:
 
     python $S\SceneLux.py --rois --y-mid 0.04837403318646708 `
-        (Get-ChildItem direct_screen_light\s23_02_calibMOVING_*.NEF).FullName `
-        --record calibration_moving.json --overlay-dir overlay
+        (Get-ChildItem $N\direct_screen_light\s23_02_calibMOVING_*.NEF).FullName `
+        --record $N\calibration_moving.json --overlay-dir $N\overlay
 
-    $c = (Get-Content calibration_moving.json | ConvertFrom-Json).captures
+    $c = (Get-Content $N\calibration_moving.json | ConvertFrom-Json).captures
     $yMid = ($c.y_card | Measure-Object -Average).Average
 
-    python $S\SceneLux.py --rois rois\rois_moving.json --y-mid $yMid `
-        (Get-ChildItem bg_noise\s21_*.NEF).FullName `
-        --record noise_moving.json --overlay-dir overlay
+    python $S\SceneLux.py --rois $N\rois\rois_moving.json --y-mid $yMid `
+        (Get-ChildItem $N\bg_noise\s21_*.NEF).FullName `
+        --record $N\noise_moving.json --overlay-dir $N\overlay
 
-    python $S\SceneLux.py --rois rois\rois_moving.json --y-mid $yMid `
-        (Get-ChildItem dark_card\s21_*.NEF).FullName `
-        --record signal_moving.json --overlay-dir overlay
+    python $S\SceneLux.py --rois $N\rois\rois_moving.json --y-mid $yMid `
+        (Get-ChildItem $N\dark_card\s21_*.NEF).FullName `
+        --record $N\signal_moving.json --overlay-dir $N\overlay
 
-    python $S\SceneLuxResult.py --dark noise_moving.json `
-        --measure signal_moving.json --label moving `
-        --csv result_table_moving.csv --out result_moving.json `
-        --plot noise_model_moving.png
+    python $S\SceneLuxResult.py --dark $N\noise_moving.json `
+        --measure $N\signal_moving.json --label moving `
+        --csv $N\result_table_moving.csv --out $N\result_moving.json `
+        --plot $N\noise_model_moving.png
 
     reads    2 calibration frames, 32 lens-covered and 4 lens-clear
     writes   calibration_moving.json, noise_moving.json, signal_moving.json,
