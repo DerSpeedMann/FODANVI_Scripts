@@ -83,6 +83,8 @@
     "real_nvg_white_rs_640_lin",
     "real_nvg_rs_640_lin_dn_h80_w3",
     "real_nvg_white_rs_640_lin_dn_h80_w3",
+    "real_nvg_resave",
+    "real_nvg_white_resave",
     "coco_nvg2_green_noisy_dn_h80_w3",
     "coco_nvg2_white_noisy_dn_h80_w3",
     "coco_nvg2_green_grain",
@@ -600,6 +602,19 @@
         "_rs_640_lin_dn_h80_w3"
       ],
       "describe": "scale check: resized to 640 (linear), then denoise (h 80, window 3/9), data/preprocess/rs_640_lin_dn_h80_w3.json"
+    },
+    "resave": {
+      "script": "Preprocess.py",
+      "suffix": "_resave",
+      "args": [
+        "--config",
+        "data/preprocess/resave.json",
+        "--quality",
+        "95",
+        "--suffix",
+        "_resave"
+      ],
+      "describe": "encoding control: no step, re-saved as every Preprocess.py configuration is (quality 95, 4:2:0), data/preprocess/resave.json"
     }
   },
   "variants": [
@@ -830,6 +845,13 @@
         [
           "white",
           "rs_640_lin_dn_h80_w3"
+        ],
+        [
+          "resave"
+        ],
+        [
+          "white",
+          "resave"
         ]
       ]
     },

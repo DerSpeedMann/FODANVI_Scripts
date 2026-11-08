@@ -1,0 +1,4 @@
+{
+  "note": "Encoding control: no step, the images are only re-saved as Preprocess.py saves every configuration (JPEG quality 95, PIL's default 4:2:0 chroma subsampling). Against the source set it measures what the re-encoding alone changes, which matters for the white phosphor tint, saved by GenerateColorShift.py at 4:4:4.",
+  "steps": []
+}
