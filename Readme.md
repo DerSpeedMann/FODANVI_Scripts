@@ -632,11 +632,37 @@ An entry can also carry:
     "kind": "lines"        one line per model across the datasets, written as
                            <prefix>_lines_<metric>.png; the default is "bars",
                            <prefix>_bars_<metric>.png
+    "kind": "panels"       grouped bars split into panels stacked on one
+                           shared axis, <prefix>_panels_<metric>.png; takes
+                           "styles" ("--" gives a hollow, hatched bar),
+                           "width", "baseline", "columns" and "pairs" as
+                           "lines" does
+    "panels": [            panels only: each panel's title and datasets,
+      {"title": "Green",   comma separated globs matched against the
+       "datasets": "..."}  datasets drawn (or the labels of "columns" and
+    ]                      "pairs"), in the order given; a dataset may stand
+                           in several panels; without it, one panel
+    "kind": "nested"       panels whose bars overlap, <prefix>_nested_<metric>.png:
+    "slots": [             each slot one position per dataset, the first
+      ["yolo11s"],         model a wide light bar, the second a narrow full
+      ["a_clean",          one inside it; a slot of one model is a plain
+       "a_clean-noisy"]    bar, a model in no slot is not drawn
+    ]
+    "kind": "heatmap"      one row per dataset, one column per model, each
+                           cell colored and labeled with its figure,
+                           <prefix>_heatmap_<metric>.png; "panels" groups the
+                           rows with a rule between groups; a gain or change
+                           gets a blue-red scale centered on zero; with more
+                           models than datasets the grid turns, one row per
+                           model, the rules then vertical
+    "labels": {...}        model name to the text shown for it in the legend
+                           (or heatmap column), in place of the run name
     "group": "model"       bars only: one group per model, one bar per dataset
     "colors": [...]        one color per model, in the order of "models"
-    "styles": ["-", "--"]  lines only: one dash pattern per model, in the same
-                           order; a dashed line gets hollow markers
-    "columns": [           lines only: each point is a label and dataset globs,
+    "styles": ["-", "--"]  lines and panels: one dash pattern per model, in the
+                           same order; a dashed line gets hollow markers, in
+                           panels a "--" model gets hollow, hatched bars
+    "columns": [           not bars: each point is a label and dataset globs,
       {"label": "COCO", "datasets": "coco"},       and a model's point is its
       {"label": "green best preprocessing",        highest figure over the sets
        "datasets": "real_nvg_dn_*,real_nvg_cl_*"}  matched; which set that was

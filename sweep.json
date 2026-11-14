@@ -917,7 +917,12 @@
     },
     {
       "prefix": "domainshift",
-      "kind": "lines",
+      "kind": "heatmap",
+      "panels": [
+        {"title": "COCO and clean synthetic sets", "datasets": "coco,coco_nvg_green_clean,coco_nvg2_green_clean,coco_nvg_captures_green_clean,coco_nvg_white_clean,coco_nvg2_white_clean"},
+        {"title": "Noisy synthetic sets", "datasets": "coco_nvg_green_noisy,coco_nvg2_green_noisy,coco_nvg_captures_green_noisy,coco_nvg_white_noisy,coco_nvg2_white_noisy"},
+        {"title": "Captures", "datasets": "real_nvg"}
+      ],
       "models": "rf-detr-large,rtdetr-x,yolo12x",
       "colors": [
         "#1f77b4",
@@ -933,7 +938,7 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "the pre-trained models on COCO, the synthetic sets and the captures as captured, datasets in the order of finetune_v1v2; models, colors and styles as in the color plot",
+      "describe": "the pre-trained models on COCO, the synthetic sets and the captures as captured, datasets in the order of finetune_v1v2; heatmap, rows grouped COCO and clean, noisy, captures",
       "width": 6.5
     },
     {
@@ -950,8 +955,24 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "hand-tuned (v1, orange) against measured (v2, green) conversion beside the yolo11s both started from (gray): clean stage dashed, clean-noisy stage solid; across COCO, the synthetic sets with each v1 set beside its v2 counterpart (green clean, white clean, green noisy, white noisy), the evaluation-only green set colored from the captures beside the other green sets, and the real captures",
-      "kind": "lines",
+      "describe": "hand-tuned (v1, orange) against measured (v2, green) conversion beside the yolo11s both started from (gray): nested bars, clean stage the wide light bar, clean-noisy stage the narrow one inside it; across COCO, the synthetic sets with each v1 set beside its v2 counterpart (green clean, white clean, green noisy, white noisy), the evaluation-only green set colored from the captures beside the other green sets, and the real captures",
+      "kind": "nested",
+      "panels": [
+        {"title": "COCO and clean synthetic sets", "datasets": "coco,coco_nvg_green_clean,coco_nvg2_green_clean,coco_nvg_captures_green_clean,coco_nvg_white_clean,coco_nvg2_white_clean"},
+        {"title": "Noisy synthetic sets and captures", "datasets": "coco_nvg_green_noisy,coco_nvg2_green_noisy,coco_nvg_captures_green_noisy,coco_nvg_white_noisy,coco_nvg2_white_noisy,real_nvg"}
+      ],
+      "slots": [
+        ["yolo11s"],
+        ["yolo11s_clean", "yolo11s_clean-noisy"],
+        ["yolo11s_nvg2_clean", "yolo11s_nvg2_clean-noisy"]
+      ],
+      "labels": {
+        "yolo11s": "yolo11s (pre-trained)",
+        "yolo11s_clean": "hand-tuned (v1), clean stage (wide)",
+        "yolo11s_clean-noisy": "hand-tuned (v1), clean-noisy (narrow)",
+        "yolo11s_nvg2_clean": "measured (v2), clean stage (wide)",
+        "yolo11s_nvg2_clean-noisy": "measured (v2), clean-noisy (narrow)"
+      },
       "styles": [
         "-",
         "--",
@@ -963,7 +984,12 @@
     },
     {
       "prefix": "finetune_gain",
-      "kind": "lines",
+      "kind": "heatmap",
+      "panels": [
+        {"title": "COCO and clean synthetic sets", "datasets": "coco,coco_nvg_green_clean,coco_nvg2_green_clean,coco_nvg_captures_green_clean,coco_nvg_white_clean,coco_nvg2_white_clean"},
+        {"title": "Noisy synthetic sets", "datasets": "coco_nvg_green_noisy,coco_nvg2_green_noisy,coco_nvg_captures_green_noisy,coco_nvg_white_noisy,coco_nvg2_white_noisy"},
+        {"title": "Captures and their color variants", "datasets": "real_nvg,real_nvg_grayscale,real_nvg_white,real_nvg_red_light,real_nvg_red_dark,real_nvg_red_swap"}
+      ],
       "baseline": "yolo11s",
       "models": "yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
@@ -982,12 +1008,16 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "gain in mAP50-95 of the four fine-tuned models over the yolo11s they started from, on the datasets of finetune_v1v2 followed by the color variants of the captures; colors and styles as in finetune_v1v2 without its gray yolo11s",
+      "describe": "gain in mAP50-95 of the four fine-tuned models over the yolo11s they started from, on the datasets of finetune_v1v2 followed by the color variants of the captures; heatmap on a blue-red scale centered on zero, rows grouped COCO and clean, noisy, captures and their color variants",
       "width": 6.5
     },
     {
       "prefix": "color",
-      "kind": "lines",
+      "kind": "panels",
+      "panels": [
+        {"title": "COCO, captures, grayscale and white tint", "datasets": "coco,real_nvg,real_nvg_grayscale,real_nvg_white"},
+        {"title": "Red variants of the captures", "datasets": "real_nvg_red_light,real_nvg_red_dark,real_nvg_red_swap"}
+      ],
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",
@@ -1013,11 +1043,16 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "all eight models on the color variants of the captures, each in the color and line style of the pre-trained and finetune_v1v2 plots"
+      "describe": "all eight models on the color variants of the captures, each in the color of the pre-trained and finetune_v1v2 plots, the clean stage of each chain hatched"
     },
     {
       "prefix": "preprocess_best",
-      "kind": "lines",
+      "kind": "heatmap",
+      "panels": [
+        {"title": "COCO", "datasets": "COCO"},
+        {"title": "Green captures", "datasets": "green unprocessed,green best preprocessing"},
+        {"title": "White phosphor tint", "datasets": "white tint unprocessed,white tint best preprocessing"}
+      ],
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",
@@ -1064,7 +1099,7 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "each model on COCO and on the green captures and their white phosphor tint, unprocessed and at its highest-scoring preprocessing configuration of the sweep; models, colors and styles as in the color plot"
+      "describe": "each model on COCO and on the green captures and their white phosphor tint, unprocessed and at its highest-scoring preprocessing configuration of the sweep; heatmap, one row per model, COCO once, then green and white tint"
     },
     {
       "prefix": "preprocess_green",
@@ -1088,7 +1123,11 @@
     },
     {
       "prefix": "denoise_synthetic",
-      "kind": "lines",
+      "kind": "panels",
+      "panels": [
+        {"title": "Green", "datasets": "coco_nvg2_green_clean,coco_nvg2_green_grain,coco_nvg2_green_grain_dn_h80_w3,real_nvg,real_nvg_dn_h80_w3"},
+        {"title": "White", "datasets": "coco_nvg2_white_clean,coco_nvg2_white_grain,coco_nvg2_white_grain_dn_h80_w3,real_nvg_white,real_nvg_white_dn_h80_w3"}
+      ],
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",
@@ -1118,7 +1157,11 @@
     },
     {
       "prefix": "denoise_change",
-      "kind": "lines",
+      "kind": "panels",
+      "panels": [
+        {"title": "Green", "datasets": "green grain only,green noisy,green captures"},
+        {"title": "White", "datasets": "white grain only,white noisy,white phosphor tint"}
+      ],
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",
@@ -1157,7 +1200,11 @@
     },
     {
       "prefix": "denoise_scale",
-      "kind": "lines",
+      "kind": "panels",
+      "panels": [
+        {"title": "Green", "datasets": "green denoised full size,green denoised at 640,green 640 linear"},
+        {"title": "White", "datasets": "white denoised full size,white denoised at 640,white 640 linear"}
+      ],
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",
@@ -1196,7 +1243,11 @@
     },
     {
       "prefix": "grain",
-      "kind": "lines",
+      "kind": "panels",
+      "panels": [
+        {"title": "Green", "datasets": "coco_nvg2_green_clean,coco_nvg2_green_grain,coco_nvg2_green_grain_dn_h80_w3"},
+        {"title": "White", "datasets": "coco_nvg2_white_clean,coco_nvg2_white_grain,coco_nvg2_white_grain_dn_h80_w3"}
+      ],
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",

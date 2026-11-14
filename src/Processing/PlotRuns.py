@@ -25,6 +25,21 @@ One figure per selection and metric:
     lines_<metric>.png     with "kind": "lines" instead, one line per model
                            across the datasets in the order listed, with
                            "styles" giving each line its dash pattern
+    panels_<metric>.png    with "kind": "panels", grouped bars as above but
+                           split into panels stacked on one shared axis,
+                           "panels" naming each panel's title and datasets;
+                           a model styled "--" gets hollow, hatched bars
+    nested_<metric>.png    with "kind": "nested", panels whose bars overlap:
+                           "slots" lists the models sharing one slot, the
+                           first drawn as a wide light bar, the second as a
+                           narrow full one inside it, so two stages of one
+                           training take the room of one bar
+    heatmap_<metric>.png   with "kind": "heatmap", one row per dataset and
+                           one column per model, each cell colored and
+                           labeled with its figure; "panels" groups the rows,
+                           with a rule between groups; a figure that can be
+                           negative (a gain or change) gets a diverging scale
+                           centered on zero
 
 Models and datasets appear in the order of the patterns that pick them, so a
 plot that names them one by one sets the order, and "colors" in a plot entry
@@ -267,6 +282,248 @@ def plot_lines(rows: List[dict], metric: str, path: Path,
     plt.close(fig)
 
 
+def picked(present: List[str], patterns: str) -> List[str]:
+    """Those of present that the patterns match, in the patterns' order;
+    unlike ordered, what no pattern matches is left out."""
+    out: List[str] = []
+    for p in [p.strip() for p in patterns.split(",") if p.strip()]:
+        out += [v for v in present if fnmatch.fnmatch(v, p) and v not in out]
+    return out
+
+
+def plot_panels(rows: List[dict], metric: str, path: Path,
+                panels: Optional[List[dict]] = None,
+                order: str = "*", model_order: str = "*",
+                colors: Optional[List[str]] = None,
+                styles: Optional[List[str]] = None,
+                width: Optional[float] = None,
+                change: Optional[str] = None,
+                slots: Optional[List[List[str]]] = None,
+                labels: Optional[Dict[str, str]] = None) -> None:
+    """Grouped bars, one group per dataset and one bar per model, split
+    into panels stacked one above the other.
+
+    With slots, the bars of a group overlap instead (the "nested" kind):
+    each slot is a list of one or two models sharing one position, the
+    first drawn as a wide bar in a light shade of its color, the second as
+    a narrow bar in the full color inside it. A slot of one model is a
+    plain bar. Models in no slot are not drawn. labels, when given, names
+    a model in the legend in place of its run name.
+
+    The datasets are categories, so no line joins them; splitting them into
+    panels keeps the number of bars per row low enough for a page width.
+    Each panel is a dict of a "title" and "datasets", comma separated
+    patterns matched against the datasets drawn (or the labels of columns
+    and pairs), in the order given; a dataset may stand in more than one
+    panel, as a reference does. Without panels, one panel holds them all.
+
+    All panels share the value axis, so bar heights compare across them.
+    A model styled "--" (see styles) gets a hollow, hatched bar, the
+    counterpart of the hollow marker of the lines plot. change works as in
+    plot_lines: the axis says so and a line marks zero.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib import pyplot as plt
+
+    models, datasets, _ = axes(rows, order, model_order)
+    by = {(r["model"], r["dataset"]): float(r[metric]) for r in rows
+          if r[metric] not in ("--", "")}
+    if not panels:
+        panels = [{"title": "", "datasets": ",".join(datasets)}]
+    built = [(p.get("title", ""), picked(datasets, p["datasets"]))
+             for p in panels]
+    for title, ds in built:
+        if not ds:
+            print(f"  {path.name}: panel '{title}' matched nothing")
+    built = [(t, ds) for t, ds in built if ds]
+    if not built or not by:
+        print(f"  {path.name}: nothing to draw, skipped")
+        return
+    cmap = plt.get_cmap("tab10" if len(models) <= 10 else "tab20")
+    color_of = {m: colors[i % len(colors)] if colors else cmap(i % cmap.N)
+                for i, m in enumerate(models)}
+    name = (lambda m: labels.get(m, m)) if labels else (lambda m: m)
+    if slots:
+        slots = [[m for m in s if m in models] for s in slots]
+        slots = [s for s in slots if s]
+        models = [m for s in slots for m in s]
+    bar = 0.8 / max(len(slots) if slots else len(models), 1)
+
+    shown = [by[(m, d)] for _, ds in built for d in ds for m in models
+             if (m, d) in by]
+    lo, hi = min(0.0, min(shown)), max(0.0, max(shown))
+    pad = 0.08 * (hi - lo)
+
+    fig, axs = plt.subplots(len(built), 1, sharey=True, squeeze=False,
+                            figsize=(width or 6.5, 3.0 * len(built)))
+    def values(m: str, ds: List[str], k: int):
+        """x and y of model m's bars at slot (or bar) position k; a pair
+        that was not run leaves a gap."""
+        xs = [j - 0.4 + bar * (k + 0.5) for j, d in enumerate(ds)
+              if (m, d) in by]
+        return xs, [by[(m, d)] for d in ds if (m, d) in by]
+
+    for ax, (title, ds) in zip(axs[:, 0], built):
+        if slots:
+            for k, slot in enumerate(slots):
+                for depth, m in enumerate(slot[:2]):
+                    xs, ys = values(m, ds, k)
+                    color = color_of[m]
+                    if depth == 0 and len(slot) > 1:
+                        ax.bar(xs, ys, width=bar * 0.95, label=name(m),
+                               color=light(color), edgecolor=color, lw=0.8)
+                    else:
+                        ax.bar(xs, ys, width=bar * (0.45 if depth else 0.95),
+                               label=name(m), color=color)
+        for i, m in enumerate([] if slots else models):
+            xs, ys = values(m, ds, i)
+            color = color_of[m]
+            hollow = bool(styles) and styles[i % len(styles)] != "-"
+            ax.bar(xs, ys, width=bar, label=name(m),
+                   color="white" if hollow else color, edgecolor=color,
+                   linewidth=1.0 if hollow else 0,
+                   hatch="////" if hollow else None)
+        ax.set_xticks(range(len(ds)))
+        ax.set_xticklabels(ds, rotation=20, ha="right",
+                           rotation_mode="anchor", fontsize=8)
+        if title:
+            ax.set_title(title, fontsize=9, loc="left")
+        if change:
+            ax.set_ylabel(f"{HEADER[metric]} {change}")
+            ax.axhline(0, color="black", lw=0.8)
+        else:
+            ax.set_ylabel(HEADER[metric])
+        ax.set_ylim(lo - pad if lo < 0 else 0, hi + pad)
+        ax.grid(axis="y", alpha=0.3)
+        ax.set_axisbelow(True)
+    fig.tight_layout()
+    # Above the panels rather than inside: inside, it covers whichever bars
+    # happen to be tallest under it. Centered on the figure, not the axes,
+    # so long names overhang neither side; at most four columns, five
+    # models as three over two rather than four over one.
+    # Nested slots go one per column, wide above narrow, so each column of
+    # the legend reads as one slot.
+    n = len(models)
+    handles, names = axs[0, 0].get_legend_handles_labels()
+    if slots:
+        pad_to = max(len(s) for s in slots)
+        cols, k = [], 0
+        for s in slots:
+            cols.append(list(range(k, k + len(s))) + [None] * (pad_to - len(s)))
+            k += len(s)
+        from matplotlib.patches import Patch
+        blank = Patch(visible=False)
+        order_ = [c[r] for c in cols for r in range(pad_to)]
+        handles = [handles[i] if i is not None else blank for i in order_]
+        names = [names[i] if i is not None else "" for i in order_]
+        ncol = len(slots)
+    else:
+        ncol = n if n <= 4 else -(-n // 2) if n <= 8 else 4
+    fig.legend(handles, names, fontsize=8, ncol=ncol,
+               loc="lower center", bbox_to_anchor=(0.5, 1.0),
+               frameon=False)
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
+def light(color, share: float = 0.35) -> Tuple[float, float, float]:
+    """color mixed with white, share of it kept: the wide bar of a slot."""
+    from matplotlib.colors import to_rgb
+    return tuple(1 - share + share * c for c in to_rgb(color))
+
+
+def plot_heatmap(rows: List[dict], metric: str, path: Path,
+                 panels: Optional[List[dict]] = None,
+                 order: str = "*", model_order: str = "*",
+                 width: Optional[float] = None,
+                 change: Optional[str] = None,
+                 labels: Optional[Dict[str, str]] = None) -> None:
+    """One row per dataset, one column per model, each cell colored and
+    labeled with the model's figure on that dataset.
+
+    For a figure set too large for bars, such as a gain over a baseline on
+    every dataset: every value stays readable as a number, the color only
+    guides the eye. panels, as in plot_panels, sets the rows and their
+    order, a rule between one panel's rows and the next; without panels,
+    the datasets in the order listed. Where a figure can be negative (with
+    change, or when any value is), the scale diverges from zero, blue for a
+    gain and red for a loss; otherwise it runs over the range shown.
+    labels names a model's column in place of its run name.
+
+    With more models than datasets, the grid turns: one row per model and
+    one column per dataset, the rules between panels then vertical, so the
+    cells stay wide enough for their figures.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    from matplotlib import pyplot as plt
+    from matplotlib.colors import TwoSlopeNorm
+    import numpy as np
+
+    models, datasets, _ = axes(rows, order, model_order)
+    by = {(r["model"], r["dataset"]): float(r[metric]) for r in rows
+          if r[metric] not in ("--", "")}
+    groups = [picked(datasets, p["datasets"]) for p in panels] \
+        if panels else [datasets]
+    groups = [g for g in groups if g]
+    ds = [d for g in groups for d in g]
+    if not ds or not by:
+        print(f"  {path.name}: nothing to draw, skipped")
+        return
+    grid = np.array([[by.get((m, d), np.nan) for m in models] for d in ds])
+
+    signed = bool(change) or np.nanmin(grid) < 0
+    if signed:
+        lim = float(np.nanmax(np.abs(grid)))
+        cmap, norm = "RdBu", TwoSlopeNorm(0, -lim, lim)
+        dark = lambda v: abs(v) > 0.6 * lim
+        fmt = "{:+.3f}"
+    else:
+        lo, hi = float(np.nanmin(grid)), float(np.nanmax(grid))
+        cmap, norm = "viridis", matplotlib.colors.Normalize(lo, hi)
+        dark = lambda v: v < (lo + hi) / 2
+        fmt = "{:.3f}"
+
+    names = [labels.get(m, m) if labels else m for m in models]
+    turned = len(models) > len(ds)
+    if turned:
+        grid, rows_, cols_ = grid.T, names, ds
+        size = (width or 6.5, 0.38 * len(models) + 2.2)
+    else:
+        rows_, cols_ = ds, names
+        size = (width or 5.2, 0.28 * len(ds) + 1.4)
+
+    fig, ax = plt.subplots(figsize=size)
+    im = ax.imshow(grid, cmap=cmap, norm=norm, aspect="auto")
+    for i in range(len(rows_)):
+        for j in range(len(cols_)):
+            v = grid[i, j]
+            if not np.isnan(v):
+                ax.text(j, i, fmt.format(v), ha="center", va="center",
+                        fontsize=7.5, color="white" if dark(v) else "black")
+    edge = -0.5
+    for g in groups[:-1]:
+        edge += len(g)
+        (ax.axvline if turned else ax.axhline)(edge, color="black", lw=1.2)
+    ax.set_yticks(range(len(rows_)))
+    ax.set_yticklabels(rows_, fontsize=8)
+    ax.set_xticks(range(len(cols_)))
+    ax.set_xticklabels(cols_, rotation=25, ha="left", rotation_mode="anchor",
+                       fontsize=8)
+    ax.xaxis.tick_top()
+    ax.tick_params(length=0)
+    for s in ax.spines.values():
+        s.set_visible(False)
+    cb = fig.colorbar(im, ax=ax, fraction=0.05, pad=0.03)
+    cb.set_label(f"{HEADER[metric]} {change}" if change else HEADER[metric],
+                 fontsize=8)
+    cb.ax.tick_params(labelsize=7)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+
 def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
          sweep: Optional[Path] = Path("sweep.json"),
          group: str = "dataset", order: str = "*", model_order: str = "*",
@@ -274,10 +531,16 @@ def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
          styles: Optional[List[str]] = None,
          width: Optional[float] = None,
          baseline: Optional[str] = None,
-         change: Optional[str] = None) -> List[Path]:
+         change: Optional[str] = None,
+         panels: Optional[List[dict]] = None,
+         slots: Optional[List[List[str]]] = None,
+         labels: Optional[Dict[str, str]] = None) -> List[Path]:
     """The figure for a selection, limited to the sweep. Returns what was
     written. With a baseline, each model is drawn as its gain over it;
-    change labels rows that already hold a change (see draw_pairs)."""
+    change labels rows that already hold a change (see draw_pairs);
+    panels splits a "panels" or "nested" plot and groups the rows of a
+    "heatmap"; slots pairs the models of a "nested" plot (see
+    plot_panels); labels renames models in legend or columns."""
     rows = in_sweep(rows, sweep)
     if baseline:
         rows = against(rows, baseline, metric)
@@ -288,6 +551,17 @@ def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
     if kind == "lines":
         plot_lines(rows, metric, path, order, model_order, colors, styles,
                    width, change)
+    elif kind == "panels":
+        plot_panels(rows, metric, path, panels, order, model_order, colors,
+                    styles, width, change, labels=labels)
+    elif kind == "nested":
+        if not slots:
+            raise ValueError(f"plot '{prefix}' is nested but has no slots")
+        plot_panels(rows, metric, path, panels, order, model_order, colors,
+                    styles, width, change, slots, labels)
+    elif kind == "heatmap":
+        plot_heatmap(rows, metric, path, panels, order, model_order, width,
+                     change, labels)
     elif kind == "bars":
         plot_bars(rows, metric, path, group, order, model_order, colors)
     else:
@@ -329,7 +603,9 @@ def draw_columns(rows: List[dict], p: dict, out: Path,
         written += draw(built, metric, out, p.get("prefix", ""), None,
                         "dataset", ",".join(c["label"] for c in p["columns"]),
                         models, p.get("colors"), p.get("kind", "lines"),
-                        p.get("styles"))
+                        p.get("styles"), p.get("width"),
+                        panels=p.get("panels"), slots=p.get("slots"),
+                        labels=p.get("labels"))
     return written
 
 
@@ -363,7 +639,8 @@ def draw_pairs(rows: List[dict], p: dict, out: Path,
                         "dataset", ",".join(c["label"] for c in p["pairs"]),
                         models, p.get("colors"), p.get("kind", "lines"),
                         p.get("styles"), p.get("width"), None,
-                        p.get("change", "change"))
+                        p.get("change", "change"), p.get("panels"),
+                        p.get("slots"), p.get("labels"))
     return written
 
 
@@ -395,7 +672,9 @@ def draw_configured(rows: List[dict], out: Path,
                             p.get("group", "dataset"), p.get("datasets", "*"),
                             p.get("models", "*"), p.get("colors"),
                             p.get("kind", "bars"), p.get("styles"),
-                            p.get("width"), p.get("baseline"))
+                            p.get("width"), p.get("baseline"),
+                            panels=p.get("panels"), slots=p.get("slots"),
+                            labels=p.get("labels"))
     return written
 
 
