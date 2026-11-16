@@ -1,24 +1,28 @@
 """
 PlotCategories.py
 
-Draw the per-category figures of the pre-trained models on COCO and on the
-captures, which comparison.csv does not hold: it keeps one figure per run,
-the per-category ones live in each run's tables/per_class_metrics.csv.
+Draw the per-category figures on COCO and on the captures, which
+comparison.csv does not hold: it keeps one figure per run, the per-category
+ones live in each run's tables/per_class_metrics.csv.
 
-By default (--kind panels), one panel per dataset, COCO above the captures,
-each with one group per category and one bar per model in the colors of the
-PlotRuns figures, both panels on one shared axis: the categories are
-categories, not a scale, so no line joins them. Written as
+By default (--kind nested), all eight models: one panel per dataset, COCO
+above the captures, each with one group per category, both panels on one
+shared axis. The pre-trained models and yolo11s get one bar each; each
+fine-tuning chain shares one slot as in the nested PlotRuns figures, the
+clean stage a wide bar in a light shade, the clean-noisy stage a narrow bar
+in the full color inside it. Written as categories_nested_<metric>.png.
+
+--kind panels draws the pre-trained models only, one bar per model, as
 pretrained_categories_panels_<metric>.png.
 
---kind lines draws the earlier figure instead, one line per model and
-dataset across the four categories, COCO dashed with hollow markers, the
-captures solid, as pretrained_categories_lines_<metric>.png.
+--kind lines draws the earlier figure instead, one line per pre-trained
+model and dataset across the four categories, COCO dashed with hollow
+markers, the captures solid, as pretrained_categories_lines_<metric>.png.
 
 Usage:
     python src/Processing/PlotCategories.py
     python src/Processing/PlotCategories.py --metric map50
-    python src/Processing/PlotCategories.py --kind lines
+    python src/Processing/PlotCategories.py --kind panels
 """
 
 from __future__ import annotations
@@ -34,6 +38,13 @@ MODELS = (("rf-detr-large", "rfdetrl", "#1f77b4"),
           ("yolo12x", "yolo12x", "#9467bd"))
 DATASETS = (("coco", "COCO", "--"), ("real_nvg", "captures", "-"))
 HEADER = {"map50": "mAP50", "map50_95": "mAP50-95"}
+# Slots of the nested figure, labels and colors as in the nested PlotRuns
+# plots of sweep.json; two entries share a slot, wide then narrow.
+SLOTS = [[m] for m in MODELS + (("yolo11s", "yolo11s", "#7f7f7f"),)] + [
+    [("v1 clean", "yolo11s_clean", "#ff7f0e"),
+     ("v1 clean-noisy", "yolo11s_clean-noisy", "#ff7f0e")],
+    [("v2 clean", "yolo11s_nvg2_clean", "#2ca02c"),
+     ("v2 clean-noisy", "yolo11s_nvg2_clean-noisy", "#2ca02c")]]
 
 
 def per_class(runs: Path, stem: str, dataset: str, metric: str) -> dict:
@@ -78,19 +89,81 @@ def panels(args, plt) -> int:
     return 0
 
 
+def nested(args, plt) -> int:
+    """One panel per dataset, a slot per model or fine-tuning chain in each
+    category group; the two stages of a chain overlap in one slot."""
+    from matplotlib.patches import Patch
+    from PlotRuns import light
+
+    values = {(stem, dataset): per_class(args.runs, stem, dataset,
+                                         args.metric)
+              for slot in SLOTS for _, stem, _ in slot
+              for dataset, _, _ in DATASETS}
+    for slot in SLOTS:
+        for label, stem, _ in slot:
+            for dataset, _, _ in DATASETS:
+                v = values[(stem, dataset)]
+                print(f"{label:14} {dataset:9} "
+                      + " ".join(f"{c} {v[c]:.3f}" for c in CATEGORIES))
+    top = max(v[c] for v in values.values() for c in CATEGORIES) * 1.08
+    bar = 0.8 / len(SLOTS)
+
+    fig, axs = plt.subplots(len(DATASETS), 1, sharey=True,
+                            figsize=(args.width, 3.0 * len(DATASETS)))
+    for ax, (dataset, name, _) in zip(axs, DATASETS):
+        for k, slot in enumerate(SLOTS):
+            xs = [j - 0.4 + bar * (k + 0.5) for j in range(len(CATEGORIES))]
+            for depth, (label, stem, color) in enumerate(slot[:2]):
+                ys = [values[(stem, dataset)][c] for c in CATEGORIES]
+                if depth == 0 and len(slot) > 1:
+                    ax.bar(xs, ys, width=bar * 0.95, label=label,
+                           color=light(color), edgecolor=color, lw=0.8)
+                else:
+                    ax.bar(xs, ys, width=bar * (0.45 if depth else 0.95),
+                           label=label, color=color)
+        ax.set_xticks(range(len(CATEGORIES)))
+        ax.set_xticklabels(CATEGORIES, fontsize=8)
+        ax.set_title(name, fontsize=9, loc="left")
+        ax.set_ylabel(HEADER[args.metric])
+        ax.set_ylim(0, top)
+        ax.grid(axis="y", alpha=0.3)
+        ax.set_axisbelow(True)
+    fig.tight_layout()
+    # One legend column per slot, wide above narrow, as in PlotRuns.
+    handles, names = axs[0].get_legend_handles_labels()
+    blank = Patch(visible=False)
+    order, k = [], 0
+    for slot in SLOTS:
+        order += list(range(k, k + len(slot))) + [None] * (2 - len(slot))
+        k += len(slot)
+    fig.legend([handles[i] if i is not None else blank for i in order],
+               [names[i] if i is not None else "" for i in order],
+               fontsize=8, ncol=len(SLOTS), loc="lower center",
+               bbox_to_anchor=(0.5, 1.0), frameon=False)
+    args.out.mkdir(parents=True, exist_ok=True)
+    path = args.out / f"categories_nested_{args.metric}.png"
+    fig.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    print(f"wrote {path}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--runs", type=Path, default=Path("data/runs"))
     ap.add_argument("--out", type=Path, default=Path("data/results"))
     ap.add_argument("--metric", default="map50_95", choices=tuple(HEADER))
     ap.add_argument("--width", type=float, default=6.5)
-    ap.add_argument("--kind", default="panels", choices=("panels", "lines"))
+    ap.add_argument("--kind", default="nested",
+                    choices=("nested", "panels", "lines"))
     args = ap.parse_args()
 
     import matplotlib
     matplotlib.use("Agg")
     from matplotlib import pyplot as plt
 
+    if args.kind == "nested":
+        return nested(args, plt)
     if args.kind == "panels":
         return panels(args, plt)
 
