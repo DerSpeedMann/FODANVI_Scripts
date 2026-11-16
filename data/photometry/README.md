@@ -3,7 +3,7 @@
 Reference captures used to characterize the camera and the scene, rather than
 to train or evaluate a model.
 
-    nikon/   Nikon D500 illuminance measurement and night vision device gain
+    nikon/   Nikon D500 illuminance measurement, night vision device gain and grain
     phone/   OnePlus 7 Pro dark-level drift
 
 ## The frames are not in this repository

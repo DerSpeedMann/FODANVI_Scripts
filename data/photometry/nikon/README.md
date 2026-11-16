@@ -6,6 +6,7 @@ Every number reported here comes from the scripts below, run in this order.
     SceneLuxColor.py   src/Processing/SceneLuxColor.py
     SceneLuxResult.py  src/Processing/SceneLuxResult.py
     SceneLuxGain.py    src/Processing/SceneLuxGain.py
+    SceneLuxGrain.py   src/Processing/SceneLuxGrain.py
     BuildManifest.py   src/Processing/BuildManifest.py
 
 ## Result
@@ -77,17 +78,6 @@ It is worth knowing that the color beats the model that produced it. For
 0.534, a 6.9 % error in red, and the matrix's own best guess would have
 landed further from the scene. The value came from refining a measurement,
 not from solving the matrix, which is what the refine step is for.
-
-### Against the earlier figures
-
-    4.09e-04      the figure the thesis carries, calibrated near white
-    2.94e-04      to 5.03e-04, the range from whitish calibrations
-    5.15e-04      this measurement
-
-26 % above the figure the thesis carries, and the reason is in the table
-below: white gives 2.91e-04 where the scene's own color gives 5.15e-04. The
-old figure was low because it was calibrated near white, which is what the
-color work exists to fix.
 
 ## The calibration illuminant has to match the scene
 
@@ -177,7 +167,7 @@ frames, so it is safe to regenerate at any time.
 
 ## 1. Scene color
 
-`y_mid` moves with the illuminant, by a factor of 6.67 across the colors in
+`y_mid` moves with the illuminant, by a factor of 6.35 across the colors in
 the table above, so the calibration has to be shot under light of the scene's
 own color. This derives that color from the scene rather than choosing it by
 eye.
@@ -253,9 +243,8 @@ scatter of the pair that measured it.
 
 ## 2. Calibration
 
-Only the target calibration is kept, because it is the only one the result
-reads. Every frame is 80 mm f/4 ISO 3200 in aperture priority, matching the
-measurement.
+The target calibration is the only one the result reads. Every frame is
+80 mm f/4 ISO 3200 in aperture priority, matching the measurement.
 
     $files = (Get-ChildItem $N\direct_screen_light\s20_01_calibSTATIC_*.NEF).FullName
     python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
@@ -273,18 +262,19 @@ its only job is the leak measurement in step 1.
 
 ### The reference colors
 
-The four reference colors in the table above are calibrated the same way, and
-their records are not kept. Nothing downstream reads them; their whole output
-is the `y_mid` column of that table, which is written down there. Anyone who
-wants the records back can run:
+The reference colors in the table above are calibrated the same way, all of
+them in one run with the target, into one table with a row per frame and its
+color read from the file name. Nothing downstream reads it; it is the source
+of the `y_mid` column of that table, the mean `y_card` per color.
 
-    foreach ($c in "RED", "GREEN", "BLUE", "WHITE") {
-        $files = (Get-ChildItem "$N\direct_screen_light\s1?_*_calib$($c)_*.NEF").FullName
-        python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
-            --record "$N\calibration_ref_$($c.ToLower()).json" --overlay-dir $N\overlay
-    }
+    $files = (Get-ChildItem $N\direct_screen_light\s1[89]_*_calib*.NEF,
+                            $N\direct_screen_light\s20_*.NEF).FullName
+    python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
+        --record $N\calibration_colors_static.json --csv $N\calibration_colors_static.csv
 
-    reads    4 frames per color, 16 in total
+    reads    20 reference frames, four per color including black, and the 2
+             target frames
+    writes   calibration_colors_static.json, calibration_colors_static.csv
     gives    y_mid 0.015178 red, 0.028988 blue, 0.067984 white, 0.096413 green
 
 They are named `ref` rather than `static`: the frames are s18 and s19, and
@@ -393,7 +383,7 @@ comes out at a different lux entirely, returns the same 7007 down to 196 and
 the same factor of 35.8.
 
 This makes the gain the firmest number here. The illuminance carries the
-calibration spread; the gain carries none of it. The factor of 6.67 that
+calibration spread; the gain carries none of it. The factor of 6.35 that
 separates the calibrations, and which is why the calibration color has to
 be matched at all, has no effect here.
 
@@ -405,6 +395,38 @@ This is a floor, not the device's datasheet gain. Coupling between eyepiece
 and camera loses light to vignetting and exit pupil mismatch, and a datasheet
 figure in cd/m2 per lux refers to illuminance at the photocathode, which the
 objective concentrates first.
+
+## 8. Grain against gain
+
+The same eleven frames through the device, measured for their grain rather
+than their level: the residual against a blurred copy inside the four
+regions of step 6, on one green photosite plane, set against the noise the
+camera adds by itself. Read and dark noise come from the corners of the same
+frames, outside the intensified field; shot noise follows from a photon
+transfer fit over two pairs of evenly lit reference frames at the same ISO,
+less a dark pair. The script's header has the method.
+
+    python $S\SceneLuxGrain.py --rois $N\rois\rois_nvg.json `
+        --series g1_max (Get-ChildItem $N\trough_nvg\s05_01_*.NEF).FullName `
+        --series g2 (Get-ChildItem $N\trough_nvg\s05_02_*.NEF).FullName `
+        --series g3 (Get-ChildItem $N\trough_nvg\s05_03_*.NEF).FullName `
+        --series g4_min (Get-ChildItem $N\trough_nvg\s05_04_*.NEF).FullName `
+        --series g1_returned (Get-ChildItem $N\trough_nvg\s05_05_*.NEF).FullName `
+        --pairs (Get-ChildItem $N\direct_screen_light\s18_03_*.NEF,
+                               $N\direct_screen_light\s18_04_*.NEF).FullName `
+        --dark (Get-ChildItem $N\direct_screen_light\s18_01_*.NEF).FullName `
+        --csv $N\grain_table.csv --summary $N\grain_series.csv
+
+    reads    the 11 frames of step 6, the s18 red and blue pairs, the s18
+             black pair
+    writes   grain_table.csv, one row per frame
+             grain_series.csv, the frames averaged per series
+
+A series is the frames shot at one setting in one go, so the maximum
+returned to at the end is a row of its own. `camera_share` is the camera's
+variance over the measured one, capped at one, where the camera alone could
+produce all of the residual; `unexplained_sd` is what is left of the residual
+after the camera's part is removed in quadrature.
 
 ## Why the calibration is at 80 mm f/4
 
@@ -448,7 +470,8 @@ frames. A different session will need them re-placed.
 | --- | --- |
 | `MANIFEST.csv` | step 0, the frames to place here with sizes and checksums |
 | `color_static.json` | step 1, the derived scene color and the match history |
-| `calibration_static.json` | step 2, the target color, the only one kept |
+| `calibration_static.json` | step 2, the target color, the one the result reads |
+| `calibration_colors_static.json`, `.csv` | step 2, every reference color and the target, one row per frame |
 | `noise_static.json` | step 3, seven lens-covered frames |
 | `signal_static.json` | step 4, two lens-clear frames |
 | `result_static.json` | step 5, full log including the drift model |
@@ -457,6 +480,8 @@ frames. A different session will need them re-placed.
 | `nvg_s05_record.json` | step 6, the gain sweep |
 | `gain_table.csv` | step 7, per-frame luminance gain |
 | `gain_model.png` | step 7, the gain sweep plotted for checking, not versioned |
+| `grain_table.csv` | step 8, per-frame grain against the camera's noise |
+| `grain_series.csv` | step 8, the same averaged per series |
 | `rois/` | input, the region definition for step 6 |
 | `overlay/` | ROI overlays written alongside each record, not versioned |
 | `*_moving.json`, `*_moving.csv` | the vehicle scene, the same steps against its own frames |
@@ -541,6 +566,14 @@ Then the calibration, the two scene records and the result:
              result_moving.json, result_table_moving.csv,
              noise_model_moving.png
     gives    y_mid 0.078478, 1.978e-02 lux +/- 2.97e-04
+
+The reference colors of the moving scene go into one table with its target,
+as for the static one:
+
+    $files = (Get-ChildItem $N\direct_screen_light\s21_*_calib*.NEF,
+                            $N\direct_screen_light\s23_*.NEF).FullName
+    python $S\SceneLux.py --rois --y-mid 0.04837403318646708 $files `
+        --record $N\calibration_colors_moving.json --csv $N\calibration_colors_moving.csv
 
 The calibration took three attempts: a 40 mm pair against a 38 mm scene,
 which put `y_mid` 6.4 % low and the illuminance 6.0 % high at 4.038e-02, then
