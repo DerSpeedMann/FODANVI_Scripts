@@ -39,20 +39,21 @@ noise columns are where it shows.
 One set per run, appended to one file, so the rows carry a `group` column to
 plot or tabulate against each other.
 
-    cd <the folder holding datasets/>
-    $A = "FODANVI_Scripts\src\Processing\AnalyzeNVG.py"
-    $OUT = "FODANVI_Scripts\data\day2night\nvg_stats.csv"
+From the repository root:
 
-    python $A datasets\real_nvg\images\val\*.jpg `
-        --label real --csv $OUT
+    $A = "src\Processing\AnalyzeNVG.py"
+    $OUT = "data\day2night\nvg_stats.csv"
 
-    python $A datasets\coco_nvg_green_clean\images\train2017\*.jpg `
-        --label green_clean --csv $OUT --append
+    python $A data\datasets\real_nvg\images\val\*.jpg `
+        --label real_dataset --csv $OUT --append
+
+    python $A data\datasets\coco_nvg_green_clean\images\val2017\*.jpg `
+        --label coco_green_clean --sample 200 --csv $OUT --append
 
 The script globs its own arguments, so a bare wildcard works and
 `Get-ChildItem` is not needed. That cuts both ways: the COCO folders hold
-tens of thousands of images and a bare wildcard takes them all. Point it at a
-subset unless the whole set is wanted.
+thousands of images and a bare wildcard takes them all, so the conversions
+are measured on `--sample 200` (seed `--seed`, default 0).
 
 `--append` adds to an existing file and creates one with a header if it is
 absent, saying which it did. `--per-image` prints every row instead of the
@@ -80,12 +81,11 @@ camera behind the eyepiece. There is no setup white, as the capture pipeline
 was only run with the green device. `BuildDay2NightDatasets.py` in the
 repository root builds the `nvg2` sets from setup green and selected white.
 
-    cd data/day2night
-    $A = "../../src/Processing/AnalyzeNVG.py"
-    python $A "real_green/*" --config nvg_config_selected_green.json --config-color green --no-plot
-    python $A "real_white/*" --config nvg_config_selected_white.json --config-color white --no-plot
-    python $A "../datasets/real_nvg/images/val/*.jpg" --label real_dataset `
-        --config nvg_config_setup_green.json --config-color green --no-plot
+    $D = "data\day2night"
+    python $A "$D\real_green\*" --config $D\nvg_config_selected_green.json --config-color green --no-plot
+    python $A "$D\real_white\*" --config $D\nvg_config_selected_white.json --config-color white --no-plot
+    python $A "data\datasets\real_nvg\images\val\*.jpg" --label real_dataset `
+        --config $D\nvg_config_setup_green.json --config-color green --no-plot
 
 Two values are not usable as written. Selected white grain is NaN: it is read
 from the band below 0.3, where none of the five white photographs has enough
@@ -93,15 +93,16 @@ pixels. Setup green vignette is 1.0, the lower bound of the solver: the
 evaluation captures read 0.956 edge over center, flatter than any setting
 produces.
 
-Eleven of them, 1676 rows. The `real_*` groups are the measurements
-everything else is scored against; the rest are conversions of COCO, sampled
-at 200 images each with `--sample 200`.
+The csv holds twelve groups. The `real_*` groups are the measurements
+everything else is scored against; the `coco_*` ones are conversions of
+COCO, sampled at 200 images each with `--sample 200`.
 
 | group | n | what it is |
 | --- | --- | --- |
 | `real_green` | 5 | green phosphor photographs, the green target |
 | `real_white` | 5 | white phosphor photographs, the white target |
 | `real_dataset` | 66 | the captures the models are scored on |
+| `real_nvg_white` | 66 | the same captures in the white phosphor tint (`real_nvg_white`) |
 | `coco_green_clean`, `coco_green_noisy` | 200 each | v1 conversion, `GenerateNVG.py` |
 | `coco_white_clean`, `coco_white_noisy` | 200 each | the same, white |
 | `coco_nvg2_green`, `coco_nvg2_green_clean` | 200 each | v2 conversion, `GenerateNVGv2.py` |
@@ -199,13 +200,11 @@ with. Measured the way the profile itself is, by writing a config from the
 built set, on a random 200 images of each (`--sample 200`, seed 0), and read
 off its `grain_profile`:
 
-    cd data
-    $A = "../src/Processing/AnalyzeNVG.py"
-    python $A "datasets/coco_nvg_captures_green_noisy/images/val2017/*.jpg" --label captures_green_noisy `
+    python $A "data/datasets/coco_nvg_captures_green_noisy/images/val2017/*.jpg" --label captures_green_noisy `
         --sample 200 --no-plot --config $env:TEMP/captures_green_noisy.json --config-color green
-    python $A "datasets/coco_nvg2_green_noisy/images/val2017/*.jpg" --label nvg2_green_noisy `
+    python $A "data/datasets/coco_nvg2_green_noisy/images/val2017/*.jpg" --label nvg2_green_noisy `
         --sample 200 --no-plot --config $env:TEMP/nvg2_green_noisy.json --config-color green
-    python $A "datasets/coco_nvg2_white_noisy/images/val2017/*.jpg" --label nvg2_white_noisy `
+    python $A "data/datasets/coco_nvg2_white_noisy/images/val2017/*.jpg" --label nvg2_white_noisy `
         --sample 200 --no-plot --config $env:TEMP/nvg2_white_noisy.json --config-color white
 
 The configs go to a temporary folder so the three in this folder stay as
