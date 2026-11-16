@@ -27,14 +27,18 @@
 
     An entry may name its "splits". The default, train and val, is the layout
     of the captures; a converted COCO set is laid out as train2017 and
-    val2017, and is given ["val2017"] alone, since the sweep scores the val
-    split and converting the training split would cost hours for nothing.
-    A set built without a training split points its train key at the val
-    split, because the validator requires the key to be there.
+    val2017 and names both. A set built without a training split points its
+    train key at the val split, because the validator requires the key to be
+    there.
+
+    Each split is checked on its own: one holding as many images and labels
+    as the source's is left alone, an incomplete one is cleared and built
+    again, and a dataset with every split complete is skipped. So a split
+    added to an entry later is built without redoing the others.
 
         .\BuildDatasets.ps1                        build what is missing
         .\BuildDatasets.ps1 -Only real_nvg_white   one of them
-        .\BuildDatasets.ps1 -Force                 rebuild even if present
+        .\BuildDatasets.ps1 -Force                 rebuild even if complete
         .\BuildDatasets.ps1 -WhatIf                list what would be built
 #>
 [CmdletBinding()]
@@ -104,24 +108,40 @@ foreach ($job in $targets) {
     $yaml = Join-Path $dsRoot "$name.yaml"
 
     if (-not (Test-Path $src)) { throw "missing source dataset: $src" }
-    if ((Test-Path $dst) -and -not $Force) {
-        Write-Host "skip  $name (exists)"; $skipped++; continue
-    }
-    if ($WhatIf) {
-        Write-Host "would build  $name = $($job.Source) + $($job.Steps -join ' + ')"
-        continue
-    }
-    if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
 
-    Write-Host "build $name  ($($job.Steps -join ' -> '))"
-    $stage = Join-Path $dst ".stage"
+    # A split is complete when it holds as many images and labels as the
+    # source's. Only the incomplete ones are built, so a split added to an
+    # entry later is built without redoing the others, and a split left
+    # half-written by an interrupted run is built again from scratch.
+    $todo = @()
     foreach ($split in $job.Splits) {
         $srcImg = Join-Path $src "images\$split"
-        if (-not (Test-Path $srcImg)) { continue }
-        if (-not (Get-ChildItem $srcImg -File -EA SilentlyContinue)) { continue }
+        $nSrc = @(Get-ChildItem $srcImg -File -EA SilentlyContinue).Count
+        if (-not $nSrc) { continue }
+        $nSrcLbl = @(Get-ChildItem (Join-Path $src "labels\$split") -File -Filter *.txt -EA SilentlyContinue).Count
+        $nImg = @(Get-ChildItem (Join-Path $dst "images\$split") -File -EA SilentlyContinue).Count
+        $nLbl = @(Get-ChildItem (Join-Path $dst "labels\$split") -File -Filter *.txt -EA SilentlyContinue).Count
+        if ($Force -or $nImg -ne $nSrc -or $nLbl -ne $nSrcLbl) { $todo += $split }
+    }
+    if (-not $todo) {
+        Write-Host "skip  $name (complete)"; $skipped++; continue
+    }
+    if ($WhatIf) {
+        Write-Host "would build  $name [$($todo -join ', ')] = $($job.Source) + $($job.Steps -join ' + ')"
+        continue
+    }
+    if ($Force -and (Test-Path $dst)) { Remove-Item $dst -Recurse -Force }
+
+    Write-Host "build $name [$($todo -join ', ')]  ($($job.Steps -join ' -> '))"
+    $stage = Join-Path $dst ".stage"
+    foreach ($split in $todo) {
+        $srcImg = Join-Path $src "images\$split"
 
         $dstImg = Join-Path $dst "images\$split"
         $dstLbl = Join-Path $dst "labels\$split"
+        foreach ($d in $dstImg, $dstLbl) {
+            if (Test-Path $d) { Remove-Item $d -Recurse -Force }
+        }
 
         # Each step reads the previous step's output. Only the last writes
         # into the dataset; the rest go to a staging folder that is removed,

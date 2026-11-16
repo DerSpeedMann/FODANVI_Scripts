@@ -858,6 +858,7 @@
     {
       "source": "coco_nvg2_green_noisy",
       "splits": [
+        "train2017",
         "val2017"
       ],
       "chains": [
@@ -869,6 +870,7 @@
     {
       "source": "coco_nvg2_white_noisy",
       "splits": [
+        "train2017",
         "val2017"
       ],
       "chains": [
