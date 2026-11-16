@@ -1,7 +1,7 @@
 # Models
 
-Nothing in this folder is versioned. Weight files are either downloaded from
-the release URLs below or produced by a fine-tuning run, so none of them is
+No weight in this folder is versioned. Weight files are either downloaded
+from the release URLs below or come with the project data, so none of them is
 ours to keep in history, and the pre-trained set alone is about 2 GB.
 `.gitignore` excludes `.pt`, `.pth`, `.onnx`, `.engine` and `.safetensors`
 everywhere, which also covers the checkpoints Ultralytics writes under
@@ -21,10 +21,8 @@ container.
 | RT-DETR extra large | `rtdetr-x.pt` | 135 MB | [ultralytics/assets v8.3.0](https://github.com/ultralytics/assets/releases/download/v8.3.0/rtdetr-x.pt) |
 | RF-DETR large | `rf-detr-large.pth` | 1572 MB | [storage.googleapis.com/rfdetr](https://storage.googleapis.com/rfdetr/rf-detr-large.pth) |
 
-Those five are the ones the thesis reports. `rtdetr-l.pt`, 66 MB, from the
-[same release](https://github.com/ultralytics/assets/releases/download/v8.3.0/rtdetr-l.pt),
-is used by one `yolo detect predict` example in the main Readme and by
-nothing else.
+Those five are the ones the thesis reports. `yolo11x.pt` is not in the
+sweep; it is kept for single runs against the COCO baseline.
 
 Run from the repository root:
 
@@ -79,28 +77,27 @@ fresh clone could not report a size until the whole set had been downloaded.
 
 ## Fine-tuned
 
-| File | Trained on | From |
-| --- | --- | --- |
-| `yolo11s_clean.pt` | `coco_nvg_clean.yaml` | `yolo11s.pt` |
-| `yolo11s_clean-noisy.pt` | `coco_nvg_noisy.yaml` | `yolo11s_clean.pt` |
+| File | Trained on | From | Stage in `train.json` |
+| --- | --- | --- | --- |
+| `yolo11s_clean.pt` | `coco_nvg_clean.yaml` | `yolo11s.pt` | `nvg_clean`, by hand |
+| `yolo11s_clean-noisy.pt` | `coco_nvg_noisy.yaml` | `yolo11s_clean.pt` | `nvg_clean-noisy`, by hand |
+| `yolo11s_nvg2_clean.pt` | `coco_nvg2_clean.yaml` | `yolo11s.pt` | `nvg2_clean` |
+| `yolo11s_nvg2_clean-noisy.pt` | `coco_nvg2_noisy.yaml` | `yolo11s_nvg2_clean.pt` | `nvg2_clean-noisy` |
 
-Both come from the capture archive, alongside the images; see the download
-section of the main Readme. They are not published upstream, so the archive
-is the only source, and nothing has to be trained to use them.
+All four are part of the project data download, see
+[`../README.md`](../README.md). They are not published upstream, so that
+download is the only source, and nothing has to be trained to use them.
 
-They are also the only copy that matters. Re-running the two
-`yolo detect train` commands in the main Readme gives new weights rather
-than these, because `coco_nvg_green_clean/images/train2017` now holds about
-35 000 frames where each of its three siblings holds roughly 118 000, so
-`coco_nvg_clean.yaml` no longer reads the set these were trained on. The
-commands stay in the Readme as the record of how the published weights were
-made.
+They are also the only copy that matters. Training again gives new weights
+rather than these. For the two v1 files it cannot even read the same data:
+the `coco_nvg_*` sets they were trained on came partly from earlier
+revisions of `GenerateNVG.py`, and rebuilding them with the frozen script
+gives complete sets, not the original ones. The commands stay in the main
+Readme as the record of how they were made.
 
-That affects training only. The validation splits are complete at 5 000
-each, so every reported number recomputes from the five downloads above
-plus these two files.
+That affects training only. Every reported number recomputes from the five
+downloads above plus these four files.
 
-Ultralytics writes checkpoints to `data/runs/<name>/weights/best.pt`. A
-model trained here has to be copied into this folder under one of the names
-above, because the validation commands read `/models` rather than the run
-folder.
+Training here is described under Fine-tuning in the main
+[Readme](../../Readme.md#fine-tuning); `RunTrain.ps1` exports each stage
+into this folder under the name above.
