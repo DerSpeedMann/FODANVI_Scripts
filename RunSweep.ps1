@@ -1,7 +1,7 @@
 <#
     RunSweep.ps1
 
-    Score every model in configs/sweep.json against every dataset in it, one
+    Score every model in sweep.json against every dataset in it, one
     docker run each, into a result folder named for the pair.
 
     Run names are val_<model>_<dataset>, so data/runs/val_yolo12x_green_noisy
