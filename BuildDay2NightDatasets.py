@@ -18,7 +18,7 @@ command, so a fresh clone with COCO in place can regenerate all of them.
         coco_nvg_captures_green_noisy   green from nvg_config_setup_green.json
         coco_nvg_captures_green_clean   (the 66 evaluation captures)
         coco_nvg2_green_grain           as the clean sets, with the grain on
-        coco_nvg2_white_grain           (validation only, for the denoising)
+        coco_nvg2_white_grain           (val2017 only)
 
 Named like the v1 sets: _noisy carries grain, blur, bloom and vignette,
 _clean has all four off.
@@ -27,8 +27,11 @@ The nvg2 sets are the fine-tuning data of the v2 chain, both phosphors measured
 on the handpicked references, so that no statistic of the 66 evaluation
 captures reaches the training data; coco_nvg2_clean.yaml and
 coco_nvg2_noisy.yaml pair green with white for the two stages. The captures
-set is matched to the camera path the models are scored on and is for
-validation only; its train split is never needed. See
+set is matched to the camera path the models are scored on and is not
+trained on, but is built whole, both splits, like the training sets. The
+grain sets are the exception: they exist only to measure the denoising, no
+model is trained on them or on anything derived from them, so only val2017
+is built and their train2017 would be 118k images of unused space. See
 data/day2night/README.md for how the configs were measured.
 
 Each clean variant disables grain, blur, bloom and vignette and nothing else,
@@ -53,16 +56,15 @@ BuildDatasets.ps1 is not used here because it iterates images/train and
 images/val, while COCO carries train2017 and val2017; pointed at COCO it finds
 neither split and writes an empty dataset.
 
-Resumable. A split whose output already holds as many images as its source is
-left alone, so an interrupted run continues where it stopped. Pass --force to
-rebuild one anyway. The validation split is all the sweep scores; train2017
-is only needed to fine-tune, and takes most of the time.
+Resumable. A split is complete when its output holds as many images and as
+many labels as its source; a complete split is left alone, so an interrupted
+run continues where it stopped. A split whose images are all there but whose
+labels are not has its labels copied again without converting anything.
+Pass --force to rebuild one anyway. train2017 takes most of the time.
 
     python BuildDay2NightDatasets.py                       all twelve, both splits
-    python BuildDay2NightDatasets.py --splits val2017      all twelve, val only
-    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  the v2 training four
-    python BuildDay2NightDatasets.py --only "coco_nvg_captures_*" --splits val2017
-    python BuildDay2NightDatasets.py --only "coco_nvg2_*_grain" --splits val2017
+    python BuildDay2NightDatasets.py --only "coco_nvg2_*"  a subset by glob
+    python BuildDay2NightDatasets.py --splits val2017      val first, train later
     python BuildDay2NightDatasets.py --dry-run
 """
 
@@ -91,6 +93,10 @@ CLEAN = ["--noise-intensity", "0", "--blur-amount", "0",
          "--bloom-intensity", "0", "--vignette-intensity", "0"]
 # The same with the grain left on.
 GRAIN = CLEAN[2:]
+
+# Sets built for scoring only, whose train split is never read: no model is
+# trained on them or on a variant of them. --splits is narrowed to val2017.
+VAL_ONLY = {"coco_nvg2_green_grain", "coco_nvg2_white_grain"}
 
 # name -> (generator, color, config or None, suffix the generator appends,
 #          extra arguments)
@@ -163,6 +169,10 @@ def write_yaml(name: str) -> None:
     if f"  - {name}/images/" not in body:
         raise SystemExit(f"{SOURCE}.yaml names no {SOURCE}/images/ folder "
                          "to point at the new set")
+    if name in VAL_ONLY:
+        # No train split is built; the validator still wants the key.
+        body = body.replace(f"  - {name}/images/train2017",
+                            f"  - {name}/images/val2017")
 
     if script == V1:
         header = V1_HEADER
@@ -175,6 +185,20 @@ def write_yaml(name: str) -> None:
     print(f"  wrote {name}.yaml")
 
 
+def copy_labels(src_lbl: Path, out_lbl: Path, suffix: str, split: str) -> None:
+    """Copy the source's labels with the suffix, and fail unless every one
+    arrived: a missing label scores its image as background, silently."""
+    if not src_lbl.is_dir():
+        return
+    out_lbl.mkdir(parents=True, exist_ok=True)
+    run([str(PROC / "CopyFilesWithSuffix.py"), str(src_lbl), str(out_lbl),
+         suffix])
+    got, want = count(out_lbl), count(src_lbl)
+    print(f"  {split}: {got}/{want} labels")
+    if got < want:
+        raise SystemExit(f"{out_lbl}: {want - got} label(s) missing after the copy")
+
+
 def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
     script, color, config, suffix, extra = VARIANTS[name]
     dst = DATASETS / name
@@ -185,6 +209,8 @@ def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
     print(f"\n=== {name}  ({script}, {color}"
           f"{', ' + config if config else ''}, "
           f"{LABELS.get(id(extra), 'full')}) ===")
+    if name in VAL_ONLY:
+        splits = [s for s in splits if s.startswith("val")]
     for split in splits:
         src_img = DATASETS / SOURCE / "images" / split
         if not src_img.is_dir():
@@ -193,8 +219,20 @@ def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
         want = count(src_img)
         out_img = dst / "images" / split
         have = count(out_img)
+        src_lbl = DATASETS / SOURCE / "labels" / split
+        out_lbl = dst / "labels" / split
+        want_lbl, have_lbl = count(src_lbl), count(out_lbl)
+        if have >= want and have_lbl >= want_lbl and not force:
+            print(f"  {split}: {have}/{want} images, {have_lbl}/{want_lbl} "
+                  "labels already there, skipped")
+            continue
         if have >= want and not force:
-            print(f"  {split}: {have}/{want} already there, skipped")
+            # Images complete, labels short: an interrupted or partial label
+            # copy, which converting again would not repair.
+            if dry:
+                print(f"  {split}: would copy labels, {have_lbl}/{want_lbl} there")
+                continue
+            copy_labels(src_lbl, out_lbl, suffix, split)
             continue
         if dry:
             print(f"  {split}: would convert {want} images "
@@ -216,13 +254,7 @@ def build(name: str, splits: list[str], force: bool, dry: bool) -> None:
         got = count(out_img)
         print(f"  {split}: {got} images in {time.time() - t0:.0f}s")
 
-        src_lbl = DATASETS / SOURCE / "labels" / split
-        if src_lbl.is_dir():
-            out_lbl = dst / "labels" / split
-            out_lbl.mkdir(parents=True, exist_ok=True)
-            run([str(PROC / "CopyFilesWithSuffix.py"), str(src_lbl),
-                 str(out_lbl), suffix])
-            print(f"  {split}: {count(out_lbl)} labels")
+        copy_labels(src_lbl, out_lbl, suffix, split)
 
     if dry:
         print(f"  would write {name}.yaml")

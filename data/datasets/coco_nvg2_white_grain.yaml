@@ -5,7 +5,7 @@
 # _nvg2_white suffix, as the earlier converted COCO sets do.
 path: /datasets
 train:
-  - coco_nvg2_white_grain/images/train2017
+  - coco_nvg2_white_grain/images/val2017
 
 val:
   - coco_nvg2_white_grain/images/val2017
