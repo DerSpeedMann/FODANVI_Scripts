@@ -1013,11 +1013,25 @@
     },
     {
       "prefix": "color",
-      "kind": "panels",
+      "kind": "nested",
       "panels": [
         {"title": "COCO, captures, grayscale and white tint", "datasets": "coco,real_nvg,real_nvg_grayscale,real_nvg_white"},
         {"title": "Red variants of the captures", "datasets": "real_nvg_red_light,real_nvg_red_dark,real_nvg_red_swap"}
       ],
+      "slots": [
+        ["rf-detr-large"],
+        ["rtdetr-x"],
+        ["yolo12x"],
+        ["yolo11s"],
+        ["yolo11s_clean", "yolo11s_clean-noisy"],
+        ["yolo11s_nvg2_clean", "yolo11s_nvg2_clean-noisy"]
+      ],
+      "labels": {
+        "yolo11s_clean": "v1 clean",
+        "yolo11s_clean-noisy": "v1 clean-noisy",
+        "yolo11s_nvg2_clean": "v2 clean",
+        "yolo11s_nvg2_clean-noisy": "v2 clean-noisy"
+      },
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",
@@ -1043,7 +1057,7 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "all eight models on the color variants of the captures, each in the color of the pre-trained and finetune_v1v2 plots, the clean stage of each chain hatched"
+      "describe": "all eight models on the color variants of the captures, each in the color of the pre-trained and finetune_v1v2 plots; nested bars as in finetune_v1v2, each chain in one slot, clean stage the wide light bar, clean-noisy stage the narrow one inside it"
     },
     {
       "prefix": "preprocess_best",
@@ -1157,11 +1171,25 @@
     },
     {
       "prefix": "denoise_change",
-      "kind": "panels",
+      "kind": "nested",
       "panels": [
         {"title": "Green", "datasets": "green grain only,green noisy,green captures"},
         {"title": "White", "datasets": "white grain only,white noisy,white phosphor tint"}
       ],
+      "slots": [
+        ["rf-detr-large"],
+        ["rtdetr-x"],
+        ["yolo12x"],
+        ["yolo11s"],
+        ["yolo11s_clean", "yolo11s_clean-noisy"],
+        ["yolo11s_nvg2_clean", "yolo11s_nvg2_clean-noisy"]
+      ],
+      "labels": {
+        "yolo11s_clean": "v1 clean",
+        "yolo11s_clean-noisy": "v1 clean-noisy",
+        "yolo11s_nvg2_clean": "v2 clean",
+        "yolo11s_nvg2_clean-noisy": "v2 clean-noisy"
+      },
       "models": "rf-detr-large,rtdetr-x,yolo12x,yolo11s,yolo11s_clean,yolo11s_clean-noisy,yolo11s_nvg2_clean,yolo11s_nvg2_clean-noisy",
       "colors": [
         "#1f77b4",
@@ -1195,7 +1223,7 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "change denoising at h 80, window 3/9 brings on the measured-conversion grain-only and noisy sets against the change it brings on the captures, green then white; models, colors and styles as in the color plot",
+      "describe": "change denoising at h 80, window 3/9 brings on the measured-conversion grain-only and noisy sets against the change it brings on the captures, green then white; models, colors and nested slots as in the color plot",
       "width": 6.5
     },
     {
