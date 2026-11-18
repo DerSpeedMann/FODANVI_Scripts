@@ -38,7 +38,7 @@ One figure per selection and metric:
                            one column per model, each cell colored and
                            labeled with its figure; "panels" groups the rows,
                            with a rule between groups; a figure that can be
-                           negative (a gain or change) gets a diverging scale
+                           negative (a difference or change) gets a diverging scale
                            centered on zero
 
 Models and datasets appear in the order of the patterns that pick them, so a
@@ -47,7 +47,7 @@ gives the bars their colors in that order, which is how a comparison such as
 v1 against v2 of one stage gets one hue in two shades. A lines plot also
 takes "width" in inches, so a figure meant for a page can be drawn narrow,
 and "baseline", a model whose figure is subtracted from every other model's
-on the same dataset, so the lines show the gain over it; the baseline must
+on the same dataset, so the lines show the difference from it; the baseline must
 be among the plot's models and is not drawn itself. A plot with "pairs"
 instead of "datasets" draws, per pair of a label, a "dataset" and the dataset
 it is taken against ("minus"), each model's difference between the two, with
@@ -230,7 +230,7 @@ def plot_lines(rows: List[dict], metric: str, path: Path,
     the next.
 
     change, when given, says what the figures are a change of, such as
-    "gain over yolo11s" (see against) or "change from denoising" (see
+    "difference from yolo11s" (see against) or "change from denoising" (see
     draw_pairs): the axis says so and a line marks zero.
     """
     import matplotlib
@@ -442,13 +442,13 @@ def plot_heatmap(rows: List[dict], metric: str, path: Path,
     """One row per dataset, one column per model, each cell colored and
     labeled with the model's figure on that dataset.
 
-    For a figure set too large for bars, such as a gain over a baseline on
+    For a figure set too large for bars, such as a difference from a baseline on
     every dataset: every value stays readable as a number, the color only
     guides the eye. panels, as in plot_panels, sets the rows and their
     order, a rule between one panel's rows and the next; without panels,
     the datasets in the order listed. Where a figure can be negative (with
     change, or when any value is), the scale diverges from zero, blue for a
-    gain and red for a loss; otherwise it runs over the range shown.
+    rise and red for a drop; otherwise it runs over the range shown.
     labels names a model's column in place of its run name.
 
     With more models than datasets, the grid turns: one row per model and
@@ -536,7 +536,7 @@ def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
          slots: Optional[List[List[str]]] = None,
          labels: Optional[Dict[str, str]] = None) -> List[Path]:
     """The figure for a selection, limited to the sweep. Returns what was
-    written. With a baseline, each model is drawn as its gain over it;
+    written. With a baseline, each model is drawn as its difference from it;
     change labels rows that already hold a change (see draw_pairs);
     panels splits a "panels" or "nested" plot and groups the rows of a
     "heatmap"; slots pairs the models of a "nested" plot (see
@@ -544,7 +544,7 @@ def draw(rows: List[dict], metric: str, out: Path, prefix: str = "",
     rows = in_sweep(rows, sweep)
     if baseline:
         rows = against(rows, baseline, metric)
-        change = f"gain over {baseline}"
+        change = f"difference from {baseline}"
     out.mkdir(parents=True, exist_ok=True)
     tag = f"{prefix}_" if prefix else ""
     path = out / f"{tag}{kind}_{metric}.png"

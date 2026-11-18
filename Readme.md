@@ -512,7 +512,7 @@ An entry can also carry:
     "kind": "heatmap"      one row per dataset, one column per model, each
                            cell colored and labeled with its figure,
                            <prefix>_heatmap_<metric>.png; "panels" groups the
-                           rows with a rule between groups; a gain or change
+                           rows with a rule between groups; a difference or change
                            gets a blue-red scale centered on zero; with more
                            models than datasets the grid turns, one row per
                            model, the rules then vertical
@@ -530,7 +530,7 @@ An entry can also carry:
     ]                                              is printed
     "baseline": "yolo11s"  a model whose figure is subtracted from every other
                            model's on the same dataset, so the plot shows the
-                           gain over it; it must be among the plot's models
+                           difference from it; it must be among the plot's models
                            and is not drawn itself
     "pairs": [             in place of "datasets": each point a model's
       {"label": "...",     figure on "dataset" minus its figure on "minus";

@@ -985,7 +985,7 @@
       "width": 6.5
     },
     {
-      "prefix": "finetune_gain",
+      "prefix": "finetune_difference",
       "kind": "heatmap",
       "panels": [
         {"title": "COCO and clean synthetic sets", "datasets": "coco,coco_nvg_green_clean,coco_nvg2_green_clean,coco_nvg_captures_green_clean,coco_nvg_white_clean,coco_nvg2_white_clean"},
@@ -1010,7 +1010,7 @@
       "metrics": [
         "map50_95"
       ],
-      "describe": "gain in mAP50-95 of the four fine-tuned models over the yolo11s they started from, on the datasets of finetune_v1v2 followed by the color variants of the captures; heatmap on a blue-red scale centered on zero, rows grouped COCO and clean, noisy, captures and their color variants",
+      "describe": "difference in mAP50-95 of the four fine-tuned models from the yolo11s they started from, on the datasets of finetune_v1v2 followed by the color variants of the captures; heatmap on a blue-red scale centered on zero, rows grouped COCO and clean, noisy, captures and their color variants",
       "width": 6.5
     },
     {
