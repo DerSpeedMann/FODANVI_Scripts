@@ -307,6 +307,55 @@ def auto_detect_all_limits(picam2, debug: bool = True) -> None:
 # CAMERA CLASS
 # ============================================================================
 
+_EXIF_MODEL = 0x0110
+_EXIF_DATETIME = 0x0132
+_EXIF_EXPOSURE_TIME = 0x829A
+_EXIF_DATETIME_ORIGINAL = 0x9003
+_EXIF_USER_COMMENT = 0x9286
+
+
+def build_exif(metadata: Optional[Dict], when: datetime,
+               properties: Optional[Dict] = None):
+    """
+    EXIF for a capture. None if PIL is missing, so the caller saves without.
+
+    No ISO: the sensor reports AnalogueGain, and an ISO speed is a
+    calibrated quantity that only a measurement against a known luminance
+    would give. The gain is in UserComment as itself.
+
+    Tags go in IFD0, not the Exif sub-IFD: Pillow accepts sub-IFD writes and
+    silently drops them on save (10.1.0).
+    """
+    try:
+        from fractions import Fraction
+        from PIL import Image as _Image      # module-level only with picamera2
+        from PIL.TiffImagePlugin import IFDRational
+    except Exception:
+        return None
+
+    def rational(value):
+        fr = Fraction(value).limit_denominator(1000000)
+        return IFDRational(fr.numerator, fr.denominator)
+
+    exif = _Image.Exif()
+    stamp = when.strftime("%Y:%m:%d %H:%M:%S")
+    exif[_EXIF_DATETIME] = stamp
+    exif[_EXIF_DATETIME_ORIGINAL] = stamp
+
+    if properties and properties.get("Model"):
+        exif[_EXIF_MODEL] = str(properties["Model"])
+
+    meta = metadata or {}
+    if meta.get("ExposureTime"):
+        exif[_EXIF_EXPOSURE_TIME] = rational(meta["ExposureTime"] / 1_000_000)
+    if meta:
+        try:
+            exif[_EXIF_USER_COMMENT] = json.dumps(meta, default=str)
+        except Exception:
+            pass
+    return exif
+
+
 class CameraCore:
     """
     Thread-safe camera singleton.
@@ -492,54 +541,6 @@ class CameraCore:
             return True, frame
         except Exception:
             return False, None
-
-_EXIF_MODEL = 0x0110
-_EXIF_DATETIME = 0x0132
-_EXIF_EXPOSURE_TIME = 0x829A
-_EXIF_DATETIME_ORIGINAL = 0x9003
-_EXIF_USER_COMMENT = 0x9286
-
-
-def build_exif(metadata: Optional[Dict], when: datetime,
-               properties: Optional[Dict] = None):
-    """
-    EXIF for a capture. None if PIL is missing, so the caller saves without.
-
-    No ISO: the sensor reports AnalogueGain, and an ISO speed is a
-    calibrated quantity that only a measurement against a known luminance
-    would give. The gain is in UserComment as itself.
-
-    Tags go in IFD0, not the Exif sub-IFD: Pillow accepts sub-IFD writes and
-    silently drops them on save (10.1.0).
-    """
-    try:
-        from fractions import Fraction
-        from PIL import Image as _Image      # module-level only with picamera2
-        from PIL.TiffImagePlugin import IFDRational
-    except Exception:
-        return None
-
-    def rational(value):
-        fr = Fraction(value).limit_denominator(1000000)
-        return IFDRational(fr.numerator, fr.denominator)
-
-    exif = _Image.Exif()
-    stamp = when.strftime("%Y:%m:%d %H:%M:%S")
-    exif[_EXIF_DATETIME] = stamp
-    exif[_EXIF_DATETIME_ORIGINAL] = stamp
-
-    if properties and properties.get("Model"):
-        exif[_EXIF_MODEL] = str(properties["Model"])
-
-    meta = metadata or {}
-    if meta.get("ExposureTime"):
-        exif[_EXIF_EXPOSURE_TIME] = rational(meta["ExposureTime"] / 1_000_000)
-    if meta:
-        try:
-            exif[_EXIF_USER_COMMENT] = json.dumps(meta, default=str)
-        except Exception:
-            pass
-    return exif
 
     def capture(self) -> Tuple[Optional[str], str]:
         """
