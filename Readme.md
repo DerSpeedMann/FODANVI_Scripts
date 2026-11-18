@@ -25,9 +25,10 @@ commands below.
 | - Scene illuminance, device gain and grain | `SceneLux*.py` | [`data/photometry/README.md`](data/photometry/README.md) |
 
 Steps 2, 3 and 6 are only needed to rebuild what is already versioned or
-downloaded: the annotations and the captured datasets come with the project
-data, the conversion configs are in `data/day2night/`, and the fine-tuned
-weights are a download.
+downloaded: the annotations are versioned and the captured datasets come
+with the project data, ready to use, so step 2 needs the captures from the
+same archive; the conversion configs are in `data/day2night/`, and the
+fine-tuned weights are a download.
 Reproducing the reported scores needs steps 1, 4, 5, 7 and 8.
 Every converted set is built whole, train2017 and val2017; the sweep scores
 val2017 only, so `--splits val2017` gets a sweep going before the training
@@ -48,6 +49,8 @@ a fresh clone runs nothing until three downloads are in place:
 - **COCO 2017**, the source of every converted set;
 - **the pre-trained weights** of the five detectors.
 
+The archive of the project data also holds **the captures**, the images as
+the cameras wrote them, needed only to prepare the datasets again (step 2).
 [`data/README.md`](data/README.md) has the links, where each goes, and what
 under `data/` is downloaded, generated or versioned. Everything else is
 built from these three by the steps below.
