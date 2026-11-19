@@ -1,0 +1,108 @@
+{
+  "resolution_width": 1920,
+  "resolution_height": 1080,
+  "camera_init_delay": 1.0,
+  "image_prefix": "capture",
+  "image_format": "jpg",
+  "jpeg_quality": 95,
+  "controls": {
+    "Brightness": {
+      "enabled": true,
+      "value": 0,
+      "min_val": null,
+      "max_val": null,
+      "step": 0.1
+    },
+    "Contrast": {
+      "enabled": true,
+      "value": 1,
+      "min_val": null,
+      "max_val": null,
+      "step": 0.1
+    },
+    "Saturation": {
+      "enabled": true,
+      "value": 1.0,
+      "min_val": null,
+      "max_val": null,
+      "step": 0.1
+    },
+    "Sharpness": {
+      "enabled": true,
+      "value": 1.0,
+      "min_val": null,
+      "max_val": null,
+      "step": 0.1
+    },
+    "ExposureValue": {
+      "enabled": true,
+      "value": 1,
+      "min_val": null,
+      "max_val": null,
+      "step": 0.5
+    },
+    "ExposureTime": {
+      "enabled": true,
+      "value": 449983,
+      "min_val": null,
+      "max_val": null,
+      "step": 10000
+    },
+    "AnalogueGain": {
+      "enabled": true,
+      "value": 2.0,
+      "min_val": null,
+      "max_val": null,
+      "step": 0.5
+    },
+    "DigitalGain": {
+      "enabled": true,
+      "value": 1.0,
+      "min_val": null,
+      "max_val": null,
+      "step": 0.25
+    },
+    "AeEnable": {
+      "enabled": true,
+      "value": 0,
+      "min_val": 0,
+      "max_val": 1,
+      "step": 1
+    },
+    "AwbEnable": {
+      "enabled": true,
+      "value": 0,
+      "min_val": 0,
+      "max_val": 1,
+      "step": 1
+    },
+    "AwbMode": {
+      "enabled": true,
+      "value": 0,
+      "min_val": 0,
+      "max_val": 7,
+      "step": 1
+    },
+    "ColourGains_Red": {
+      "enabled": true,
+      "value": 1.2709529399871826,
+      "min_val": 0.0,
+      "max_val": 8.0,
+      "step": 0.1
+    },
+    "ColourGains_Blue": {
+      "enabled": true,
+      "value": 1.4724421501159668,
+      "min_val": 0.0,
+      "max_val": 8.0,
+      "step": 0.1
+    },
+    "NoiseReductionMode": {
+      "enabled": true,
+      "value": 4,
+      "min_val": 0,
+      "max_val": 4,
+      "step": 1
+    }
+  }
+}

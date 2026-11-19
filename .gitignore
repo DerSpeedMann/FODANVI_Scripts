@@ -181,7 +181,9 @@ cython_debug/
 .cursorindexingignore
 *.jpg
 *.mp4
-/configs
+/configs/*
+!/configs/set1.json
+!/configs/moving_set.json
 /recorded_videos
 
 # No image under data/ is versioned, in any format, anywhere, with no

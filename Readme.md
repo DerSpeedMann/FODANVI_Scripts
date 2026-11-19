@@ -729,4 +729,6 @@ the records they write:
 `src/Capture/` (`CaptureImages.py`, `VideoStream.py`, `CameraFinder.py`,
 `CameraProbe.py`) and `picamera/` are the tools the captures were recorded
 with, on the capture hardware rather than here. Nothing above depends on
-them.
+them. `configs/` holds the capture set configurations of the two recorder
+sessions as the capture application wrote them: `set1.json` for the
+evaluation captures and `moving_set.json` for the moving car frames.
